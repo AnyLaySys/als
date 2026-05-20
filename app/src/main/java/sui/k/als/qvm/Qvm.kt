@@ -1,4 +1,4 @@
-package sui.k.als.vm.qvm
+package sui.k.als.qvm
 import android.content.*
 import android.view.*
 import android.view.inputmethod.*
@@ -20,6 +20,7 @@ import sui.k.als.R
 import sui.k.als.tty.*
 import sui.k.als.ui.*
 import java.io.*
+
 const val qvmDir = "$alsDir/app/qvm"
 data class QvmConfig(
     val name: String,
@@ -40,7 +41,9 @@ data class QvmConfig(
                 val x = json.optString("xres").toIntOrNull() ?: 1280
                 val y = json.optString("yres").toIntOrNull() ?: 720
                 x to y
-            } catch (_: Exception) { 1280 to 720 },
+            } catch (_: Exception) {
+                1280 to 720
+            },
             cdrom = mutableListOf<StorageDevice>().apply {
                 val arr = json.optJSONArray("cdrom") ?: return@apply
                 for (i in 0 until arr.length()) {
@@ -52,14 +55,27 @@ data class QvmConfig(
                 val arr = json.optJSONArray("disk") ?: return@apply
                 for (i in 0 until arr.length()) {
                     val o = arr.getJSONObject(i)
-                    add(StorageDevice(o.optString("path"), o.optString("index").toIntOrNull(), o.optString("cache", "unsafe")))
+                    add(
+                        StorageDevice(
+                            o.optString("path"),
+                            o.optString("index").toIntOrNull(),
+                            o.optString("cache", "unsafe")
+                        )
+                    )
                 }
             },
             network = mutableListOf<NetworkConfig>().apply {
                 val arr = json.optJSONArray("net") ?: return@apply
                 for (i in 0 until arr.length()) {
                     val o = arr.getJSONObject(i)
-                    add(NetworkConfig(o.optString("backend", "user"), o.optString("protocol", "tcp"), o.optString("ports", "2222-:22"), o.optString("device", "virtio-net-pci")))
+                    add(
+                        NetworkConfig(
+                            o.optString("backend", "user"),
+                            o.optString("protocol", "tcp"),
+                            o.optString("ports", "2222-:22"),
+                            o.optString("device", "virtio-net-pci")
+                        )
+                    )
                 }
             }
         )

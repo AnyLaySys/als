@@ -1,4 +1,4 @@
-package sui.k.als.vm
+package sui.k.als
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -41,7 +41,7 @@ fun ExpressiveCanvas(
                         iconTint = if (active) Color.White else Color.LightGray,
                         longClick = { onLongClick(i) }) { onIndexChange(i) }
                 }
-                ALSButton(sui.k.als.R.drawable.save) { onAction() }
+                ALSButton(R.drawable.save) { onAction() }
             }
             Surface(
                 modifier = Modifier

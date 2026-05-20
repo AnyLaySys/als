@@ -90,14 +90,14 @@ fun ALSList(
         else {
             Text(
                 text,
-                Modifier.weight(0.3f),
+                Modifier.weight(4f),
                 color = if (checked) Color.White else Color.Gray,
                 fontSize = 9.sp,
                 fontFamily = localFont.current,
                 maxLines = 1
             )
             value?.let { v ->
-                Box(Modifier.weight(0.7f), Alignment.CenterEnd) {
+                Box(Modifier.weight(6f), Alignment.CenterEnd) {
                     if (onValueChange != null) BasicTextField(
                         v,
                         onValueChange,

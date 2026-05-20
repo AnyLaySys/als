@@ -1,4 +1,4 @@
-package sui.k.als.vm.qvm
+package sui.k.als.qvm
 
 import androidx.compose.foundation.text.selection.*
 import androidx.compose.material3.*
@@ -39,8 +39,8 @@ object QvmCmd {
             elements.forEach { add(it) }
         }
         with(cmdArgs) {
-            add("LD_LIBRARY_PATH=$qvmDir/libs")
-            add("$qvmDir/qemu-system-aarch64")
+            add("LD_LIBRARY_PATH=${qvmDir}/libs")
+            add("${qvmDir}/qemu-system-aarch64")
             args("-M", "virt,confidential-guest-support=prot0", "-accel", "gunyah", "-cpu", "host")
             args("-smp", qvmCfg.smp, "-m", qvmCfg.mem)
             args("-object", "arm-confidential-guest,id=prot0,swiotlb-size=${qvmCfg.swiotlb}")
@@ -55,7 +55,7 @@ object QvmCmd {
                 if (qvmCfg.forcePrealloc) add("-mem-prealloc")
                 if (qvmCfg.lockMemory) args("-overcommit", "mem-lock=on")
             }
-            args("-bios", "$qvmDir/QEMU_EFI.fd", "-L", "$qvmDir/pc-bios")
+            args("-bios", "${qvmDir}/QEMU_EFI.fd", "-L", "${qvmDir}/pc-bios")
             qvmCfg.cdrom.forEachIndexed { i, cd ->
                 if (cd.path.isNotEmpty()) {
                     args("-drive", "file=\"${cd.path}\",if=none,id=dr_cd$i,format=raw,media=cdrom")

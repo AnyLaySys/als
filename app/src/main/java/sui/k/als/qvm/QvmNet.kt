@@ -1,4 +1,4 @@
-package sui.k.als.vm.qvm
+package sui.k.als.qvm
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.*

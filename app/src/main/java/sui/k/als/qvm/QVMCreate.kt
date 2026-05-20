@@ -1,9 +1,9 @@
-package sui.k.als.vm.qvm
+package sui.k.als.qvm
 import androidx.compose.runtime.*
 import org.json.*
 import sui.k.als.*
 import sui.k.als.R
-import sui.k.als.vm.*
+
 @Composable
 fun QvmCreate(config: QvmConfig? = null, onBack: () -> Unit) {
     val qvmMap = remember {
@@ -89,10 +89,30 @@ fun QvmCreate(config: QvmConfig? = null, onBack: () -> Unit) {
                 val x = qvmMap["xres"]?.toString()?.toInt() ?: 1280
                 val y = qvmMap["yres"]?.toString()?.toInt() ?: 720
                 x to y
-            } catch (_: Exception) { 1280 to 720 },
-            cdrom = cdroms.map { StorageDevice(it["path"]?.toString() ?: "", it["index"]?.toString()?.toIntOrNull()) },
-            disk = disks.map { StorageDevice(it["path"]?.toString() ?: "", it["index"]?.toString()?.toIntOrNull(), it["cache"]?.toString() ?: "unsafe") },
-            network = networks.map { NetworkConfig(it["backend"]?.toString() ?: "user", it["protocol"]?.toString() ?: "tcp", it["ports"]?.toString() ?: "2222-:22", it["device"]?.toString() ?: "virtio-net-pci") }
+            } catch (_: Exception) {
+                1280 to 720
+            },
+            cdrom = cdroms.map {
+                StorageDevice(
+                    it["path"]?.toString() ?: "",
+                    it["index"]?.toString()?.toIntOrNull()
+                )
+            },
+            disk = disks.map {
+                StorageDevice(
+                    it["path"]?.toString() ?: "",
+                    it["index"]?.toString()?.toIntOrNull(),
+                    it["cache"]?.toString() ?: "unsafe"
+                )
+            },
+            network = networks.map {
+                NetworkConfig(
+                    it["backend"]?.toString() ?: "user",
+                    it["protocol"]?.toString() ?: "tcp",
+                    it["ports"]?.toString() ?: "2222-:22",
+                    it["device"]?.toString() ?: "virtio-net-pci"
+                )
+            }
         )
     }
     val icons = remember(cdroms.size, disks.size, networks.size, qvmMap["audio"]) {
@@ -151,7 +171,9 @@ fun QvmCreate(config: QvmConfig? = null, onBack: () -> Unit) {
         val startAdd = startAudio + (if (qvmMap["audio"] == 1) 1 else 0)
         when (index) {
             in 0 until startCdrom -> when (index) {
-                0 -> QvmArchive(qvmMap); 1 -> QvmProcessor(qvmMap); else -> QvmMemory(qvmMap)
+                0 -> QvmArchive(qvmMap)
+                ; 1 -> QvmProcessor(qvmMap)
+                ; else -> QvmMemory(qvmMap)
             }
             in startCdrom until startDisk -> QvmCdrom(cdroms[index - startCdrom])
             in startDisk until startNetwork -> QvmDisk(disks[index - startDisk])

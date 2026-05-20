@@ -20,7 +20,6 @@ import sui.k.als.*
 import sui.k.als.R
 import sui.k.als.tty.*
 import sui.k.als.ui.*
-import sui.k.als.vm.*
 import java.io.*
 
 const val dssDir = "$alsDir/app/dss"
