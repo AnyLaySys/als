@@ -36,7 +36,7 @@ fun ALSButton(
             is Int -> Icon(
                 painterResource(icon), null, Modifier.size(iconSize), tint
             ); is ImageBitmap -> Image(icon, null, Modifier.size(iconSize)); is String -> Text(
-            icon, color = tint, fontSize = 12.sp, fontFamily = localFont.current
+            icon, color = tint, fontSize = 15.sp, fontFamily = localFont.current
         )
         }
     }

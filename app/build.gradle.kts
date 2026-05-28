@@ -9,8 +9,8 @@ android {
         applicationId = "sui.k.als"
         minSdk = 33
         targetSdk = 37
-        versionCode = 11
-        versionName = "26.5.12"
+        versionCode = 12
+        versionName = "26.6.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters.add("arm64-v8a")
