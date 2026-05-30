@@ -12,7 +12,6 @@ guavaListenableFuture = "9999.0-empty-to-avoid-conflict-with-guava"
 termuxApp = "v0.119.0-beta.3"
 uiUnit = "1.11.0"
 foundation = "1.11.0"
-soraEditor = "0.23.6"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -32,7 +31,6 @@ guava-listenablefuture = { group = "com.google.guava", name = "listenablefuture"
 termux-app = { module = "com.github.termux:termux-app", version.ref = "termuxApp" }
 androidx-compose-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnit" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
-sora-editor = { group = "io.github.Rosemoe.sora-editor", name = "editor", version.ref = "soraEditor" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

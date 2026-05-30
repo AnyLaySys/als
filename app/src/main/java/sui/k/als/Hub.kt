@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.unit.*
 import com.termux.terminal.*
 import kotlinx.coroutines.*
+import sui.k.als.qvm.*
 import sui.k.als.tty.*
 import sui.k.als.ui.*
 
@@ -30,7 +31,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
     var active by remember { mutableStateOf<TTYInstance?>(null) }
     var showTTY by remember { mutableStateOf(false) }
     var showTTYHub by remember { mutableStateOf(false) }
-    var showApp by remember { mutableStateOf(false) }
+    var showQvm by remember { mutableStateOf(false) }
     val close =
         { sessions.forEach { it.session.finishIfRunning() }; sessions = emptyList(); active = null }
     val create = {
@@ -49,7 +50,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
                     ?.showSoftInput(this, 0)
                 }
             }
-        }).also { scope.launch { delay(90); cmd(su); delay(90); cmd("$alsDir/app/ate") } }
+        }).also { instance -> scope.launch { delay(90); cmd(instance.session, shellQuote(su)); delay(90); cmd(instance.session, shellQuote("$alsDir/app/ate")) } }
         sessions = sessions + instance; active = instance; showTTY = true; showTTYHub = false
     }
     DisposableEffect(Unit) { onDispose(close) }
@@ -57,10 +58,10 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
         if (showTTY) {
             showTTY = false; showTTYHub = true
         } else {
-            showTTYHub = false; showApp = false
+            showTTYHub = false; showQvm = false
         }
     }
-    if (showApp) App() else if (showTTY) active?.let { TTYScreen(it) { TTYIME() } } else if (showTTYHub) TTYHub(
+    if (showQvm) Qvm { showQvm = false } else if (showTTY) active?.let { TTYScreen(it) { TTYIME() } } else if (showTTYHub) TTYHub(
         sessions,
         onSelect = { active = it; showTTY = true; showTTYHub = false },
         onDelete = { it.session.finishIfRunning() },
@@ -69,7 +70,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
         Modifier.fillMaxSize(), Alignment.Center
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-            ALSButton(R.drawable.arrow_forward) { showApp = true }
+            ALSButton(R.drawable.arrow_forward) { showQvm = true }
             ALSButton(R.drawable.terminal) {
                 if (sessions.isEmpty()) create() else showTTYHub = true
             }

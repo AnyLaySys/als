@@ -92,21 +92,26 @@ fun Qvm(onExit: () -> Unit) {
     var terminalInstance by remember { mutableStateOf<TTYInstance?>(null) }
     var showTerminal by remember { mutableStateOf(false) }
     var showQvmSplash by remember { mutableStateOf(false) }
-    fun refresh() = mutableListOf<QvmConfig>().apply {
+    fun loadConfigs() = mutableListOf<QvmConfig>().apply {
         File("$alsDir/app/qvm").takeIf { it.exists() }?.listFiles { it.isDirectory }
             ?.forEach { dir ->
                 File(dir, "${dir.name}.cfg").takeIf { it.exists() }?.let { file ->
                     runCatching {
                         val qvmMap = parseFlatConfigFile(file)
                         val vnc = qvmMap.optString("vnc_port").ifEmpty { ":0" }
-                        val isRunning = Runtime.getRuntime().exec(
-                            arrayOf(su, "-c", "ps -ef | grep qemu-system-aarch64 | grep \"vnc $vnc\" | grep -v grep")
-                        ).inputStream.bufferedReader().use { it.readText().trim().isNotEmpty() }
+                        val ps = Runtime.getRuntime().exec(arrayOf(su, "-c", "ps -ef"))
+                            .inputStream.bufferedReader().use { it.readText() }
+                        val isRunning = ps.lineSequence().any {
+                            it.contains("qemu-system-aarch64") && it.contains("vnc $vnc")
+                        }
                         add(QvmConfig(qvmMap.optString("name").ifEmpty { dir.name }, isRunning, qvmMap))
                     }
                 }
             }
-    }.also { configs = it }
+    }
+    suspend fun refresh() {
+        configs = withContext(Dispatchers.IO) { loadConfigs() }
+    }
     LaunchedEffect(Unit) {
         while (true) {
             refresh(); delay(3000)
@@ -126,8 +131,8 @@ fun Qvm(onExit: () -> Unit) {
                 if (showQvmSplash) Splash(instance = terminalInstance!!, onTimeout = { showQvmSplash = false })
                 else TTYScreen(terminalInstance!!) { TTYIME() }
             } else when {
-                editing != null -> QvmCreate(editing) { editing = null; refresh() }
-                isCreating -> QvmCreate(null) { isCreating = false; refresh() }
+                editing != null -> QvmCreate(editing) { editing = null; scope.launch { refresh() } }
+                isCreating -> QvmCreate(null) { isCreating = false; scope.launch { refresh() } }
                 else -> Column(Modifier.fillMaxSize()) {
                     Column(Modifier.weight(1f).padding(9.dp).verticalScroll(rememberScrollState())) {
                         configs.forEachIndexed { index, qvm ->
@@ -158,11 +163,11 @@ fun Qvm(onExit: () -> Unit) {
                                                         (context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(terminalInstance?.view, 0)
                                                     }
                                                 }).also {
-                                                    ttySession = it.session
                                                     scope.launch {
                                                         delay(90)
-                                                        cmd(su); cmd("VM_DIR=\"$alsDir/app/qvm/${qvm.name}\"")
-                                                        cmd(qvm.getCommand())
+                                                        cmd(it.session, shellQuote(su))
+                                                        cmd(it.session, "VM_DIR=${shellQuote("$alsDir/app/qvm/${qvm.name}")}")
+                                                        cmd(it.session, qvm.getCommand())
                                                     }
                                                 }
                                                 showQvmSplash = true

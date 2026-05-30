@@ -71,7 +71,6 @@ android {
 }
 dependencies {
     implementation(libs.androidx.compose.foundation)
-    implementation(libs.sora.editor)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

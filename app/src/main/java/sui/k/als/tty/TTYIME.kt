@@ -38,6 +38,7 @@ private val symbolMap =
 
 @Composable
 fun TTYIME() {
+    val session = LocalSession.current
     val rowHeight = 18.dp
     val isFull = IMEState.isFullKeyboardVisible
     val rows = if (!isFull) listOf(
@@ -70,6 +71,7 @@ fun TTYIME() {
                 ) {
                     row.forEach { label ->
                         KeyBase(
+                            session,
                             label,
                             if (isFull) when (label) {
                                 " " -> 3.9f; "Ctrl", "Alt", "Home", "End" -> 1.2f; else -> 1f
@@ -86,7 +88,11 @@ fun TTYIME() {
 
 @Composable
 private fun RowScope.KeyBase(
-    label: String, weight: Float, isModifier: Boolean = false, isControlKey: Boolean = false
+    session: com.termux.terminal.TerminalSession?,
+    label: String,
+    weight: Float,
+    isModifier: Boolean = false,
+    isControlKey: Boolean = false
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -139,8 +145,8 @@ private fun RowScope.KeyBase(
                     }
                 } else {
                     val repeatJob = scope.launch {
-                        processKey(label); delay(270); while (true) {
-                        processKey(label); delay(30)
+                        processKey(session, label); delay(270); while (true) {
+                        processKey(session, label); delay(30)
                     }
                     }
                     try {
@@ -176,8 +182,8 @@ private fun RowScope.KeyBase(
     }
 }
 
-private fun processKey(label: String) {
-    keyCodes[label]?.let { code -> sendToTTY(if (IMEState.isAltActive && label != "Alt") "\u001b$code" else code) }
+private fun processKey(session: com.termux.terminal.TerminalSession?, label: String) {
+    keyCodes[label]?.let { code -> sendToTTY(session, if (IMEState.isAltActive && label != "Alt") "\u001b$code" else code) }
         ?: run {
             val isUpperCase =
                 IMEState.isShiftActive || (IMEState.isCapsActive && label.length == 1 && label[0].isLetter())
@@ -185,8 +191,8 @@ private fun processKey(label: String) {
                 ?: label.uppercase()) else if (isUpperCase) label.uppercase() else label.lowercase(); if (IMEState.isCtrlActive && charText.length == 1) charText.uppercase()[0].let { char ->
             if (char in '@'..'_') charText = (char.code - '@'.code).toChar().toString()
         }
-            sendToTTY(if (IMEState.isAltActive) "\u001b$charText" else charText)
+            sendToTTY(session, if (IMEState.isAltActive) "\u001b$charText" else charText)
         }
 }
 
-private fun sendToTTY(data: String) = ttySession?.write(data)
+private fun sendToTTY(session: com.termux.terminal.TerminalSession?, data: String) = session?.write(data)

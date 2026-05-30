@@ -1,11 +1,13 @@
 package sui.k.als.qvm
 import androidx.compose.runtime.*
+import kotlinx.coroutines.*
 import org.json.*
 import sui.k.als.*
 import sui.k.als.R
 
 @Composable
 fun QvmCreate(config: QvmConfig? = null, onBack: () -> Unit) {
+    val scope = rememberCoroutineScope()
     val qvmMap = remember {
         mutableStateMapOf<String, Any>().apply {
             config?.raw?.let { raw -> raw.keys().forEach { key -> put(key, raw.get(key)) } }
@@ -143,25 +145,33 @@ fun QvmCreate(config: QvmConfig? = null, onBack: () -> Unit) {
             }
         },
         onAction = {
-            if (qvmMap["name"]?.toString()?.isBlank() != false) { activeIndex.intValue = 0; return@ExpressiveCanvas }
-            try {
-                val content = buildString {
-                    val base = listOf("name", "mem", "swiotlb", "smp", "xres", "yres", "vnc_port")
-                    base.forEach { k -> qvmMap[k]?.let { v -> append("$k:$v\n") } }
-                    append("audio:${if (qvmMap["audio"] == 1) 1 else 0}\n")
-                    append("prealloc:${if (qvmMap["prealloc"] == true) 1 else 0}\n")
-                    append("lock_memory:${if (qvmMap["lock_memory"] == true) 1 else 0}\n")
-                    cdroms.forEachIndexed { i, m -> m.forEach { (k, v) -> append("cdrom${i + 1}.$k:$v\n") } }
-                    disks.forEachIndexed { i, m -> m.forEach { (k, v) -> append("disk${i + 1}.$k:$v\n") } }
-                    networks.forEachIndexed { i, m -> m.forEach { (k, v) -> append("net${i + 1}.$k:$v\n") } }
-                }.trim()
-                val dir = "/data/local/tmp/als/app/qvm/${qvmMap["name"]}"
-                val cmd = "mkdir -p \"$dir\"\necho '${content.replace("'", "'\\''")}' > \"$dir/${qvmMap["name"]}.cfg\"\nexit\n"
-                val proc = Runtime.getRuntime().exec(su)
-                proc.outputStream.use { it.write(cmd.toByteArray(Charsets.UTF_8)); it.flush() }
-                proc.waitFor()
-                onBack()
-            } catch (_: Exception) {}
+            val name = qvmMap["name"]?.toString() ?: ""
+            if (!qvmNameRegex.matches(name)) { activeIndex.intValue = 0; return@ExpressiveCanvas }
+            val content = buildString {
+                val base = listOf("name", "mem", "swiotlb", "smp", "xres", "yres", "vnc_port")
+                base.forEach { k -> qvmMap[k]?.let { v -> append("$k:$v\n") } }
+                append("audio:${if (qvmMap["audio"] == 1) 1 else 0}\n")
+                append("prealloc:${if (qvmMap["prealloc"] == true) 1 else 0}\n")
+                append("lock_memory:${if (qvmMap["lock_memory"] == true) 1 else 0}\n")
+                cdroms.forEachIndexed { i, m -> m.forEach { (k, v) -> append("cdrom${i + 1}.$k:$v\n") } }
+                disks.forEachIndexed { i, m -> m.forEach { (k, v) -> append("disk${i + 1}.$k:$v\n") } }
+                networks.forEachIndexed { i, m -> m.forEach { (k, v) -> append("net${i + 1}.$k:$v\n") } }
+            }.trim()
+            scope.launch {
+                val saved = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val dir = "$alsDir/app/qvm/$name"
+                        val target = "$dir/$name.cfg"
+                        var delimiter = "ALS_CFG_${System.nanoTime()}"
+                        while (content.lineSequence().any { it == delimiter }) delimiter += "_"
+                        val cmd = "mkdir -p ${shellQuote(dir)}\ncat > ${shellQuote(target)} <<'$delimiter'\n$content\n$delimiter\nexit\n"
+                        val proc = Runtime.getRuntime().exec(su)
+                        proc.outputStream.use { it.write(cmd.toByteArray(Charsets.UTF_8)); it.flush() }
+                        proc.waitFor() == 0
+                    }.getOrDefault(false)
+                }
+                if (saved) onBack()
+            }
         }) { index ->
         val startCdrom = 3
         val startDisk = startCdrom + cdroms.size

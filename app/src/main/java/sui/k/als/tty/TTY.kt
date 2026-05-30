@@ -27,7 +27,6 @@ fun TTYScreen(instance: TTYInstance, content: @Composable () -> Unit = {}) {
     var imeHeightPx by remember { mutableIntStateOf(0) }
     val imePadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
     LaunchedEffect(instance) {
-        ttySession = instance.session
         instance.view.requestFocus()
         instance.view.onScreenUpdated()
     }

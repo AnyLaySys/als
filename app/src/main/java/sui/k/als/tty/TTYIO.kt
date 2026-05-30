@@ -4,7 +4,6 @@ import com.termux.terminal.*
 import java.util.concurrent.*
 
 internal val ttyIO = Executors.newSingleThreadExecutor()
-internal var ttySession: TerminalSession? = null
-fun cmd(command: String) {
-    ttyIO.execute { ttySession?.write("$command\n") }
+fun cmd(session: TerminalSession, command: String) {
+    ttyIO.execute { session.write("$command\n") }
 }

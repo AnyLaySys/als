@@ -51,12 +51,12 @@ fun Splash(
 
         showSuInput = false
         if (active == null) {
-            internalInstance = createTTYInstance(context, TTYSessionStub(), TTYViewStub())
-            ttySession = internalInstance?.session
+            val created = createTTYInstance(context, TTYSessionStub(), TTYViewStub())
+            internalInstance = created
             launch {
                 delay(90)
-                cmd(su)
-                cmd("clear")
+                cmd(created.session, shellQuote(su))
+                cmd(created.session, "clear")
             }
         }
         showIcon = true

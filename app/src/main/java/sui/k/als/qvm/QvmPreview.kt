@@ -32,6 +32,8 @@ data class NetworkConfig(
     val device: String = "virtio-net-pci"
 )
 
+val qvmNameRegex = Regex("[A-Za-z0-9._-]+")
+
 object QvmCmd {
     fun build(qvmCfg: QvmCfg): String {
         val cmdArgs = mutableListOf<String>()
@@ -39,7 +41,7 @@ object QvmCmd {
             elements.forEach { add(it) }
         }
         with(cmdArgs) {
-            add("LD_LIBRARY_PATH=${qvmDir}/libs")
+            add("LD_LIBRARY_PATH=${shellQuote("${qvmDir}/libs")}")
             add("${qvmDir}/qemu-system-aarch64")
             args("-M", "virt,confidential-guest-support=prot0", "-accel", "gunyah", "-cpu", "host")
             args("-smp", qvmCfg.smp, "-m", qvmCfg.mem)
@@ -58,18 +60,19 @@ object QvmCmd {
             args("-bios", "${qvmDir}/QEMU_EFI.fd", "-L", "${qvmDir}/pc-bios")
             qvmCfg.cdrom.forEachIndexed { i, cd ->
                 if (cd.path.isNotEmpty()) {
-                    args("-drive", "file=\"${cd.path}\",if=none,id=dr_cd$i,format=raw,media=cdrom")
+                    args("-drive", "file=${cd.path},if=none,id=dr_cd$i,format=raw,media=cdrom")
                     args("-device", "virtio-blk-pci,drive=dr_cd$i,bootindex=${cd.index ?: (i + 1)}")
                 }
             }
             qvmCfg.disk.forEachIndexed { i, d ->
                 if (d.path.isNotEmpty()) {
-                    args("-drive", "file=\"${d.path}\",if=none,id=dr_d$i,cache=${d.cache}")
+                    args("-drive", "file=${d.path},if=none,id=dr_d$i,cache=${d.cache}")
                     args("-device", "virtio-blk-pci,drive=dr_d$i,bootindex=${d.index ?: (i + 2)}")
                 }
             }
             qvmCfg.network.forEachIndexed { i, n ->
-                args("-netdev", "${n.backend},id=net$i,hostfwd=${n.protocol}::${n.ports}")
+                val netdev = if (n.backend == "user") "${n.backend},id=net$i,hostfwd=${n.protocol}::${n.ports}" else "${n.backend},id=net$i"
+                args("-netdev", netdev)
                 args("-device", "${n.device},netdev=net$i")
             }
             val gpu = qvmCfg.resolution?.let { "virtio-gpu-pci,xres=${it.first},yres=${it.second}" }
@@ -85,7 +88,9 @@ object QvmCmd {
             }
             args("-serial", "mon:stdio")
         }
-        return cmdArgs.joinToString(" ")
+        return cmdArgs.joinToString(" ") { arg ->
+            if (arg.startsWith("LD_LIBRARY_PATH=")) arg else shellQuote(arg)
+        }
     }
 }
 
