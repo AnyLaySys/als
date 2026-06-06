@@ -11,6 +11,7 @@ import androidx.compose.ui.*
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.text.*
+import androidx.compose.ui.text.font.*
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.window.*
@@ -31,92 +32,142 @@ fun ALSList(
     onClick: (String) -> Unit = {}
 ) {
     if (data is List<*> && show) {
-        Dialog(
-            onDismiss,
-            DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+        ALSListDialog(data, onDismiss, onClick)
+        return
+    }
+    val text = data?.toString().orEmpty()
+    val style = ALSListTextStyle()
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(28.dp)
+            .clickable(remember { MutableInteractionSource() }, null) { onClick(text) },
+        color = background?.copy(alpha = 0.22f) ?: Color(0xFF1B1B1F),
+        shape = ALSListShape(first, last)
+    ) {
+        Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (value == null && onValueChange != null) {
+                BasicTextField(
+                    value = text,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = style,
+                    cursorBrush = SolidColor(Color(0xFFA8C7FA))
+                )
+            } else {
+                Text(
+                    text,
+                    Modifier.weight(4f),
+                    color = if (checked) Color(0xFFE3E2E6) else Color(0xFF8E8E93),
+                    style = style,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                value?.let { ALSListValue(it, onValueChange, style) }
+                iconContent?.invoke(this)
+            }
+        }
+    }
+}
+
+@Composable
+fun Field(
+    label: String,
+    value: String,
+    options: List<String>,
+    first: Boolean = false,
+    last: Boolean = false,
+    onSelected: (String) -> Unit
+) {
+    var show by remember { mutableStateOf(false) }
+    ALSList(label, value = value, first = first, last = last, onClick = { show = true })
+    if (show) {
+        ALSList(data = options, show = true, onDismiss = { show = false }) {
+            onSelected(it)
+            show = false
+        }
+    }
+}
+
+@Composable
+private fun ALSListDialog(items: List<*>, onDismiss: () -> Unit, onClick: (String) -> Unit) {
+    Dialog(onDismiss, DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clickable(remember { MutableInteractionSource() }, null) { onDismiss() },
+            Alignment.Center
         ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .clickable(remember { MutableInteractionSource() }, null) { onDismiss() },
-                Alignment.Center
+            val maxHeight = with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * 0.9f).toDp() }
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .heightIn(max = maxHeight)
+                    .padding(8.dp)
+                    .clickable(enabled = false) {},
+                color = Color(0xFF1B1B1F),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                val height =
-                    with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * 0.9f).toDp() }
                 Column(
                     Modifier
-                        .fillMaxWidth(0.9f)
-                        .heightIn(max = height)
-                        .padding(3.dp)
-                        .graphicsLayer { shape = RoundedCornerShape(3.dp); clip = true }
-                        .background(Color(0xFF222222))
-                        .clickable(enabled = false) {}
-                        .verticalScroll(rememberScrollState())) {
-                    data.forEachIndexed { i, item ->
+                        .padding(4.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    items.forEachIndexed { index, item ->
                         ALSList(
                             item,
-                            first = i == 0,
-                            last = i == data.size - 1,
-                            onClick = { s -> onClick(s); onDismiss() })
+                            first = index == 0,
+                            last = index == items.lastIndex,
+                            onClick = {
+                                onClick(it)
+                                onDismiss()
+                            }
+                        )
                     }
                 }
             }
         }
-        return
     }
-    val text = (data as? String) ?: data?.toString() ?: ""
-    val shape = RoundedCornerShape(
-        topStart = if (first) 3.dp else 0.dp,
-        topEnd = if (first) 3.dp else 0.dp,
-        bottomStart = if (last) 3.dp else 0.dp,
-        bottomEnd = if (last) 3.dp else 0.dp
-    )
-    val style = TextStyle(fontSize = 9.sp, color = Color.White, fontFamily = localFont.current)
-    Row(Modifier
-        .fillMaxWidth()
-        .height(24.dp)
-        .graphicsLayer { this.shape = shape; clip = true }
-        .background(background ?: Color(0xFF1A1A1A))
-        .clickable(remember { MutableInteractionSource() }, null) { onClick(text) }
-        .padding(horizontal = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (value == null && onValueChange != null) BasicTextField(
-            text,
-            onValueChange,
-            Modifier.fillMaxWidth(),
-            singleLine = true,
-            textStyle = style,
-            cursorBrush = SolidColor(Color.White)
-        )
-        else {
-            Text(
-                text,
-                Modifier.weight(4f),
-                color = if (checked) Color.White else Color.Gray,
-                fontSize = 9.sp,
-                fontFamily = localFont.current,
-                maxLines = 1
+}
+
+@Composable
+private fun RowScope.ALSListValue(value: String, onValueChange: ((String) -> Unit)?, style: TextStyle) {
+    Box(Modifier.weight(6f), Alignment.CenterEnd) {
+        if (onValueChange != null) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                textStyle = style.copy(textAlign = TextAlign.End, color = Color.White),
+                cursorBrush = SolidColor(Color(0xFFA8C7FA))
             )
-            value?.let { v ->
-                Box(Modifier.weight(6f), Alignment.CenterEnd) {
-                    if (onValueChange != null) BasicTextField(
-                        v,
-                        onValueChange,
-                        Modifier.fillMaxWidth(),
-                        true,
-                        textStyle = style.copy(textAlign = TextAlign.End),
-                        cursorBrush = SolidColor(Color.White)
-                    )
-                    else Text(
-                        v,
-                        color = Color(0xFFE0E0E0),
-                        fontSize = 9.sp,
-                        textAlign = TextAlign.End,
-                        fontFamily = localFont.current,
-                        maxLines = 1
-                    )
-                }
-            }
-            iconContent?.invoke(this)
+        } else {
+            Text(
+                value,
+                color = Color(0xFFC7C6CA),
+                style = style,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
+
+@Composable
+private fun ALSListTextStyle() = TextStyle(
+    fontSize = 10.sp,
+    color = Color.White,
+    fontFamily = localFont.current,
+    fontWeight = FontWeight.Medium
+)
+
+private fun ALSListShape(first: Boolean, last: Boolean) = RoundedCornerShape(
+    topStart = if (first) 10.dp else 3.dp,
+    topEnd = if (first) 10.dp else 3.dp,
+    bottomStart = if (last) 10.dp else 3.dp,
+    bottomEnd = if (last) 10.dp else 3.dp
+)

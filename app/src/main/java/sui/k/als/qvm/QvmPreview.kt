@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.*
 import sui.k.als.*
 
 data class QvmCfg(
-    val smp: String = "4",
+    val smp: String = qvmHostProcessorCount(),
     val mem: String = "6G",
     val swiotlb: String = "64M",
     val prealloc: Boolean = false,
@@ -71,7 +71,8 @@ object QvmCmd {
                 }
             }
             qvmCfg.network.forEachIndexed { i, n ->
-                val netdev = if (n.backend == "user") "${n.backend},id=net$i,hostfwd=${n.protocol}::${n.ports}" else "${n.backend},id=net$i"
+                val netdev =
+                    if (n.backend == "user") "${n.backend},id=net$i,hostfwd=${n.protocol}::${n.ports}" else "${n.backend},id=net$i"
                 args("-netdev", netdev)
                 args("-device", "${n.device},netdev=net$i")
             }
