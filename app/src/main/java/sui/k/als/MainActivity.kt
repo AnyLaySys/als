@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
                 runCatching {
                     FontFamily(
                         Font(
-                            "font/GoogleSansFlex.ttf", assets
+                            "GoogleSansFlex.ttf", assets
                         )
                     )
                 }.getOrDefault(FontFamily.Default)

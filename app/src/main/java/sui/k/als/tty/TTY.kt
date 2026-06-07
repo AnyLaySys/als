@@ -66,7 +66,7 @@ fun createTTYInstance(
         setTextSize(12)
         setTypeface(
             try {
-                Typeface.createFromAsset(context.assets, "font/GoogleSansCode.ttf")
+                Typeface.createFromAsset(context.assets, "GoogleSansCode.ttf")
             } catch (_: Exception) {
                 Typeface.MONOSPACE
             }
@@ -144,8 +144,7 @@ open class TTYViewStub : TerminalViewClient {
         view = targetView
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent, session: TerminalSession) =
-        keyCode == KeyEvent.KEYCODE_BACK
+    override fun onKeyDown(keyCode: Int, event: KeyEvent, session: TerminalSession) = false
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent) = false
     override fun onSingleTapUp(event: MotionEvent) {}
@@ -165,7 +164,7 @@ open class TTYViewStub : TerminalViewClient {
     override fun readShiftKey() = IMEState.consumeShift()
     override fun readFnKey() = false
     override fun shouldEnforceCharBasedInput() = true
-    override fun shouldBackButtonBeMappedToEscape() = true
+    override fun shouldBackButtonBeMappedToEscape() = false
     override fun shouldUseCtrlSpaceWorkaround() = false
     override fun isTerminalViewSelected() = true
     override fun copyModeChanged(enabled: Boolean) {}
