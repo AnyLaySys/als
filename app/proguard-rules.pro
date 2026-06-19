@@ -15,3 +15,14 @@
 -dontpreverify
 -verbose
 -renamesourcefileattribute SourceFile
+-keep class com.termux.x11.** { *; }
+-keepclassmembers class * extends android.preference.Preference {
+    void onSetInitialValue(boolean, java.lang.Object);
+}
+-dontwarn android.app.ActivityThread
+-dontwarn android.app.ContextImpl
+-dontwarn android.app.IActivityManager
+-dontwarn android.content.IIntentReceiver
+-dontwarn android.content.IIntentReceiver$Stub
+-dontwarn android.content.IIntentSender
+-dontwarn android.content.pm.IPackageManager

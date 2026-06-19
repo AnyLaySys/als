@@ -76,6 +76,9 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.termux.app)
+    implementation(libs.termux.app) {
+        exclude(group = "com.github.termux.termux-app", module = "termux-shared")
+    }
+    implementation(project(":x11"))
     implementation(libs.guava.listenablefuture)
 }

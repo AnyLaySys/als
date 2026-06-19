@@ -3,7 +3,7 @@ agp = "9.2.1"
 coreKtx = "1.18.0"
 activityCompose = "1.13.0"
 kotlin = "2.3.21"
-guavaListenableFuture = "9999.0-empty-to-avoid-conflict-with-guava"
+guavaListenableFuture = "1.0"
 termuxApp = "v0.119.0-beta.3"
 foundation = "1.11.0"
 [libraries]
