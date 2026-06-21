@@ -54,7 +54,7 @@ fun gunyahScript(qemuCommand: String) = $$"""
     mkdir -p "$X11_DIR/xkb";
     cp -R "$CACHE_XKB/." "$X11_DIR/xkb/" || exit 1;
     chmod -R 777 "$X11_DIR" 2>/dev/null || true;
-    (unset LD_LIBRARY_PATH LD_PRELOAD; CLASSPATH="$APK" TERMUX_X11_TMPDIR="$X11_DIR/tmp" TMPDIR="$X11_DIR/tmp" XDG_RUNTIME_DIR="$X11_DIR/tmp" HOME="$X11_DIR/home" XKB_CONFIG_ROOT="$X11_DIR/xkb" TERMUX_X11_DEBUG=1 TERMUX_X11_OVERRIDE_PACKAGE=sui.k.als /system/bin/app_process -Xnoimage-dex2oat / --nice-name=als-x11 com.termux.x11.CmdEntryPoint :1 -nolock -ac -extension MIT-SHM >"$X11_DIR/x11.log" 2>&1) &
+    (unset LD_LIBRARY_PATH LD_PRELOAD TERMUX_X11_DEBUG; CLASSPATH="$APK" TERMUX_X11_TMPDIR="$X11_DIR/tmp" TMPDIR="$X11_DIR/tmp" XDG_RUNTIME_DIR="$X11_DIR/tmp" HOME="$X11_DIR/home" XKB_CONFIG_ROOT="$X11_DIR/xkb" TERMUX_X11_OVERRIDE_PACKAGE=sui.k.als /system/bin/app_process -Xnoimage-dex2oat / --nice-name=als-x11 com.termux.x11.CmdEntryPoint :1 -nolock -ac >"$X11_DIR/x11.log" 2>&1) &
     am start -n sui.k.als/com.termux.x11.MainActivity >/dev/null 2>&1 || true;
     for i in $(seq 1 100); do [ -S "$X11_DIR/tmp/.X11-unix/X1" ] && break; sleep 0.05; done;
     [ -S "$X11_DIR/tmp/.X11-unix/X1" ] || { cat "$X11_DIR/x11.log"; exit 1; };

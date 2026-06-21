@@ -1,0 +1,318 @@
++++ ./Xext/shm.c
+@@ -193,6 +193,10 @@
+ 
+ #endif
+ 
++const DevPrivateKey ShmGetDevPrivateKeyRec(void) {
++    return shmPixmapPrivateKey;
++}
++
+ static Bool
+ ShmCloseScreen(ScreenPtr pScreen)
+ {
++++ ./Xext/shmint.h
+@@ -80,6 +80,8 @@
+ #define SHMDESC_IS_FD(shmdesc)  (0)
+ #endif
+ 
++extern const DevPrivateKey ShmGetDevPrivateKeyRec(void);
++
+ extern _X_EXPORT void
+  ShmRegisterFuncs(ScreenPtr pScreen, ShmFuncsPtr funcs);
+ 
++++ ./dix/dixutils.c
+@@ -506,18 +506,25 @@
+ 
+ WorkQueuePtr workQueue;
+ static WorkQueuePtr *workQueueLast = &workQueue;
++static pthread_spinlock_t workQueueLock;
++
++__attribute__((constructor)) static void workQueueLockInit (void) {
++    pthread_spin_init(&workQueueLock, FALSE);
++}
+ 
+ void
+ ClearWorkQueue(void)
+ {
+     WorkQueuePtr q, *p;
+ 
++    pthread_spin_lock(&workQueueLock);
+     p = &workQueue;
+     while ((q = *p)) {
+         *p = q->next;
+         free(q);
+     }
+     workQueueLast = p;
++    pthread_spin_unlock(&workQueueLock);
+ }
+ 
+ void
+@@ -525,6 +532,7 @@
+ {
+     WorkQueuePtr q, *p;
+ 
++    pthread_spin_lock(&workQueueLock);
+     p = &workQueue;
+     /*
+      * Scan the work queue once, calling each function.  Those
+@@ -533,16 +541,20 @@
+      * QueueWorkProc.
+      */
+     while ((q = *p)) {
++        pthread_spin_unlock(&workQueueLock);
+         if ((*q->function) (q->client, q->closure)) {
++            pthread_spin_lock(&workQueueLock);
+             /* remove q from the list */
+             *p = q->next;       /* don't fetch until after func called */
+             free(q);
+         }
+         else {
++            pthread_spin_lock(&workQueueLock);
+             p = &q->next;       /* don't fetch until after func called */
+         }
+     }
+     workQueueLast = p;
++    pthread_spin_unlock(&workQueueLock);
+ }
+ 
+ void
+@@ -550,6 +562,7 @@
+ {
+     WorkQueuePtr q, *p;
+ 
++    pthread_spin_lock(&workQueueLock);
+     p = &workQueue;
+     while ((q = *p)) {
+         if (q->client && q->client->clientGone) {
+@@ -563,6 +576,7 @@
+         }
+     }
+     workQueueLast = p;
++    pthread_spin_unlock(&workQueueLock);
+ }
+ 
+ Bool
+@@ -578,8 +592,10 @@
+     q->client = client;
+     q->closure = closure;
+     q->next = NULL;
++    pthread_spin_lock(&workQueueLock);
+     *workQueueLast = q;
+     workQueueLast = &q->next;
++    pthread_spin_unlock(&workQueueLock);
+     return TRUE;
+ }
+ 
++++ ./dix/enterleave.c
+@@ -1541,6 +1541,8 @@
+     }
+ }
+ 
++extern void DDXNotifyFocusChanged(void);
++
+ /**
+  * Figure out if focus events are necessary and send them to the
+  * appropriate windows.
+@@ -1551,6 +1553,9 @@
+ void
+ DoFocusEvents(DeviceIntPtr pDev, WindowPtr from, WindowPtr to, int mode)
+ {
++    if (from != to)
++        DDXNotifyFocusChanged();
++
+     if (!IsKeyboardDevice(pDev))
+         return;
+ 
++++ ./dix/main.c
+@@ -268,6 +268,7 @@
+         }
+ 
+         NotifyParentProcess();
++        ddxReady();
+ 
+         InputThreadInit();
+ 
++++ ./include/os.h
+@@ -557,6 +557,8 @@
+ extern _X_EXPORT void
+ ddxGiveUp(enum ExitCode error);
+ extern _X_EXPORT void
++ddxReady(void);
++extern _X_EXPORT void
+ ddxInputThreadInit(void);
+ extern _X_EXPORT int
+ TimeSinceLastInputEvent(void);
++++ ./include/xkbfile.h
+@@ -79,6 +79,36 @@
+ 
+ /***====================================================================***/
+ 
++#define XkbInternAtom XXkbInternAtom
++#define XkbAtomText XXkbAtomText
++#define XkbStringText XXkbStringText
++#define XkbVModIndexText XXkbVModIndexText
++#define XkbVModMaskText XXkbVModMaskText
++#define XkbModMaskText XXkbModMaskText
++#define XkbModIndexText XXkbModIndexText
++#define XkbConfigText XXkbConfigText
++#define XkbKeysymText XXkbKeysymText
++#define XkbKeyNameText XXkbKeyNameText
++#define XkbSIMatchText XXkbSIMatchText
++#define XkbIMWhichStateMaskText XXkbIMWhichStateMaskText
++#define XkbControlsMaskText XXkbControlsMaskText
++#define XkbGeomFPText XXkbGeomFPText
++#define XkbDoodadTypeText XXkbDoodadTypeText
++#define XkbActionTypeText XXkbActionTypeText
++#define XkbActionText XXkbActionText
++#define XkbBehaviorText XXkbBehaviorText
++#define XkbIndentText XXkbIndentText
++#define XkbWriteXKBKeycodes XXkbWriteXKBKeycodes
++#define XkbWriteXKBKeyTypes XXkbWriteXKBKeyTypes
++#define XkbWriteXKBCompatMap XXkbWriteXKBCompatMap
++#define XkbWriteXKBSymbols XXkbWriteXKBSymbols
++#define XkbWriteXKBGeometry XXkbWriteXKBGeometry
++#define XkbWriteXKBKeymapForNames XXkbWriteXKBKeymapForNames
++#define XkbFindKeycodeByName XXkbFindKeycodeByName
++#define XkbConvertGetByNameComponents XXkbConvertGetByNameComponents
++#define XkbNameMatchesPattern XXkbNameMatchesPattern
++#define _XkbKSCheckCase _XXkbKSCheckCase
++
+ _XFUNCPROTOBEGIN
+ 
+ extern _X_EXPORT char *XkbIndentText(unsigned   /* size */
++++ ./os/osinit.c
+@@ -170,13 +170,11 @@
+ #endif
+ 
+     if (!been_here) {
+-#if !defined(WIN32) || defined(__CYGWIN__)
++#if !defined(WIN32) || defined(__CYGWIN__) || !defined(__ANDROID__)
+         struct sigaction act, oact;
+         int i;
+ 
+-        int siglist[] = { SIGSEGV, SIGQUIT, SIGILL, SIGFPE, SIGBUS,
+-            SIGABRT,
+-            SIGSYS,
++        int siglist[] = { SIGQUIT, SIGILL, SIGFPE,
+             SIGXCPU,
+             SIGXFSZ,
+ #ifdef SIGEMT
++++ ./os/utils.c
+@@ -214,6 +214,8 @@
+ {
+ #if defined(WIN32) && !defined(__CYGWIN__)
+     return signal(sig, handler);
++#elif defined(__ANDROID__)
++    return SIG_DFL;
+ #else
+     struct sigaction act, oact;
+ 
+@@ -234,7 +236,7 @@
+  * server at a time.  This keeps the servers from stomping on each other
+  * if the user forgets to give them different display numbers.
+  */
+-#define LOCK_DIR "/tmp"
++#define LOCK_DIR (getenv("TMPDIR") ?: "/tmp")
+ #define LOCK_TMP_PREFIX "/.tX"
+ #define LOCK_PREFIX "/.X"
+ #define LOCK_SUFFIX "-lock"
+@@ -326,7 +328,7 @@
+     i = 0;
+     haslock = 0;
+     while ((!haslock) && (i++ < 3)) {
+-        haslock = (link(tmp, LockFile) == 0);
++        haslock = (rename(tmp, LockFile) == 0);
+         if (haslock) {
+             /*
+              * We're done.
+@@ -1421,6 +1423,10 @@
+     int pid;
+ } *pidlist;
+ 
++extern char* xkbcomp_argv[];
++extern int xkbcomp_argc;
++int xkbcomp_main(int argc, char *argv[]);
++
+ void *
+ Popen(const char *command, const char *type)
+ {
+@@ -1484,8 +1490,11 @@
+             }
+             close(pdes[1]);
+         }
+-        execl("/bin/sh", "sh", "-c", command, (char *) NULL);
+-        _exit(127);
++
++        for(int j=1; j<= SIGUNUSED; j++)
++            signal(j, SIG_DFL);
++
++        _exit(xkbcomp_main(xkbcomp_argc, xkbcomp_argv));
+     }
+ 
+     /* Avoid EINTR during stdio calls */
++++ b/present/present.h
+@@ -93,6 +93,9 @@
+                                   uint64_t target_msc,
+                                   PixmapPtr pixmap,
+                                   Bool sync_flip);
++
++typedef void (*present_after_flip_ptr) (RRCrtcPtr crtc, uint64_t event_id, uint64_t ust, uint64_t target_msc, PixmapPtr pixmap);
++
+ /* Flip pixmap for window, return false if it didn't happen.
+  *
+  * Like present_flip_ptr, additionally with:
+@@ -134,6 +137,7 @@
+     uint32_t                            capabilities;
+     present_check_flip_ptr              check_flip;
+     present_flip_ptr                    flip;
++    present_after_flip_ptr              after_flip;
+     present_unflip_ptr                  unflip;
+     present_check_flip2_ptr             check_flip2;
+ 
++++ b/present/present_scmd.c
+@@ -599,6 +599,8 @@
+                     damage = &window->clipList;
+ 
+                 DamageDamageRegion(&vblank->window->drawable, damage);
++
++                screen_priv->info->after_flip(vblank->crtc, vblank->event_id, ust, vblank->target_msc, vblank->pixmap);
+                 return;
+             }
+ 
++++ ./xkb/ddxLoad.c
+@@ -56,6 +56,9 @@
+ #define PATHSEPARATOR "/"
+ #endif
+ 
++char* xkbcomp_argv[16] = {0};
++int xkbcomp_argc = 0;
++
+ static unsigned
+ LoadXKM(unsigned want, unsigned need, const char *keymap, XkbDescPtr *xkbRtrn);
+ 
+@@ -152,6 +155,25 @@
+                  xkm_output_dir, keymap) == -1)
+         buf = NULL;
+ 
++    char buf2[256];
++    char buf3[256];
++    sprintf(buf2, "-R%s", XkbBaseDirectory);
++    sprintf(buf3, "%s%s.xkm", xkm_output_dir, keymap);
++    xkbcomp_argv[0] = "xkbcomp";
++    xkbcomp_argv[1] = "-w";
++    xkbcomp_argv[2] = "1";
++    xkbcomp_argv[3] = buf2;
++    xkbcomp_argv[4] = "-xkm";
++    xkbcomp_argv[5] = (char*) xkmfile;
++    xkbcomp_argv[6] = "-em1";
++    xkbcomp_argv[7] = PRE_ERROR_MSG;
++    xkbcomp_argv[8] = "-emp";
++    xkbcomp_argv[9] = ERROR_PREFIX;
++    xkbcomp_argv[10] = "-eml";
++    xkbcomp_argv[11] = POST_ERROR_MSG1;
++    xkbcomp_argv[12] = buf3;
++    xkbcomp_argc = 13;
++
+     free(xkbbasedirflag);
+ 
+     if (!buf) {

@@ -1,0 +1,49 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar" />
+
+    <style name="PreferenceTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.X11</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges</item>
+    </style>
+
+    <style name="PreferenceThemeOverlay.X11" parent="@style/PreferenceThemeOverlay.v14.Material">
+        <item name="preferenceStyle">@style/Preference.X11</item>
+        <item name="preferenceScreenStyle">@style/Preference.PreferenceScreen.X11</item>
+        <item name="dialogPreferenceStyle">@style/Preference.DialogPreference.X11</item>
+        <item name="editTextPreferenceStyle">@style/Preference.DialogPreference.EditTextPreference.X11</item>
+        <item name="seekBarPreferenceStyle">@style/Preference.SeekBarPreference.X11</item>
+        <item name="switchPreferenceCompatStyle">@style/Preference.SwitchPreferenceCompat.X11</item>
+    </style>
+
+    <style name="Preference.X11" parent="@style/Preference.Material">
+        <item name="iconSpaceReserved">false</item>
+    </style>
+
+    <style name="Preference.PreferenceScreen.X11" parent="@style/Preference.PreferenceScreen.Material">
+        <item name="iconSpaceReserved">false</item>
+    </style>
+
+    <style name="Preference.DialogPreference.X11" parent="@style/Preference.DialogPreference.Material">
+        <item name="iconSpaceReserved">false</item>
+    </style>
+
+    <style name="Preference.DialogPreference.EditTextPreference.X11" parent="@style/Preference.DialogPreference.EditTextPreference.Material">
+        <item name="iconSpaceReserved">false</item>
+    </style>
+
+    <style name="Preference.SeekBarPreference.X11" parent="@style/Preference.SeekBarPreference.Material">
+        <item name="iconSpaceReserved">false</item>
+    </style>
+
+    <style name="Preference.SwitchPreferenceCompat.X11" parent="@style/Preference.SwitchPreferenceCompat.Material">
+        <item name="iconSpaceReserved">false</item>
+        <item name="android:widgetLayout">@layout/preference_widget_material_switch</item>
+        <item name="widgetLayout">@layout/preference_widget_material_switch</item>
+    </style>
+</resources>

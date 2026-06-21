@@ -1,0 +1,138 @@
+apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
+
+android {
+    namespace 'com.termux.x11'
+    //noinspection GrDeprecatedAPIUsage
+    compileSdkVersion 34
+    defaultConfig {
+        minSdkVersion 26
+        targetSdkVersion 37
+        versionCode 15
+        def commit= 'git rev-parse --verify --short HEAD'.execute().text.trim()
+        def version = "1.03.01"
+        versionName "${version}-${commit.length()==1?"nongit":commit}-${(new Date()).format("dd.MM.yy")}"
+        buildConfigField "String", "VERSION_NAME", "\"${versionName}\""
+        buildConfigField "String", "COMMIT", "\"" + ("git rev-parse HEAD\n".execute().getText().trim() ?: (System.getenv('CURRENT_COMMIT') ?: "NO_COMMIT")) + "\""
+    }
+
+    signingConfigs.debug {
+        storeFile file('testkey_untrusted.jks')
+        keyAlias 'alias'
+        storePassword 'xrj45yWGLbsO7W0v'
+        keyPassword 'xrj45yWGLbsO7W0v'
+    }
+
+    compileOptions.sourceCompatibility JavaVersion.VERSION_1_9
+    compileOptions.targetCompatibility JavaVersion.VERSION_1_9
+    // externalNativeBuild {
+    //     cmake {
+    //         path "src/main/cpp/CMakeLists.txt"
+    //     }
+    // }
+    packagingOptions.jniLibs.useLegacyPackaging false
+    buildFeatures.aidl true
+    buildFeatures.buildConfig true
+    buildTypes.debug {
+        signingConfig signingConfigs.debug
+    }
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
+}
+
+dependencies {
+    //noinspection DifferentStdlibGradleVersion
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.4.0"
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0'
+    api 'androidx.preference:preference:1.2.1'
+    api 'com.google.android.material:material:1.12.0'
+    implementation 'com.github.tiann:FreeReflection:3.2.2'
+    compileOnly project(':x11-stub')
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                groupId = 'com.github.termux-x11'
+                artifactId = 'termux-x11'
+                version = android.defaultConfig.versionName
+            }
+        }
+    }
+
+    tasks.register("generatePrefs") {
+        // 添加输入和输出声明，确保任务正确执行
+        def inputFile = file('src/main/res/xml/preferences.xml')
+        def outputDir = file('build/generated/source/prefs')
+        def outputFile = new File(outputDir, 'com/termux/x11/Prefs.java')
+        
+        inputs.file inputFile
+        outputs.dir outputDir
+        
+        doLast {
+            //noinspection UnnecessaryQualifiedReference
+            def xml = groovy.xml.DOMBuilder.parse((new StringReader(inputFile.text)))
+            def preferenceNodes = xml.documentElement.getElementsByTagName("*")
+            def preferences = []
+
+            for (int i = 0; i < preferenceNodes.length; i++) {
+                def node = preferenceNodes.item(i)
+                if (node.nodeName == 'EditTextPreference')
+                    preferences << [ type: 'String',  key: node.getAttribute("app:key"), default: node.getAttribute("app:defaultValue") ]
+                else if (node.nodeName == 'SeekBarPreference')
+                    preferences << [ type: 'Int', key: node.getAttribute("app:key"), default: node.getAttribute("app:defaultValue") ]
+                else if (node.nodeName == 'ListPreference') {
+                    def entries = node.getAttribute("app:entries")
+                    def values = node.getAttribute("app:entryValues")
+                    preferences << [type: 'List', key: node.getAttribute("app:key"), default: node.getAttribute("app:defaultValue"),
+                                    entries: entries.substring(7, entries.length()), values: values.substring(7, values.length())]
+                }
+                else if (node.nodeName == 'SwitchPreferenceCompat')
+                    preferences << [ type: 'Boolean',  key: node.getAttribute("app:key"), default: node.getAttribute("app:defaultValue") ]
+            }
+
+            outputFile.parentFile.mkdirs()
+            outputFile.delete()
+            outputFile.createNewFile()
+
+            outputFile << 'package com.termux.x11;\n'
+            outputFile << 'import java.util.HashMap;\n'
+            outputFile << 'import android.content.Context;\n'
+            outputFile << '\n'
+            outputFile << 'public class Prefs extends LoriePreferences.PrefsProto {\n'
+            preferences.each {
+                if (it.type == 'Int' || it.type == 'Boolean')
+                    outputFile << "  public final ${it.type}Preference ${it.key} = new ${it.type}Preference(\"${it.key}\", ${it.default});\n"
+                else if (it.type == 'String')
+                    outputFile << "  public final StringPreference ${it.key} = new StringPreference(\"${it.key}\", \"${it.default}\");\n"
+                else if (it.type == 'List')
+                    outputFile << "  public final ${it.type}Preference ${it.key} = new ${it.type}Preference(\"${it.key}\", \"${it.default}\", R.array.${it.entries}, R.array.${it.values});\n"
+            }
+            outputFile << '  public final HashMap<String, Preference> keys = new HashMap<>() {{\n'
+            preferences.each { outputFile << '    put("' + it.key + '", ' + it.key + ');\n' }
+            outputFile << '  }};\n'
+            outputFile << '\n'
+            outputFile << '  public Prefs(Context ctx) {\n'
+            outputFile << '    super(ctx);\n'
+            outputFile << '  }\n'
+            outputFile << '}\n'
+        }
+    }
+    
+    // 修改源集配置
+    android.sourceSets.main.java.srcDirs += 'build/generated/source/prefs'
+    
+    // 确保所有编译任务都依赖于生成任务
+    tasks.withType(JavaCompile) {
+        dependsOn generatePrefs
+    }
+    
+    preBuild.dependsOn generatePrefs
+}

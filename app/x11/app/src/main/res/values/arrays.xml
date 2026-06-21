@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Touchscreen input mode ===== -->
+    <string-array name="touchscreenInputModesEntries">
+        <item>@string/lorie_touchMode_trackpad</item>
+        <item>@string/lorie_touchMode_simulated</item>
+        <item>@string/lorie_touchMode_direct</item>
+    </string-array>
+    <string-array name="touchscreenInputModesValues">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+
+    <!-- ===== Transform captured pointer ===== -->
+    <string-array name="transformCapturedPointerEntries">
+        <item>@string/lorie_transformCapturedPointer_no</item>
+        <item>@string/lorie_transformCapturedPointer_cw</item>
+        <item>@string/lorie_transformCapturedPointer_cc</item>
+        <item>@string/lorie_transformCapturedPointer_ud</item>
+        <item>@string/lorie_transformCapturedPointer_at</item>
+    </string-array>
+    <string-array name="transformCapturedPointerValues">
+        <item>no</item>
+        <item>c</item>
+        <item>cc</item>
+        <item>ud</item>
+        <item>at</item>
+    </string-array>
+
+    <!-- ===== Display resolution mode ===== -->
+    <!-- entries (displayed to user, translatable) -->
+    <string-array name="displayResolutionVariantsEntries">
+        <item>@string/lorie_displayResolution_native</item>
+        <item>@string/lorie_displayResolution_scaled</item>
+        <item>@string/lorie_displayResolution_exact</item>
+        <item>@string/lorie_displayResolution_custom</item>
+    </string-array>
+    <!-- values (stored in preferences, DO NOT translate) -->
+    <string-array name="displayResolutionVariants">
+        <item>native</item>
+        <item>scaled</item>
+        <item>exact</item>
+        <item>custom</item>
+    </string-array>
+
+    <!-- ===== Display resolution (preset sizes, values only) ===== -->
+    <string-array name="displayResolution">
+        <item>320x200</item>
+        <item>320x240</item>
+        <item>352x288</item>
+        <item>400x240</item>
+        <item>640x350</item>
+        <item>640x480</item>
+        <item>800x480</item>
+        <item>800x600</item>
+        <item>1024x768</item>
+        <item>1280x720</item>
+        <item>1280x960</item>
+        <item>1280x1024</item>
+        <item>1400x1050</item>
+        <item>1600x1024</item>
+        <item>1600x1200</item>
+        <item>1366x768</item>
+        <item>1680x1050</item>
+        <item>1920x1080</item>
+        <item>1920x1200</item>
+        <item>2048x1536</item>
+        <item>2560x1600</item>
+        <item>2560x2048</item>
+        <item>3840x2160</item>
+        <item>7680x4320</item>
+    </string-array>
+
+    <!-- ===== Display filtering mode ===== -->
+    <!-- entries (displayed to user, translatable) -->
+    <string-array name="displayFilteringVariantsEntries">
+        <item>@string/lorie_displayFiltering_bilinear</item>
+        <item>@string/lorie_displayFiltering_nearest</item>
+    </string-array>
+    <!-- values (stored in preferences, DO NOT translate) -->
+    <string-array name="displayFilteringVariants">
+        <item>bilinear</item>
+        <item>nearest</item>
+    </string-array>
+
+    <!-- ===== User actions ===== -->
+    <!-- entries (displayed to user, translatable) -->
+    <string-array name="userActionsValuesEntries">
+        <item>@string/lorie_userAction_noAction</item>
+        <item>@string/lorie_userAction_toggleSoftKbd</item>
+        <item>@string/lorie_userAction_toggleAdditionalKbd</item>
+        <item>@string/lorie_userAction_openPreferences</item>
+        <item>@string/lorie_userAction_releaseCaptures</item>
+        <item>@string/lorie_userAction_toggleFullscreen</item>
+        <item>@string/lorie_userAction_restartActivity</item>
+        <item>@string/lorie_userAction_exit</item>
+    </string-array>
+    <!-- values (stored in preferences, DO NOT translate) -->
+    <string-array name="userActionsValues">
+        <item>no action</item>
+        <item>toggle soft keyboard</item>
+        <item>toggle additional key bar</item>
+        <item>open preferences</item>
+        <item>release pointer and keyboard capture</item>
+        <item>toggle fullscreen</item>
+        <item>restart activity</item>
+        <item>exit</item>
+    </string-array>
+
+    <!-- ===== Force orientation ===== -->
+    <!-- entries (displayed to user, translatable) -->
+    <string-array name="forceOrientationVariantsEntries">
+        <item>@string/lorie_orientation_auto</item>
+        <item>@string/lorie_orientation_portrait</item>
+        <item>@string/lorie_orientation_landscape</item>
+        <item>@string/lorie_orientation_reversePortrait</item>
+        <item>@string/lorie_orientation_reverseLandscape</item>
+    </string-array>
+    <!-- values (stored in preferences, DO NOT translate) -->
+    <string-array name="forceOrientationVariants">
+        <item>auto</item>
+        <item>portrait</item>
+        <item>landscape</item>
+        <item>reverse portrait</item>
+        <item>reverse landscape</item>
+    </string-array>
+</resources>

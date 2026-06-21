@@ -9,8 +9,8 @@ android {
         applicationId = "sui.k.als"
         minSdk = 33
         targetSdk = 37
-        versionCode = 12
-        versionName = "26.6.1"
+        versionCode = 13
+        versionName = "26.6.21"
         ndk {
             abiFilters.add("arm64-v8a")
         }
@@ -76,6 +76,8 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.preference:preference:1.2.1")
     implementation(libs.termux.app) {
         exclude(group = "com.github.termux.termux-app", module = "termux-shared")
     }
