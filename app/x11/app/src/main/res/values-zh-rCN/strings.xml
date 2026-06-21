@@ -8,18 +8,17 @@
     <string name="settings">设置</string>
     <string name="exit_button_text">退出</string>
     <string name="lorie_notification_content_text">下拉显示选项</string>
-    <string name="lorie_notification_open_preferences">偏好设置</string>
+    <string name="lorie_notification_open_preferences">设置</string>
     <string name="lorie_notification_exit">退出</string>
     <string name="lorie_notification_restart_activity">重启</string>
     <string name="lorie_notification_toggle_soft_keyboard">切换输入法</string>
     <string name="lorie_notification_toggle_additional_key_bar">切换小键盘</string>
     <string name="lorie_notification_release_pointer_and_keyboard_capture">释放捕获</string>
-    <string name="lorie_pref_main">偏好设置</string>
+    <string name="lorie_pref_main">设置</string>
     <string name="lorie_pref_output">输出</string>
     <string name="lorie_pref_pointer">指针</string>
     <string name="lorie_pref_kbd">键盘</string>
     <string name="lorie_pref_other">其他</string>
-    <string name="lorie_pref_version">版本</string>
     <string name="lorie_pref_displayResolutionMode">显示分辨率模式</string>
     <string name="lorie_pref_displayScale">显示缩放, %</string>
     <string name="lorie_pref_displayResolutionExact">显示分辨率</string>
@@ -82,7 +81,7 @@
     <string name="lorie_userAction_noAction">无操作</string>
     <string name="lorie_userAction_toggleSoftKbd">切换软键盘</string>
     <string name="lorie_userAction_toggleAdditionalKbd">切换小键盘栏</string>
-    <string name="lorie_userAction_openPreferences">打开偏好设置</string>
+    <string name="lorie_userAction_openPreferences">打开设置</string>
     <string name="lorie_userAction_releaseCaptures">释放指针和键盘捕获</string>
     <string name="lorie_userAction_toggleFullscreen">切换全屏</string>
     <string name="lorie_userAction_restartActivity">重启 Activity</string>
@@ -92,7 +91,6 @@
     <string name="lorie_orientation_landscape">横屏</string>
     <string name="lorie_orientation_reversePortrait">反向竖屏</string>
     <string name="lorie_orientation_reverseLandscape">反向横屏</string>
-    <string name="lorie_toast_copied_to_clipboard">已复制到剪贴板</string>
     <string name="lorie_toast_wrong_resolution_format">分辨率格式错误</string>
     <string name="lorie_error_native_library_load">无法加载原生库。是否安装了正确的 APK？请尝试 universal 版本。</string>
 </resources>

@@ -8,18 +8,17 @@
     <string name="settings">Settings</string>
     <string name="exit_button_text">EXIT</string>
     <string name="lorie_notification_content_text">Pull down to show options</string>
-    <string name="lorie_notification_open_preferences">Preferences</string>
+    <string name="lorie_notification_open_preferences">Settings</string>
     <string name="lorie_notification_exit">Exit</string>
     <string name="lorie_notification_restart_activity">Restart</string>
     <string name="lorie_notification_toggle_soft_keyboard">Toggle IME</string>
     <string name="lorie_notification_toggle_additional_key_bar">Toggle additional keyboard</string>
     <string name="lorie_notification_release_pointer_and_keyboard_capture">Release captures</string>
-    <string name="lorie_pref_main">Preferences</string>
+    <string name="lorie_pref_main">Settings</string>
     <string name="lorie_pref_output">Output</string>
     <string name="lorie_pref_pointer">Pointer</string>
     <string name="lorie_pref_kbd">Keyboard</string>
     <string name="lorie_pref_other">Other</string>
-    <string name="lorie_pref_version">Version</string>
     <string name="lorie_pref_displayResolutionMode">Display resolution mode</string>
     <string name="lorie_pref_displayScale">Display scale, %</string>
     <string name="lorie_pref_displayResolutionExact">Display resolution</string>
@@ -82,7 +81,7 @@
     <string name="lorie_userAction_noAction">no action</string>
     <string name="lorie_userAction_toggleSoftKbd">toggle soft keyboard</string>
     <string name="lorie_userAction_toggleAdditionalKbd">toggle additional key bar</string>
-    <string name="lorie_userAction_openPreferences">open preferences</string>
+    <string name="lorie_userAction_openPreferences">open settings</string>
     <string name="lorie_userAction_releaseCaptures">release pointer and keyboard capture</string>
     <string name="lorie_userAction_toggleFullscreen">toggle fullscreen</string>
     <string name="lorie_userAction_restartActivity">restart activity</string>
@@ -92,7 +91,6 @@
     <string name="lorie_orientation_landscape">landscape</string>
     <string name="lorie_orientation_reversePortrait">reverse portrait</string>
     <string name="lorie_orientation_reverseLandscape">reverse landscape</string>
-    <string name="lorie_toast_copied_to_clipboard">Copied to clipboard</string>
     <string name="lorie_toast_wrong_resolution_format">Wrong resolution format</string>
     <string name="lorie_error_native_library_load">Failed to load native library. Did you install the right apk? Try the universal one.</string>
 </resources>

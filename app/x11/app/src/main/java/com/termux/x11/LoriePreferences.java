@@ -5,8 +5,6 @@ import static android.os.Build.VERSION.SDK_INT;
 import static android.system.Os.getuid;
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -54,7 +52,6 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.regex.PatternSyntaxException;
 @SuppressWarnings("deprecation")
 public class LoriePreferences extends AppCompatActivity implements PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
@@ -173,10 +170,6 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
                 if (actionBar != null) actionBar.setTitle(getPreferenceScreen().getTitle());
             }
         }
-        private void with(Consumer<Preference> action) {
-            Preference p = findPreference("version");
-            if (p != null) action.accept(p);
-        }
         @SuppressLint("DiscouragedApi")
         int findId(String name) {
             return getResources().getIdentifier("lorie_pref_" + name, "string", getContext().getPackageName());
@@ -191,7 +184,6 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
             PreferenceScreen screen = getPreferenceScreen();
             if ((id = findId(screen.getKey())) != 0) screen.setTitle(getResources().getString(id));
             setupPreference(screen);
-            with(p -> p.setSummary(BuildConfig.VERSION_NAME));
             setSummary("displayStretch", R.string.lorie_pref_summary_requiresExactOrCustom);
             setSummary("adjustResolution", R.string.lorie_pref_summary_requiresExactOrCustom);
             setSummary("scaleTouchpad", R.string.lorie_pref_summary_requiresTrackpadAndNative);
@@ -250,13 +242,6 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
         @Override
         public boolean onPreferenceTreeClick(@NonNull Preference p) {
             if (p.getKey() == null) return super.onPreferenceTreeClick(p);
-            if ("version".contentEquals(p.getKey())) {
-                Context ctx = getContext();
-                if (ctx != null) {
-                    ((ClipboardManager) ctx.getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText(p.getSummary(), p.getSummary()));
-                    Toast.makeText(ctx, R.string.lorie_toast_copied_to_clipboard, Toast.LENGTH_SHORT).show();
-                }
-            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && "requestNotificationPermission".contentEquals(p.getKey())) {
                 ActivityCompat.requestPermissions(requireActivity(), new String[]{POST_NOTIFICATIONS}, 101);
                 return true;
