@@ -1,6 +1,3 @@
-#ifdef ANDROID
-#include <android/log.h>
-#endif
 #include <errno.h>
 #include <pthread.h>
 #include <fcntl.h>

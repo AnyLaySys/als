@@ -17,7 +17,6 @@
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #include <android/native_window_jni.h>
-#include <android/log.h>
 #include <media/NdkImageReader.h>
 #include <dlfcn.h>
 #include <math.h>
@@ -25,72 +24,18 @@
 #include "list.h"
 #include "lorie.h"
 
-#define log(...) ((void)0)
-#define loge(...) ((void)0)
-
 static GLuint createProgram(const char* p_vertex_source, const char* p_fragment_source);
 
-static int printEglError(char* msg, int line) {
-    char descBuf[32] = {0};
-    char* desc;
-    int err = eglGetError();
-    switch(err) {
-#define E(code, text) case code: desc = (char*) text; break
-        case EGL_SUCCESS: desc = NULL; // "No error"
-        E(EGL_NOT_INITIALIZED, "EGL not initialized or failed to initialize");
-        E(EGL_BAD_ACCESS, "Resource inaccessible");
-        E(EGL_BAD_ALLOC, "Cannot allocate resources");
-        E(EGL_BAD_ATTRIBUTE, "Unrecognized attribute or attribute value");
-        E(EGL_BAD_CONTEXT, "Invalid EGL context");
-        E(EGL_BAD_CONFIG, "Invalid EGL frame buffer configuration");
-        E(EGL_BAD_CURRENT_SURFACE, "Current surface is no longer valid");
-        E(EGL_BAD_DISPLAY, "Invalid EGL display");
-        E(EGL_BAD_SURFACE, "Invalid surface");
-        E(EGL_BAD_MATCH, "Inconsistent arguments");
-        E(EGL_BAD_PARAMETER, "Invalid argument");
-        E(EGL_BAD_NATIVE_PIXMAP, "Invalid native pixmap");
-        E(EGL_BAD_NATIVE_WINDOW, "Invalid native window");
-        E(EGL_CONTEXT_LOST, "Context lost");
-#undef E
-        default:
-            snprintf(descBuf, sizeof(descBuf) - 1, "Unknown error (%d)", err);
-            desc = descBuf;
-    }
-
-    if (desc)
-        log("renderer: %s: %s (%s:%d)\n", msg, desc, __FILE__, line);
-
+static int printEglError(__unused char* msg, __unused int line) {
+    eglGetError();
     return 0;
 }
 
-static inline __always_inline void vprintEglError(char* msg, int line) {
-    printEglError(msg, line);
+static inline __always_inline void vprintEglError(__unused char* msg, __unused int line) {
+    eglGetError();
 }
 
-static void checkGlError(int line) {
-    GLenum error;
-    char *desc = NULL;
-    for (error = glGetError(); error; error = glGetError()) {
-        switch (error) {
-#define E(code) case code: desc = (char*)#code; break
-            E(GL_INVALID_ENUM);
-            E(GL_INVALID_VALUE);
-            E(GL_INVALID_OPERATION);
-            E(GL_STACK_OVERFLOW_KHR);
-            E(GL_STACK_UNDERFLOW_KHR);
-            E(GL_OUT_OF_MEMORY);
-            E(GL_INVALID_FRAMEBUFFER_OPERATION);
-            E(GL_CONTEXT_LOST_KHR);
-            default:
-                continue;
-#undef E
-        }
-        log("Xlorie: GLES %d ERROR: %s.\n", line, desc);
-        return;
-    }
-}
-
-#define checkGlError() checkGlError(__LINE__)
+#define checkGlError() ((void)0)
 
 static const char vertexShaderSrc[] =
     "attribute vec4 position;\n"
@@ -208,12 +153,9 @@ static void onImageAvailable(void* context, AImageReader* reader) {
 
 int rendererInitThread(void* cookie) {
     JavaVM* vm = cookie;
-    if ((*vm)->AttachCurrentThread(vm, &rendererEnv, NULL) != JNI_OK) {
-        log("Failed to attach renderer thread to JVM");
+    if ((*vm)->AttachCurrentThread(vm, &rendererEnv, NULL) != JNI_OK)
         return 0;
-    }
 
-    EGLint major, minor;
     EGLint numConfigs;
     EGLint *const alphaAttrib = &configAttribs[11];
     AImageReader* reader = NULL; // We will use this ImageReader each time surface is destroyed, zero reasons to clean it up
@@ -228,10 +170,9 @@ int rendererInitThread(void* cookie) {
     if (egl_display == EGL_NO_DISPLAY)
         return printEglError("Got no EGL display", __LINE__);
 
-    if (eglInitialize(egl_display, &major, &minor) != EGL_TRUE)
+    if (eglInitialize(egl_display, NULL, NULL) != EGL_TRUE)
         return printEglError("Unable to initialize EGL", __LINE__);
 
-    log("Xlorie: Initialized EGL version %d.%d\n", major, minor);
     eglBindAPI(EGL_OPENGL_ES_API);
 
     if (eglChooseConfig(egl_display, configAttribs, &cfg, 1, &numConfigs) != EGL_TRUE &&
@@ -246,19 +187,15 @@ int rendererInitThread(void* cookie) {
     // Weird devices without proper EGL_KHR_surfaceless_context support
     // We can not use pbuffer-based surfaces because it will require searching for configs supporting it
     // and I am not sure all devices have configs supporting both pbuffers and regular surfaces simultaneously
-    if (AImageReader_new(1, 1, AIMAGE_FORMAT_RGBA_8888, 2, &reader) != AMEDIA_OK) {
-        log("Failed to initialise ImageReader");
+    if (AImageReader_new(1, 1, AIMAGE_FORMAT_RGBA_8888, 2, &reader) != AMEDIA_OK)
         return 1;
-    }
 
     if (AImageReader_setImageListener(reader, &(AImageReader_ImageListener) { .context = NULL, .onImageAvailable = onImageAvailable }) != AMEDIA_OK) {
-        log("Failed to set ImageReader listener");
         AImageReader_delete(reader);
         return 1;
     }
 
     if (AImageReader_getWindow(reader, &defaultWin) != AMEDIA_OK) {
-        log("Failed to obtain ImageReader native window");
         AImageReader_delete(reader);
         return 1;
     }
@@ -272,12 +209,8 @@ int rendererInitThread(void* cookie) {
     eglSwapInterval(egl_display, 0);
 
     g_texture_program = createProgram(vertexShaderSrc, fragmentShaderSrc);
-    if (!g_texture_program)
-        log("Xlorie: GLESv2: Unable to create shader program.\n");
 
     g_texture_program_bgra = createProgram(vertexShaderSrc, fragmentShaderBgraSrc);
-    if (!g_texture_program_bgra)
-        log("Xlorie: GLESv2: Unable to create bgra shader program.\n");
 
     gv_pos = (GLuint) glGetAttribLocation(g_texture_program, "position");
     gv_coords = (GLuint) glGetAttribLocation(g_texture_program, "texCoords");
@@ -341,8 +274,6 @@ void rendererTestCapabilities(int* legacy_drawing) {
 
     status = AHardwareBuffer_allocate(&d0, &new);
     if (status != 0 || new == NULL) {
-        loge("Failed to allocate native buffer (%p, error %d)", new, status);
-        loge("Forcing legacy drawing");
         *legacy_drawing = 1;
         return;
     }
@@ -352,8 +283,6 @@ void rendererTestCapabilities(int* legacy_drawing) {
         pixels[0] = 0xAABBCCDD;
         AHardwareBuffer_unlock(new, NULL);
     } else {
-        loge("Failed to lock native buffer (%p, error %d)", new, status);
-        loge("Forcing legacy drawing");
         *legacy_drawing = 1;
         AHardwareBuffer_release(new);
         return;
@@ -367,8 +296,6 @@ void rendererTestCapabilities(int* legacy_drawing) {
     }
 
     if (!(img = eglCreateImageKHR(egl_display, EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, clientBuffer, imageAttributes))) {
-        loge("Failed to obtain EGLImageKHR from EGLClientBuffer");
-        loge("Forcing legacy drawing");
         *legacy_drawing = 1;
         AHardwareBuffer_release(new);
     } else {
@@ -407,10 +334,8 @@ void rendererTestCapabilities(int* legacy_drawing) {
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0); checkGlError();
         uint32_t pixel[64*64];
         glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel); checkGlError();
-        if (pixel[0] != 0xAABBCCDD && pixel[0] != 0xFFBBCCDD) {
-            log("Xlorie: GLES receives broken pixels. Forcing legacy drawing. 0x%X\n", pixel[0]);
+        if (pixel[0] != 0xAABBCCDD && pixel[0] != 0xFFBBCCDD)
             *legacy_drawing = 1;
-        }
         eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
         eglDestroyContext(egl_display, testctx);
         eglDestroyImageKHR(egl_display, img);
@@ -552,12 +477,10 @@ void rendererSetZoom(__unused JNIEnv *env, __unused jclass clazz, int percent) {
 void rendererRefreshContext(void) {
     int width = pendingWin ? ANativeWindow_getWidth(pendingWin) : 0;
     int height = pendingWin ? ANativeWindow_getHeight(pendingWin) : 0;
-    log("rendererSetWindow %p %d %d", pendingWin, width, height);
 
     releaseWinAndSurface(&win, &sfc);
 
     if (pendingWin && (width <= 0 || height <= 0)) {
-        log("Xlorie: We've got invalid surface. Probably it became invalid before we started working with it.\n");
         releaseWinAndSurface(&pendingWin, NULL);
     }
 
@@ -590,7 +513,6 @@ void rendererRefreshContext(void) {
         state->surfaceAvailable = state->drawRequested = state->cursor.updated = win != defaultWin;
 
     glViewport(0, 0, ANativeWindow_getWidth(win), ANativeWindow_getHeight(win));
-    log("Xlorie: new surface applied: %p\n", sfc);
 }
 
 static void drawRegion(GLuint id, float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1, uint8_t flip);
@@ -610,7 +532,6 @@ void rendererRedrawLocked(bool* waitingForBuffers) {
         *waitingForBuffers = true;
     pthread_spin_unlock(&bufferLock);
     if (!buffer) {
-        log("Buffer %llu not found", state->rootWindowTextureID);
         return;
     }
 
@@ -620,9 +541,6 @@ void rendererRedrawLocked(bool* waitingForBuffers) {
 
     if (!expectedW || !expectedH || desc->height != expectedH ||
         (desc->width != alignedExpectedW && desc->width != expectedW)) {
-        log("Buffer %llu is not of expected size, expecting %dx%d or %dx%d, got %dx%d",
-            state->rootWindowTextureID, alignedExpectedW, expectedH, expectedW, expectedH,
-            desc->width, desc->height);
         return;
     }
 
@@ -714,7 +632,6 @@ void rendererRedrawLocked(bool* waitingForBuffers) {
     glFlush();
 
     if (state->cursor.updated) {
-        log("Xlorie: updating cursor\n");
         lorie_mutex_lock(&state->cursor.lock, &state->cursor.lockingPid);
         state->cursor.updated = false;
         bindTexture(cursor.id);
@@ -834,7 +751,7 @@ __noreturn static void* rendererThread(void) {
 }
 
 static GLuint loadShader(GLenum shaderType, const char* pSource) {
-    GLint compiled = 0, infoLen = 0;
+    GLint compiled = 0;
     GLuint shader = glCreateShader(shaderType);
     if (!shader)
         return 0;
@@ -845,12 +762,6 @@ static GLuint loadShader(GLenum shaderType, const char* pSource) {
     if (compiled)
         return shader;
 
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
-    if (infoLen) {
-        char buf[infoLen];
-        glGetShaderInfoLog(shader, infoLen, NULL, buf);
-        log("renderer: Could not compile shader %d:\n%s\n", shaderType, buf);
-    }
     glDeleteShader(shader);
 
     return 0;
@@ -858,7 +769,7 @@ static GLuint loadShader(GLenum shaderType, const char* pSource) {
 
 static GLuint createProgram(const char* p_vertex_source, const char* p_fragment_source) {
     GLuint program, vertexShader, pixelShader;
-    GLint linkStatus = GL_FALSE, bufLength = 0;
+    GLint linkStatus = GL_FALSE;
     vertexShader = loadShader(GL_VERTEX_SHADER, p_vertex_source);
     pixelShader = loadShader(GL_FRAGMENT_SHADER, p_fragment_source);
     if (!pixelShader || !vertexShader) {
@@ -876,12 +787,6 @@ static GLuint createProgram(const char* p_vertex_source, const char* p_fragment_
     if (linkStatus == GL_TRUE)
         return program;
 
-    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &bufLength);
-    if (bufLength) {
-        char buf[bufLength];
-        glGetProgramInfoLog(program, bufLength, NULL, buf);
-        log("renderer: Could not link program:\n%s\n", buf);
-    }
     glDeleteProgram(program);
 
     return 0;
@@ -947,7 +852,6 @@ __noreturn static void* pthreadCondVarProxyThread(void* cookie) {
     // This thread waits for remote signals and proxies them to the local cond var.
     pthread_setname_np(pthread_self(), "PthreadCondVarProxy");
     pthread_mutex_lock(&proxy.lock);
-    log("pthreadCondVarProxyThread %ld started", pthread_self());
     while (true) {
         pthread_cond_wait(proxy.current, &proxy.lock);
         if (proxy.pending) {

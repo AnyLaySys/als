@@ -3,7 +3,6 @@
 #include <android/hardware_buffer.h>
 #include <android/native_window_jni.h>
 #include <android/choreographer.h>
-#include <android/log.h>
 
 #include <stdbool.h>
 #include <X11/Xdefs.h>

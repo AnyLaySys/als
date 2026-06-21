@@ -31,7 +31,6 @@ from The Open Group.
 #include "scrnintstr.h"
 #include "inputstr.h"
 #include <X11/Xos.h>
-#include <android/log.h>
 #include "mipointer.h"
 #include "xkbsrv.h"
 #include "xserver-properties.h"

@@ -22,7 +22,6 @@
 #include <dix-config.h>
 #endif
 
-#include <android/log.h>
 #include <X11/Xatom.h>
 #include <windowstr.h>
 #include <selection.h>
@@ -181,7 +180,6 @@ static const char *lorieUtf8ToLatin1(const char *src) {
 
 /* end utility functions */
 
-#define log(prio, ...) ((void)0)
 extern ScreenPtr pScreenPtr;
 
 static int (*origProcSendEvent)(ClientPtr) = NULL;
@@ -238,8 +236,6 @@ static void lorieHandleSelection(Atom target) {
     if (dixLookupProperty(&prop, pScreenPtr->root, target, serverClient, DixReadAccess) != Success)
         return;
 
-    log(DEBUG, "Selection notification for CLIPBOARD (target %s, type %s)\n", NameForAtom(target), NameForAtom(prop->type));
-
     if (target == xaTARGETS && prop->type == XA_ATOM && prop->format == 32) {
         if (lorieHasAtom(xaUTF8_STRING, (const Atom*)prop->data, prop->size))
             lorieSelectionRequest(xaCLIPBOARD, xaUTF8_STRING);
@@ -255,20 +251,16 @@ static void lorieHandleSelection(Atom target) {
 
         lorieConvertLF(prop->data,  filtered, prop->size);
         lorieLatin1ToUTF8((unsigned char*) utf8, (unsigned char*) filtered);
-        log(DEBUG, "Sending clipboard to clients (%zu bytes)\n", strlen(utf8));
         lorieSendClipboardData(utf8);
     } else if (target == xaUTF8_STRING && prop->type == xaUTF8_STRING && prop->format == 8) {
         char filtered[prop->size + 1];
 
-        if (!lorieCheckUTF8(prop->data, prop->size)) {
-            dprintf(2, "Invalid UTF-8 sequence in clipboard\n");
+        if (!lorieCheckUTF8(prop->data, prop->size))
             return;
-        }
 
         memset(filtered, 0, prop->size + 1);
         lorieConvertLF(prop->data, filtered, prop->size);
 
-        log(DEBUG, "Sending clipboard to clients (%zu bytes)\n", strlen(filtered));
         lorieSendClipboardData(filtered);
     }
 }
@@ -304,14 +296,6 @@ static int lorieConvertSelection(ClientPtr client, Atom selection, Atom target, 
     Atom realProperty;
 
     xEvent event;
-
-    if (data == NULL) {
-        log(DEBUG, "Selection request for %s (type %s)",
-            NameForAtom(selection), NameForAtom(target));
-    } else {
-        log(DEBUG, "Sending data for selection request for %s (type %s)",
-            NameForAtom(selection), NameForAtom(target));
-    }
 
     rc = dixLookupSelection(&pSel, selection, client, DixGetAttrAccess);
     if (rc != Success)
@@ -370,7 +354,6 @@ static int lorieConvertSelection(ClientPtr client, Atom selection, Atom target, 
             ldt->next = lorieDataTargetHead;
             lorieDataTargetHead = ldt;
 
-            log(DEBUG, "Requesting clipboard data from client");
             lorieRequestClipboard();
 
             return Success;
@@ -499,8 +482,6 @@ static int lorieOwnSelection(Atom selection) {
     pSel->pWin = pScreenPtr->root;
     pSel->client = serverClient;
 
-    log(DEBUG, "Grabbed %s selection", NameForAtom(selection));
-
     info.selection = pSel;
     info.client = serverClient;
     info.kind = SelectionSetOwner;
@@ -514,19 +495,11 @@ void lorieHandleClipboardAnnounce(void) {
     free((void*) cachedData);
     cachedData = NULL;
 
-    int rc;
-
-    log(DEBUG, "Remote clipboard announced, grabbing local ownership");
-
-    rc = lorieOwnSelection(xaCLIPBOARD);
-    if (rc != Success)
-        log(ERROR, "Could not set CLIPBOARD selection");
+    lorieOwnSelection(xaCLIPBOARD);
 }
 
 void lorieHandleClipboardData(const char* data) {
     struct LorieDataTarget* next;
-
-    log(DEBUG, "Got remote clipboard data, sending to X11 clients");
 
     free((void*) cachedData);
     cachedData = data;

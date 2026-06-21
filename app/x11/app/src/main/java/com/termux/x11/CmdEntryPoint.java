@@ -84,7 +84,7 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
             ctx.sendBroadcast(intent);
         } catch (Exception e) {
             if (e instanceof NullPointerException && ctx == null)
-            else
+                return;
 
             String packageName;
             try {
@@ -127,8 +127,10 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
     // In some cases Android Activity part can not connect opened port.
     // In this case opened port works like a lock file.
     private void sendBroadcastDelayed() {
-        if (!connected())
-            sendBroadcast(intent);
+        if (connected())
+            return;
+
+        sendBroadcast(intent);
 
         handler.postDelayed(this::sendBroadcastDelayed, 1000);
     }

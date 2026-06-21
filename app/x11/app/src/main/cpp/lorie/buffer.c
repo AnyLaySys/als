@@ -180,7 +180,7 @@ __LIBC_HIDDEN__ LorieBuffer* LorieBuffer_allocate(int32_t width, int32_t height,
                 .usage = AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE };
         int err = AHardwareBuffer_allocate(&desc, &ahardwarebuffer);
         if (err != 0)
-            dprintf(2, "FATAL: failed to allocate AHardwareBuffer (width %d height %d format %d): error %d\n", width, height, format, err);
+            return NULL;
     }
 
     return allocate(width, width, height, format, type, ahardwarebuffer, fd, size, 0, true);
@@ -291,7 +291,6 @@ __LIBC_HIDDEN__ int LorieBuffer_lock(LorieBuffer* buffer, void** out) {
         return ENODEV;
 
     if (buffer->locked) {
-        dprintf(2, "tried to lock already locked buffer\n");
         if (out)
             *out = buffer->lockedData;
         return EEXIST;
@@ -315,10 +314,8 @@ __LIBC_HIDDEN__ int LorieBuffer_unlock(LorieBuffer* buffer) {
     if (!buffer)
         return ENODEV;
 
-    if (!buffer->locked) {
-        dprintf(2, "tried to unlock non-locked buffer\n");
+    if (!buffer->locked)
         return ENOENT;
-    }
 
     if (buffer->desc.type == LORIEBUFFER_AHARDWAREBUFFER)
         ret = AHardwareBuffer_unlock(buffer->desc.buffer, NULL);

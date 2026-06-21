@@ -79,11 +79,10 @@ static jboolean requestConnection(__unused JNIEnv *env, __unused jclass clazz) {
         struct pollfd pfd = { .fd = sock, .events = POLLOUT };
         r = poll(&pfd, 1, 20);  // timeout set to 50ms
         if (!r) goto end;
-        // check(!r, "Connection timed out after 20ms."); // We do not want to flood logcat with this message
         check(r < 0, "poll failed: %s", strerror(errno));
         socklen_t len = sizeof(so_error);
         check(getsockopt(sock, SOL_SOCKET, SO_ERROR, &so_error, &len) < 0, "getsockopt failed: %s", strerror(errno));
-        if (so_error == ECONNREFUSED) goto end; // Regular situation which happens often if server is not started. No need to spam logcat with this.
+        if (so_error == ECONNREFUSED) goto end;
         check(so_error != 0, "Connection failed: %s", strerror(so_error));
 
         check(write(sock, MAGIC, sizeof(MAGIC)) < 0, "failed to send message: %s", strerror(errno));

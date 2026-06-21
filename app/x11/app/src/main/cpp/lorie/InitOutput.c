@@ -44,7 +44,6 @@
 extern void android_shmem_sysv_shm_force(uint8_t enable);
 
 #define unused __attribute__((unused))
-#define log(prio, ...) ((void)0)
 
 extern DeviceIntPtr lorieMouse, lorieKeyboard;
 
@@ -112,12 +111,10 @@ void OsVendorInit(void) {
         return;
 
     if (-1 == (lorieScreen.stateFd = LorieBuffer_createRegion("xserver", sizeof(*lorieScreen.state)))) {
-        dprintf(2, "FATAL: Failed to allocate server state.\n");
         _exit(1);
     }
 
     if (!(lorieScreen.state = mmap(NULL, sizeof(*lorieScreen.state), PROT_READ|PROT_WRITE, MAP_SHARED, lorieScreen.stateFd, 0))) {
-        dprintf(2, "FATAL: Failed to map server state.\n");
         _exit(1);
     }
 
@@ -148,7 +145,6 @@ static Bool FalseNoop() { return FALSE; }
 static void VoidNoop() {}
 
 void ddxGiveUp(unused enum ExitCode error) {
-    log(ERROR, "Server stopped (%d)", error);
     CloseWellKnownConnections();
     UnlockServer();
     exit(error);
@@ -171,25 +167,13 @@ static void* ddxReadyThread(unused void* cookie) {
 
             execlp(xstartup, xstartup, NULL);
             execlp("sh", "sh", "-c", xstartup, NULL);
-            dprintf(2, "Failed to start command `sh -c \"%s\"`: %s\n", xstartup, strerror(errno));
             abort();
         } else {
             int status;
             do {
                 pid_t w = waitpid(pid, &status, 0);
                 if (w == -1) {
-                    perror("waitpid");
                     GiveUp(SIGKILL);
-                }
-
-                if (WIFEXITED(status)) {
-                    printf("%d exited, status=%d\n", w, WEXITSTATUS(status));
-                } else if (WIFSIGNALED(status)) {
-                    printf("%d killed by signal %d\n", w, WTERMSIG(status));
-                } else if (WIFSTOPPED(status)) {
-                    printf("%d stopped by signal %d\n", w, WSTOPSIG(status));
-                } else if (WIFCONTINUED(status)) {
-                    printf("%d continued\n", w);
                 }
             } while (!WIFEXITED(status) && !WIFSIGNALED(status));
             GiveUp(SIGINT);
@@ -236,7 +220,6 @@ void ddxReady(void) {
 }
 
 void OsVendorFatalError(unused const char *f, unused va_list args) {
-    log(ERROR, f, args);
 }
 
 #if defined(DDXBEFORERESET)
@@ -682,7 +665,6 @@ void lorieConfigureNotify(int width, int height, int framerate, size_t name_size
         RRCrtcNotify(RRFirstEnabledCrtc(pScreen), mode, 0, 0, RR_Rotate_0, NULL, 1, &output);
         RRScreenSizeSet(pScreen, mode->mode.width, mode->mode.height, mmWidth, mmHeight);
 
-        log(VERBOSE, "New reported framerate is %d", framerate);
         pvfb->root.framerate = framerate;
         pvfb->vblank_interval = 1000000 / pvfb->root.framerate;
     }
@@ -875,10 +857,8 @@ Bool loriePrepareAccess(PixmapPtr pPix, int index) {
 
     if (!priv->locked && !priv->mem) {
         int err = LorieBuffer_lock(priv->buffer, &priv->locked);
-        if (err) {
-            dprintf(2, "Failed to lock buffer, err %d\n", err);
+        if (err)
             return FALSE;
-        }
         priv->wasLocked = FALSE;
     } else
         priv->wasLocked = TRUE;
@@ -911,8 +891,8 @@ static ExaDriverRec lorieExa = {
 
 static PixmapPtr loriePixmapFromFds(ScreenPtr screen, CARD8 num_fds, const int *fds, CARD16 width, CARD16 height,
                                     const CARD32 *strides, const CARD32 *offsets, CARD8 depth, __unused CARD8 bpp, CARD64 modifier) {
-#define fail(msg, ...) do { log(ERROR, msg, ##__VA_ARGS__); goto fail; } while(0)
-#define check(cond, msg, ...) if ((cond)) fail(msg, ##__VA_ARGS__)
+#define fail(...) goto fail
+#define check(cond, ...) if ((cond)) fail()
     const CARD64 AHARDWAREBUFFER_SOCKET_FD = 1255;
     const CARD64 AHARDWAREBUFFER_FLIPPED_SOCKET_FD = 1256;
     const CARD64 RAW_MMAPPABLE_FD = 1274;
