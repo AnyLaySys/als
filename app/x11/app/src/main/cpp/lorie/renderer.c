@@ -25,8 +25,8 @@
 #include "list.h"
 #include "lorie.h"
 
-#define log(...) __android_log_print(ANDROID_LOG_DEBUG, "gles-renderer", __VA_ARGS__)
-#define loge(...) __android_log_print(ANDROID_LOG_ERROR, "gles-renderer", __VA_ARGS__)
+#define log(...) ((void)0)
+#define loge(...) ((void)0)
 
 static GLuint createProgram(const char* p_vertex_source, const char* p_fragment_source);
 
@@ -745,7 +745,6 @@ void rendererRedrawLocked(bool* waitingForBuffers) {
     eglClientWaitSyncKHR(egl_display, fence, EGL_SYNC_FLUSH_COMMANDS_BIT_KHR, EGL_FOREVER);
     eglDestroySyncKHR(egl_display, fence);
 
-    state->renderedFrames++;
 }
 
 static inline __always_inline bool rendererShouldWait(bool *waitingForBuffers) {

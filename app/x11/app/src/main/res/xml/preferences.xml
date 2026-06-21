@@ -52,7 +52,4 @@
         <ListPreference app:key="notificationButton0Action" app:defaultValue="open preferences" app:entries="@array/userActionsValuesEntries" app:entryValues="@array/userActionsValues" app:isPreferenceVisible="false" />
         <ListPreference app:key="notificationButton1Action" app:defaultValue="exit" app:entries="@array/userActionsValuesEntries" app:entryValues="@array/userActionsValues" app:isPreferenceVisible="false" />
     </PreferenceScreen>
-    <PreferenceScreen app:key="ekbar">
-        <SeekBarPreference app:key="opacityEKBar" app:defaultValue="27" app:min="1" android:max="100" app:seekBarIncrement="1" app:showSeekBarValue="true" app:updatesContinuously="true" />
-    </PreferenceScreen>
 </PreferenceScreen>

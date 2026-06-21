@@ -20,7 +20,6 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.InputDevice;
 import android.view.MenuItem;
@@ -269,7 +268,6 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
         @Override
         public boolean onPreferenceChange(Preference preference, Object newValue) {
             String key = preference.getKey();
-            Log.e("Preferences", "changed preference: " + key);
             handler.removeCallbacks(updateLayout);
             handler.postDelayed(updateLayout, 50);
             if ("displayScale".contentEquals(key)) {
@@ -324,7 +322,6 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
         @Keep
         @SuppressLint("WrongConstant")
         public static void main(String[] args) {
-            android.util.Log.i("LoriePreferences$Receiver", "commit " + BuildConfig.COMMIT);
             ParcelFileDescriptor in = ParcelFileDescriptor.adoptFd(0);
             Intent i = new Intent("com.termux.x11.CHANGE_PREFERENCE");
             Bundle bundle = new Bundle();
@@ -473,7 +470,6 @@ public class LoriePreferences extends AppCompatActivity implements PreferenceFra
                 try {
                     remote.exit(status, text);
                 } catch (RemoteException ex) {
-                    Log.e("LoriePreferences", "Failed to send response to commandline proxy", ex);
                 }
             } else if (isOrderedBroadcast()) {
                 setResultCode(oldStatus);

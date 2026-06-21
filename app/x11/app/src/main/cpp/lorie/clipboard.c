@@ -181,7 +181,7 @@ static const char *lorieUtf8ToLatin1(const char *src) {
 
 /* end utility functions */
 
-#define log(prio, ...) __android_log_print(ANDROID_LOG_ ## prio, "LorieNative", __VA_ARGS__)
+#define log(prio, ...) ((void)0)
 extern ScreenPtr pScreenPtr;
 
 static int (*origProcSendEvent)(ClientPtr) = NULL;

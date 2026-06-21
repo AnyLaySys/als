@@ -8,11 +8,9 @@
 #include <dix-config.h>
 #endif
 #include <jni.h>
-#include <android/log.h>
 #include <android/native_window_jni.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-#include <sys/prctl.h>
 #include <sys/ioctl.h>
 #include <libgen.h>
 #include <globals.h>
@@ -24,8 +22,6 @@
 #include <arpa/inet.h>
 #include <poll.h>
 #include "lorie.h"
-
-#define log(prio, ...) __android_log_print(ANDROID_LOG_ ## prio, "LorieNative", __VA_ARGS__)
 
 static int argc = 0;
 static char** argv = NULL;
@@ -62,9 +58,6 @@ static Bool detectTracer(void)
         }
     }
 
-    if (pid != 0)
-        log(INFO, "Tracer detected");
-
     fclose(fp);
     return pid != 0;
 }
@@ -90,19 +83,11 @@ Java_com_termux_x11_CmdEntryPoint_start(JNIEnv *env, __unused jclass cls, jobjec
         cpu_set_t mask;
         long num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 
+        CPU_ZERO(&mask);
         for (int i = num_cpus/2; i < num_cpus; i++)
             CPU_SET(i, &mask);
 
-        if (sched_setaffinity(0, sizeof(cpu_set_t), &mask) == -1)
-            log(ERROR, "Failed to set process affinity: %s", strerror(errno));
-    }
-
-    if (getenv("TERMUX_X11_DEBUG") && !fork()) {
-        // Printing logs of local logcat.
-        char pid[32] = {0};
-        prctl(PR_SET_PDEATHSIG, SIGTERM);
-        sprintf(pid, "%d", getppid());
-        execlp("logcat", "logcat", "--pid", pid, NULL);
+        sched_setaffinity(0, sizeof(cpu_set_t), &mask);
     }
 
     // No matter what tracer is attached.
@@ -124,9 +109,6 @@ Java_com_termux_x11_CmdEntryPoint_start(JNIEnv *env, __unused jclass cls, jobjec
     }
 
     if (!getenv("TMPDIR")) {
-        char* error = (char*) "$TMPDIR is not set. Normally it is pointing to /tmp of a container.";
-        log(ERROR, "%s", error);
-        dprintf(2, "%s\n", error);
         return JNI_FALSE;
     }
 
@@ -139,8 +121,6 @@ Java_com_termux_x11_CmdEntryPoint_start(JNIEnv *env, __unused jclass cls, jobjec
         asprintf(&xtrans_unix_path_x11, "%s/.X11-unix/X", tmp);
         asprintf(&xtrans_unix_dir_x11, "%s/.X11-unix/", tmp);
     }
-
-    log(VERBOSE, "Using TMPDIR=\"%s\"", getenv("TMPDIR"));
 
     {
         const char *root_dir = dirname(getenv("TMPDIR"));
@@ -184,16 +164,11 @@ Java_com_termux_x11_CmdEntryPoint_start(JNIEnv *env, __unused jclass cls, jobjec
     }
 
     if (!getenv("XKB_CONFIG_ROOT")) {
-        char* error = (char*) "$XKB_CONFIG_ROOT is not set. Normally it is pointing to /usr/share/X11/xkb of a container.";
-        log(ERROR, "%s", error);
-        dprintf(2, "%s\n", error);
         return JNI_FALSE;
     }
 
     XkbBaseDirectory = getenv("XKB_CONFIG_ROOT");
     if (access(XkbBaseDirectory, F_OK) != 0) {
-        log(ERROR, "%s is unaccessible: %s\n", XkbBaseDirectory, strerror(errno));
-        printf("%s is unaccessible: %s\n", XkbBaseDirectory, strerror(errno));
         return JNI_FALSE;
     }
 
@@ -211,7 +186,6 @@ Java_com_termux_x11_CmdEntryPoint_start(JNIEnv *env, __unused jclass cls, jobjec
 static Bool sendConfigureNotify(__unused ClientPtr pClient, void *closure) {
     // This must be done only on X server thread.
     lorieEvent* e = closure;
-    __android_log_print(ANDROID_LOG_ERROR, "tx11-request", "window changed: %d %d %s", e->screenSize.width, e->screenSize.height, e->screenSize.name);
     lorieConfigureNotify(e->screenSize.width, e->screenSize.height, e->screenSize.framerate, e->screenSize.name_size, e->screenSize.name);
     free(e);
     return TRUE;
@@ -303,12 +277,8 @@ void handleLorieEvents(int fd, __unused int ready, __unused void *ignored) {
                 static int buttons_prev = 0;
                 uint32_t released, pressed, diff;
                 DeviceIntPtr device = e.stylus.mouse ? lorieMouse : (e.stylus.eraser ? lorieEraser : loriePen);
-                if (!device) {
-                    __android_log_print(ANDROID_LOG_DEBUG, "LorieNative", "got stylus event but device is not requested\n");
+                if (!device)
                     break;
-                }
-                __android_log_print(ANDROID_LOG_DEBUG, "LorieNative", "got stylus event %f %f %d %d %d %d %s\n", e.stylus.x, e.stylus.y, e.stylus.pressure, e.stylus.tilt_x, e.stylus.tilt_y, e.stylus.orientation,
-                                    device == lorieMouse ? "lorieMouse" : (device == loriePen ? "loriePen" : "lorieEraser"));
 
                 valuator_mask_set_double(&mask, 0, max(min(e.stylus.x, pScreenPtr->width), 0));
                 valuator_mask_set_double(&mask, 1, max(min(e.stylus.y, pScreenPtr->height), 0));
@@ -327,11 +297,9 @@ void handleLorieEvents(int fd, __unused int ready, __unused void *ignored) {
                 for (int i=0; i<3; i++) {
                     if (released & 0x1) {
                         QueuePointerEvents(device, ButtonRelease, i + 1, POINTER_RELATIVE, NULL);
-                        __android_log_print(ANDROID_LOG_DEBUG, "LorieNative", "sending %d press", i+1);
                     }
                     if (pressed & 0x1) {
                         QueuePointerEvents(device, ButtonPress, i + 1, POINTER_RELATIVE, NULL);
-                        __android_log_print(ANDROID_LOG_DEBUG, "LorieNative", "sending %d release", i+1);
                     }
                     released >>= 1;
                     pressed >>= 1;
@@ -382,7 +350,6 @@ void handleLorieEvents(int fd, __unused int ready, __unused void *ignored) {
                 break;
             case EVENT_UNICODE: {
                 int ks = ucs2keysym((long) e.unicode.code);
-                __android_log_print(ANDROID_LOG_DEBUG, "LorieNative", "Trying to input keysym %d\n", ks);
                 lorieKeysymKeyboardEvent(ks, TRUE);
                 lorieKeysymKeyboardEvent(ks, FALSE);
                 break;
@@ -459,8 +426,6 @@ void lorieRegisterBuffer(LorieBuffer* buffer) {
         write(conn_fd, &e, sizeof(e));
         LorieBuffer_sendHandleToUnixSocket(buffer, conn_fd);
         LorieBuffer_addToList(buffer, &registeredBuffers);
-        const LorieBuffer_Desc* desc = LorieBuffer_description(buffer);
-        log(INFO, "Sent shared buffer width %d stride %d height %d format %d type %d id %llu", desc->width, desc->stride, desc->height, desc->format, desc->type, desc->id);
     }
 }
 
@@ -495,31 +460,6 @@ Java_com_termux_x11_CmdEntryPoint_getXConnection(JNIEnv *env, __unused jobject c
     return (*env)->CallStaticObjectMethod(env, ParcelFileDescriptorClass, adoptFd, client[0]);
 }
 
-void* logcatThread(void *arg) {
-    char buffer[4096];
-    size_t len;
-    while((len = read((int) (int64_t) arg, buffer, 4096)) >=0)
-        write(2, buffer, len);
-    close((int) (int64_t) arg);
-    return NULL;
-}
-
-JNIEXPORT jobject JNICALL
-Java_com_termux_x11_CmdEntryPoint_getLogcatOutput(JNIEnv *env, __unused jobject cls) {
-    jclass ParcelFileDescriptorClass = (*env)->FindClass(env, "android/os/ParcelFileDescriptor");
-    jmethodID adoptFd = (*env)->GetStaticMethodID(env, ParcelFileDescriptorClass, "adoptFd", "(I)Landroid/os/ParcelFileDescriptor;");
-    const char *debug = getenv("TERMUX_X11_DEBUG");
-    if (debug && !strcmp(debug, "1")) {
-        pthread_t t;
-        int p[2];
-        pipe(p);
-        fchmod(p[1], 0777);
-        pthread_create(&t, NULL, logcatThread, (void*) (uint64_t) p[0]);
-        return (*env)->CallStaticObjectMethod(env, ParcelFileDescriptorClass, adoptFd, p[1]);
-    }
-    return NULL;
-}
-
 JNIEXPORT jboolean JNICALL
 Java_com_termux_x11_CmdEntryPoint_connected(__unused JNIEnv *env, __unused jclass clazz) {
     return conn_fd != -1;
@@ -536,37 +476,29 @@ Java_com_termux_x11_CmdEntryPoint_listenForConnections(JNIEnv *env, jobject thiz
     // Even in the case if it will fail for some reason everything will work fine
     // But connection will be delayed a bit
 
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        log(ERROR, "Socket creation failed: %s", strerror(errno));
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
         return;
-    }
 
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
     setsockopt(server_fd, SOL_SOCKET, SO_REUSEPORT, &(int){1}, sizeof(int));
 
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-        log(ERROR, "Socket bind failed: %s", strerror(errno));
         close(server_fd);
         return;
     }
 
     if (listen(server_fd, 5) < 0) {
-        log(ERROR, "Socket listen failed: %s", strerror(errno));
         close(server_fd);
         return;
     }
 
     while(1) {
-        if ((client = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
-            log(ERROR, "Socket accept failed: %s", strerror(errno));
+        if ((client = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0)
             continue;
-        }
 
         if ((count = read(client, buffer, sizeof(buffer))) > 0) {
-            if (!memcmp(buffer, MAGIC, min(count, sizeof(MAGIC)))) {
-                log(DEBUG, "New client connection!\n");
+            if (!memcmp(buffer, MAGIC, min(count, sizeof(MAGIC))))
                 (*env)->CallVoidMethod(env, thiz, sendBroadcast);
-            }
         }
         close(client);
     }

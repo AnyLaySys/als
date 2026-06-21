@@ -199,9 +199,6 @@ struct lorie_shared_server_state {
      */
     volatile uint8_t waitForNextFrame;
 
-    /* Needed to show FPS counter in logcat */
-    volatile int renderedFrames;
-
     struct {
         // We should not allow updating cursor content the same time renderer draws it.
         // locking the mutex protecting the root window can cause waiting for the frame to be drawn which is unacceptable

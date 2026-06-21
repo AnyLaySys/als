@@ -3,9 +3,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
-#include <pthread.h>
 #include <sys/ioctl.h>
-#include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/mman.h>
 #include <errno.h>
@@ -20,8 +18,6 @@
 #pragma clang diagnostic ignored "-Wunknown-pragmas"
 #pragma ide diagnostic ignored "cppcoreguidelines-narrowing-conversions"
 #pragma ide diagnostic ignored "ConstantFunctionResult"
-#define log(prio, ...) __android_log_print(ANDROID_LOG_ ## prio, "LorieNative", __VA_ARGS__)
-
 extern volatile int conn_fd; // The only variable from shared with X server code.
 
 static struct {
@@ -48,7 +44,6 @@ static jclass FindClassOrDie(JNIEnv *env, const char* name) {
     if (!clazz) {
         char buffer[1024] = {0};
         sprintf(buffer, "class %s not found", name);
-        log(ERROR, "%s", buffer);
         (*env)->FatalError(env, buffer);
         return NULL;
     }
@@ -62,7 +57,6 @@ static jclass FindMethodOrDie(JNIEnv *env, jclass clazz, const char* name, const
     if (!method) {
         char buffer[1024] = {0};
         sprintf(buffer, "method %s %s not found", name, signature);
-        log(ERROR, "%s", buffer);
         (*env)->FatalError(env, buffer);
         return NULL;
     }
@@ -71,7 +65,7 @@ static jclass FindMethodOrDie(JNIEnv *env, jclass clazz, const char* name, const
 }
 
 static jboolean requestConnection(__unused JNIEnv *env, __unused jclass clazz) {
-#define check(cond, fmt, ...) if ((cond)) do { __android_log_print(ANDROID_LOG_ERROR, "requestConnection", fmt, ## __VA_ARGS__); goto end; } while (0)
+#define check(cond, fmt, ...) if ((cond)) goto end
     bool sent = JNI_FALSE;
     // We do not want to block GUI thread for a long time so we will set timeout to 20 msec.
     struct sockaddr_in server = { .sin_family = AF_INET, .sin_port = htons(PORT), .sin_addr.s_addr = inet_addr("127.0.0.1") };
@@ -144,7 +138,6 @@ static int xcallback(int fd, int events, __unused void* data) {
         conn_fd = -1;
         rendererSetSharedState(NULL);
         rendererRemoveAllBuffers();
-        log(DEBUG, "disconnected");
         return 1;
     }
 
@@ -161,7 +154,6 @@ static int xcallback(int fd, int events, __unused void* data) {
                     memset(clipboard, 0, e.clipboardSend.count + 1);
                     read(conn_fd, clipboard, sizeof(clipboard));
                     clipboard[e.clipboardSend.count] = 0;
-                    log(DEBUG, "Clipboard content (%zu symbols) is %s", strlen(clipboard), clipboard);
                     jmethodID id = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, thiz), "setClipboardText","(Ljava/lang/String;)V");
                     jobject bb = (*env)->NewDirectByteBuffer(env, clipboard, strlen(clipboard));
                     jobject charset = (*env)->CallStaticObjectMethod(env, Charset.self, Charset.forName, (*env)->NewStringUTF(env, "UTF-8"));
@@ -184,10 +176,8 @@ static int xcallback(int fd, int events, __unused void* data) {
                         break;
 
                     state = mmap(NULL, sizeof(*state), PROT_READ|PROT_WRITE, MAP_SHARED, stateFd, 0);
-                    if (!state || state == MAP_FAILED) {
-                        log(ERROR, "Failed to map server state: %s", strerror(errno));
+                    if (!state || state == MAP_FAILED)
                         state = NULL;
-                    }
 
                     rendererSetSharedState(state);
 
@@ -196,10 +186,7 @@ static int xcallback(int fd, int events, __unused void* data) {
                 }
                 case EVENT_ADD_BUFFER: {
                     static LorieBuffer* buffer = NULL;
-                    const LorieBuffer_Desc* desc;
                     LorieBuffer_recvHandleFromUnixSocket(conn_fd, &buffer);
-                    desc = LorieBuffer_description(buffer);
-                    log(INFO, "Received shared buffer width %d stride %d height %d format %d type %d id %llu", desc->width, desc->stride, desc->height, desc->format, desc->type, desc->id);
                     rendererAddBuffer(buffer);
                     break;
                 }
@@ -227,36 +214,14 @@ static void connect_(__unused JNIEnv* env, __unused jobject cls, jint fd) {
         close(conn_fd);
         rendererSetSharedState(NULL);
         rendererRemoveAllBuffers();
-        log(DEBUG, "disconnected");
     }
 
-    if ((conn_fd = fd) != -1) {
+    if ((conn_fd = fd) != -1)
         ALooper_addFd(ALooper_forThread(), fd, 0, ALOOPER_EVENT_INPUT | ALOOPER_EVENT_ERROR | ALOOPER_EVENT_HANGUP, xcallback, NULL);
-        log(DEBUG, "XCB connection is successfull");
-    }
 }
 
 static jboolean connected(__unused JNIEnv* env,__unused jclass clazz) {
     return conn_fd != -1;
-}
-
-static void startLogcat(JNIEnv *env, __unused jobject cls, jint fd) {
-    log(DEBUG, "Starting logcat with output to given fd");
-
-    switch(fork()) {
-        case -1:
-            log(ERROR, "fork: %s", strerror(errno));
-            return;
-        case 0:
-            dup2(fd, 1);
-            dup2(fd, 2);
-            prctl(PR_SET_PDEATHSIG, SIGTERM);
-            char buf[64] = {0};
-            sprintf(buf, "--pid=%d", getppid());
-            execl("/system/bin/logcat", "logcat", buf, NULL);
-            log(ERROR, "exec logcat: %s", strerror(errno));
-            (*env)->FatalError(env, "Exiting");
-    }
 }
 
 static void setClipboardSyncEnabled(__unused JNIEnv* env, __unused jobject cls, jboolean enable, __unused jboolean ignored) {
@@ -332,7 +297,6 @@ static void requestStylusEnabled(__unused JNIEnv *env, __unused jclass clazz, jb
 static jboolean sendKeyEvent(__unused JNIEnv* env, __unused jobject cls, jint scan_code, jint key_code, jboolean key_down) {
     if (conn_fd != -1) {
         int code = (scan_code) ?: android_to_linux_keycode[key_code];
-        log(DEBUG, "Sending key: %d (%d %d %d)", code + 8, scan_code, key_code, key_down);
         lorieEvent e = { .key = { .t = EVENT_KEY, .key = code + 8, .state = key_down } };
         write(conn_fd, &e, sizeof(e));
     }
@@ -349,21 +313,16 @@ static void sendTextEvent(JNIEnv *env, __unused jobject thiz, jbyteArray text) {
         if (!length)
             return;
 
-        log(DEBUG, "Parsing text: %.*s", length, str);
-
         while (*p) {
             wchar_t wc;
             size_t len = mbrtowc(&wc, p, MB_CUR_MAX, &mbstate);
 
-            if (len == (size_t)-1 || len == (size_t)-2) {
-                log(ERROR, "Invalid UTF-8 sequence encountered");
+            if (len == (size_t)-1 || len == (size_t)-2)
                 break;
-            }
 
             if (len == 0)
                 break;
 
-            log(DEBUG, "Sending unicode event: %lc (U+%X)", wc, wc);
             lorieEvent e = { .unicode = { .t = EVENT_UNICODE, .code = wc } };
             write(conn_fd, &e, sizeof(e));
             p += len;
@@ -386,7 +345,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, __unused void *reserved) {
             {"setFiltering", "(I)V", (void *)&rendererSetFiltering},
             {"connect", "(I)V", (void *)&connect_},
             {"connected", "()Z", (void *)&connected},
-            {"startLogcat", "(I)V", (void *)&startLogcat},
             {"setClipboardSyncEnabled", "(ZZ)V", (void *)&setClipboardSyncEnabled},
             {"sendClipboardAnnounce", "()V", (void *)&sendClipboardAnnounce},
             {"sendClipboardEvent", "([B)V", (void *)&sendClipboardEvent},
@@ -404,31 +362,4 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, __unused void *reserved) {
     (*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(methods[0]));
 
     return JNI_VERSION_1_6;
-}
-
-
-// It is needed to redirect stderr to logcat
-static void* stderrToLogcatThread(__unused void* cookie) {
-    FILE *fp;
-    int p[2];
-    size_t len;
-    char *line = NULL;
-    pipe(p);
-
-    fp = fdopen(p[0], "r");
-
-    dup2(p[1], 2);
-    dup2(p[1], 1);
-    while ((getline(&line, &len, fp)) != -1) {
-        log(DEBUG, "%s%s", line, (line[len - 1] == '\n') ? "" : "\n");
-    }
-
-    return NULL;
-}
-
-extern char* __progname;
-__attribute__((constructor)) static void init(void) {
-    pthread_t t;
-    if (!strcmp(__progname, "com.termux.x11"))
-        pthread_create(&t, NULL, stderrToLogcatThread, NULL);
 }

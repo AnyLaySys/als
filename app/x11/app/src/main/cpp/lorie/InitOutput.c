@@ -44,7 +44,7 @@
 extern void android_shmem_sysv_shm_force(uint8_t enable);
 
 #define unused __attribute__((unused))
-#define log(prio, ...) __android_log_print(ANDROID_LOG_ ## prio, "LorieNative", __VA_ARGS__)
+#define log(prio, ...) ((void)0)
 
 extern DeviceIntPtr lorieMouse, lorieKeyboard;
 
@@ -61,7 +61,6 @@ static ExaDriverRec lorieExa;
 
 typedef struct {
     DamagePtr damage;
-    OsTimerPtr fpsTimer;
 
     SetWindowPixmapProcPtr SetWindowPixmap;
     CloseScreenProcPtr CloseScreen;
@@ -445,14 +444,6 @@ static Bool lorieRedraw(__unused ClientPtr pClient, __unused void *closure) {
     return TRUE;
 }
 
-static CARD32 lorieFramecounter(unused OsTimerPtr timer, unused CARD32 time, unused void *arg) {
-    if (pvfb->state->renderedFrames)
-        log(INFO, "%d frames in 5.0 seconds = %.1f FPS",
-            pvfb->state->renderedFrames, ((float) pvfb->state->renderedFrames) / 5);
-    pvfb->state->renderedFrames = 0;
-    return 5000;
-}
-
 static Bool lorieCreateScreenResources(ScreenPtr pScreen) {
     pScreen->devPrivate = pScreen->CreatePixmap(pScreen, pScreen->width, pScreen->height, pScreen->rootDepth, CREATE_PIXMAP_USAGE_LORIEBUFFER_BACKED);
 
@@ -461,7 +452,6 @@ static Bool lorieCreateScreenResources(ScreenPtr pScreen) {
         FatalError("Couldn't setup damage\n");
 
     DamageRegister(&(*pScreen->GetScreenPixmap)(pScreen)->drawable, pvfb->damage);
-    pvfb->fpsTimer = TimerSet(NULL, 0, 5000, lorieFramecounter, pScreen);
 
     lorieRegisterBuffer(LORIE_BUFFER_FROM_PIXMAP(pScreenPtr->devPrivate));
 

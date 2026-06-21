@@ -185,23 +185,16 @@ public class TouchInputHandler {
         ((InputManager) mActivity.getSystemService(Context.INPUT_SERVICE)).registerInputDeviceListener(new InputManager.InputDeviceListener() {
             @Override
             public void onInputDeviceAdded(int deviceId) {
-                InputDevice dev = InputDevice.getDevice(deviceId);
-                String name = dev != null ? dev.getName() : "null";
-                android.util.Log.d("InputDeviceListener", "added " + name);
                 refreshInputDevices();
             }
 
             @Override
             public void onInputDeviceRemoved(int deviceId) {
-                android.util.Log.d("InputDeviceListener", "device removed");
                 refreshInputDevices();
             }
 
             @Override
             public void onInputDeviceChanged(int deviceId) {
-                InputDevice dev = InputDevice.getDevice(deviceId);
-                String name = dev != null ? dev.getName() : "null";
-                android.util.Log.d("InputDeviceListener", "changed " + name);
                 refreshInputDevices();
             }
         }, null);
@@ -215,25 +208,16 @@ public class TouchInputHandler {
     static public void refreshInputDevices() {
         AtomicBoolean stylusAvailable = new AtomicBoolean(false);
         AtomicBoolean externalKeyboardAvailable = new AtomicBoolean(false);
-        android.util.Log.d("DEVICES", "external keyboard connected " + stylusAvailable.get());
         Arrays.stream(InputDevice.getDeviceIds())
                 .mapToObj(InputDevice::getDevice)
                 .filter(Objects::nonNull)
                 .forEach((device) -> {
-                    //noinspection DataFlowIssue
-                    android.util.Log.d("DEVICES", "found device \"" + device.getName() + "\" " +
-                            (device.supportsSource(InputDevice.SOURCE_STYLUS) ? ((isExternal(device) ? "external " : "") + "stylus ") : "") +
-                            ((device.supportsSource(InputDevice.SOURCE_KEYBOARD) && device.getKeyboardType() == InputDevice.KEYBOARD_TYPE_ALPHABETIC) ? ((isExternal(device) ? "external " : "") + "keyboard ") : "") +
-                            "sources " + String.format("0x%08X", device.getSources()));
-
                     if (device.supportsSource(InputDevice.SOURCE_STYLUS))
                         stylusAvailable.set(true);
 
                     if (device.supportsSource(InputDevice.SOURCE_KEYBOARD) && device.getKeyboardType() == InputDevice.KEYBOARD_TYPE_ALPHABETIC && isExternal(device))
                         externalKeyboardAvailable.set(true);
                 });
-        android.util.Log.d("DEVICES", "requesting stylus " + stylusAvailable.get());
-        android.util.Log.d("DEVICES", "external keyboard connected " + externalKeyboardAvailable.get());
         LorieView.requestStylusEnabled(stylusAvailable.get());
         MainActivity.getInstance().setExternalKeyboardConnected(externalKeyboardAvailable.get());
     }
@@ -894,7 +878,6 @@ public class TouchInputHandler {
                 tiltY = (int) Math.round((float) Math.asin( Math.cos(orientation) * Math.sin(tilt)) * 63.5 - 0.5);
             }
 
-            android.util.Log.d("STYLUS_EVENT", "action " + action + " x " + newX + " y " + newY + " pressure " + e.getPressure() + " tilt " + e.getAxisValue(MotionEvent.AXIS_TILT) + " orientation " + e.getAxisValue(MotionEvent.AXIS_ORIENTATION) + " buttonState " + e.getButtonState() + " extractedButtons " + newButtons);
             mInjector.sendStylusEvent(
                     x = newX,
                     y = newY,

@@ -3,12 +3,10 @@ package com.termux.x11.utils;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
-import android.util.Log;
 
 import java.lang.reflect.Method;
 
 public class SamsungDexUtils {
-    private static final String TAG = SamsungDexUtils.class.getSimpleName();
     private static Method requestMetaKeyEventMethod;
     private static Object manager;
 
@@ -18,11 +16,9 @@ public class SamsungDexUtils {
             Method obtain = clazz.getMethod("getInstance");
             requestMetaKeyEventMethod = clazz.getDeclaredMethod("requestMetaKeyEvent", android.content.ComponentName.class, boolean.class);
             manager = obtain.invoke(null);
-            android.util.Log.d(TAG, "com.samsung.android.view.SemWindowManager is available");
         } catch (Exception ignored) {
             requestMetaKeyEventMethod = null;
             manager = null;
-            android.util.Log.d(TAG, "com.samsung.android.view.SemWindowManager is not available");
         }
     }
 
@@ -37,8 +33,6 @@ public class SamsungDexUtils {
         try {
             requestMetaKeyEventMethod.invoke(manager, activity.getComponentName(), enable);
         } catch (Exception it) {
-            Log.d(TAG, "Could not call com.samsung.android.view.SemWindowManager.requestMetaKeyEvent");
-            Log.d(TAG, it.getClass().getCanonicalName() + ": " + it.getMessage());
         }
     }
 

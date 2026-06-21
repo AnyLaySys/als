@@ -18,7 +18,6 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.Surface;
 
 import androidx.annotation.Keep;
@@ -43,7 +42,6 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
      * @param args The command-line arguments
      */
     public static void main(String[] args) {
-        android.util.Log.i("CmdEntryPoint", "commit " + BuildConfig.COMMIT);
         handler = new Handler(Looper.myLooper());
         handler.post(() -> new CmdEntryPoint(args));
         Looper.loop();
@@ -86,9 +84,7 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
             ctx.sendBroadcast(intent);
         } catch (Exception e) {
             if (e instanceof NullPointerException && ctx == null)
-                Log.i("Broadcast", "Context is null, falling back to manual broadcasting");
             else
-                Log.e("Broadcast", "Falling back to manual broadcasting, failed to broadcast intent through Context:", e);
 
             String packageName;
             try {
@@ -163,7 +159,6 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
                         .getSystemContext();
             }
         } catch (Exception e) {
-            Log.e("Context", "Failed to instantiate context:", e);
             context = null;
         } finally {
             System.setErr(err);
@@ -204,14 +199,12 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
         } catch (Throwable e) {
             error = e;
         }
-        Log.e("CmdEntryPoint", "Failed to dlopen " + libPath, error);
         System.err.println(ctx != null ? ctx.getString(R.string.lorie_error_native_library_load) : "Failed to load native library. Did you install the right apk? Try the universal one.");
         System.exit(134);
     }
 
     public static native boolean start(String[] args);
     public native ParcelFileDescriptor getXConnection();
-    public native ParcelFileDescriptor getLogcatOutput();
     private static native boolean connected();
     private native void listenForConnections();
 
@@ -224,7 +217,6 @@ public class CmdEntryPoint extends ICmdEntryInterface.Stub {
                     Looper.prepare();
             }
         } catch (Exception e) {
-            Log.e("CmdEntryPoint", "Something went wrong when preparing Looper", e);
         }
         handler = new Handler();
         ctx = createContext();

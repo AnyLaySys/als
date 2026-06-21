@@ -16,14 +16,12 @@
     <string name="lorie_notification_toggle_soft_keyboard">切换输入法</string>
     <string name="lorie_notification_toggle_additional_key_bar">切换小键盘</string>
     <string name="lorie_notification_release_pointer_and_keyboard_capture">释放捕获</string>
-    <string name="lorie_notification_toggle_fullscreen">切换全屏</string>
     <string name="lorie_pref_main">偏好设置</string>
     <string name="lorie_pref_output">输出</string>
     <string name="lorie_pref_pointer">指针</string>
     <string name="lorie_pref_kbd">键盘</string>
     <string name="lorie_pref_other">其他</string>
     <string name="lorie_pref_version">版本</string>
-    <string name="lorie_pref_ekbar">额外按键栏偏好设置</string>
     <string name="lorie_pref_displayResolutionMode">显示分辨率模式</string>
     <string name="lorie_pref_displayScale">显示缩放, %</string>
     <string name="lorie_pref_displayResolutionExact">显示分辨率</string>
@@ -42,14 +40,10 @@
     <string name="lorie_pref_keepScreenOn">保持屏幕常亮</string>
     <string name="lorie_pref_touchMode">触摸屏输入模式</string>
     <string name="lorie_pref_scaleTouchpad">将显示缩放系数应用于触摸板</string>
-    <string name="lorie_pref_showStylusClickOverride">显示手写笔点击选项</string>
-    <string name="lorie_pref_showStylusClickOverride_summary">手写笔触摸覆盖，左键、中键或右键点击（仅手写笔）</string>
     <string name="lorie_pref_stylusIsMouse">启用手写笔鼠标模式</string>
     <string name="lorie_pref_stylusIsMouse_summary">让手写笔像鼠标一样工作。启用后，手写笔只移动光标并发送鼠标点击，忽略压力、角度和倾斜。</string>
     <string name="lorie_pref_stylusButtonContactModifierMode">手写笔按钮接触修饰模式</string>
     <string name="lorie_pref_stylusButtonContactModifierMode_summary">启用后，仅当按住手写笔按钮并接触屏幕时发送右键或中键点击。</string>
-    <string name="lorie_pref_showMouseHelper">显示鼠标点击辅助浮层</string>
-    <string name="lorie_pref_showMouseHelper_summary">可配合触摸板使用的屏幕鼠标按钮</string>
     <string name="lorie_pref_pointerCapture">尽可能捕获外部指针设备</string>
     <string name="lorie_pref_pointerCapture_summary">拦截所有硬件指针事件。按 Escape 键后指针返回 Android。</string>
     <string name="lorie_pref_transformCapturedPointer">转换捕获的指针移动</string>
@@ -71,8 +65,6 @@
     <string name="lorie_pref_enforceCharBasedInput_summary">抑制建议、预测输入和中日韩语言</string>
     <string name="lorie_pref_clipboardEnable">剪贴板共享</string>
     <string name="lorie_pref_requestNotificationPermission">请求通知权限</string>
-    <string name="lorie_pref_xrMode">Meta Oculus XR 模式</string>
-    <string name="lorie_pref_opacityEKBar">额外按键栏不透明度, %</string>
     <string name="lorie_pref_summary_requiresExactOrCustom">需要将“显示分辨率模式”设为“exact”或“custom”</string>
     <string name="lorie_pref_summary_requiresTrackpadAndNative">需要将“触摸屏输入模式”设为“Trackpad”，并且“显示分辨率模式”不能为“native”</string>
     <string name="lorie_touchMode_trackpad">触摸板</string>
@@ -97,8 +89,6 @@
     <string name="lorie_userAction_toggleFullscreen">切换全屏</string>
     <string name="lorie_userAction_restartActivity">重启 Activity</string>
     <string name="lorie_userAction_exit">退出</string>
-    <string name="lorie_userAction_androidVolumeControl">Android 音量控制</string>
-    <string name="lorie_userAction_androidMediaControl">Android 媒体控制</string>
     <string name="lorie_orientation_auto">自动</string>
     <string name="lorie_orientation_portrait">竖屏</string>
     <string name="lorie_orientation_landscape">横屏</string>
@@ -106,6 +96,5 @@
     <string name="lorie_orientation_reverseLandscape">反向横屏</string>
     <string name="lorie_toast_copied_to_clipboard">已复制到剪贴板</string>
     <string name="lorie_toast_wrong_resolution_format">分辨率格式错误</string>
-    <string name="lorie_dialog_permission_denied_title">权限被拒绝</string>
     <string name="lorie_error_native_library_load">无法加载原生库。是否安装了正确的 APK？请尝试 universal 版本。</string>
 </resources>

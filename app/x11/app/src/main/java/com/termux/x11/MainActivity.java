@@ -35,7 +35,6 @@ import android.os.RemoteException;
 import android.os.SystemClock;
 import android.service.notification.StatusBarNotification;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.DragEvent;
 import android.view.InputDevice;
 import android.view.KeyEvent;
@@ -85,6 +84,11 @@ public class MainActivity extends AppCompatActivity {
     private View.OnKeyListener mLorieKeyListener;
     private boolean isInPictureInPictureMode = false;
     private long lastBackPressedAt = 0;
+    private long mainScreenVisibleUntil = 0;
+    private final Runnable hideMainScreen = () -> {
+        mainScreenVisibleUntil = 0;
+        clientConnectedStateChanged();
+    };
 
     public static Prefs prefs = null;
 
@@ -97,19 +101,15 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if (ACTION_START.equals(intent.getAction())) {
                 try {
-                    Log.v("LorieBroadcastReceiver", "Got new ACTION_START intent");
                     onReceiveConnection(intent);
                 } catch (Exception e) {
-                    Log.e("MainActivity", "Something went wrong while we extracted connection details from binder.", e);
                 }
             } else if (ACTION_STOP.equals(intent.getAction())) {
                 finishAffinity();
             } else if (ACTION_PREFERENCES_CHANGED.equals(intent.getAction())) {
-                Log.d("MainActivity", "preference: " + intent.getStringExtra("key"));
                 if (!"additionalKbdVisible".equals(intent.getStringExtra("key")))
                     onPreferencesChanged("");
             } else if (ACTION_CUSTOM.equals(intent.getAction())) {
-                android.util.Log.d("ACTION_CUSTOM", "action " + intent.getStringExtra("what"));
                 mInputHandler.extractUserActionFromPreferences(prefs, intent.getStringExtra("what")).accept(0, true);
             }
         }
@@ -159,7 +159,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private float toolbarAlpha() {
-        return isInPictureInPictureMode ? 0.f : prefs.opacityEKBar.get() / 100.f;
+        return isInPictureInPictureMode ? 0.f : 0.27f;
+    }
+
+    private void showMainScreenBriefly() {
+        mainScreenVisibleUntil = SystemClock.uptimeMillis() + 3000;
+        handler.removeCallbacks(hideMainScreen);
+        handler.postDelayed(hideMainScreen, 3000);
     }
 
     @Override
@@ -242,6 +248,9 @@ public class MainActivity extends AppCompatActivity {
             final View content = findViewById(android.R.id.content);
             content.getViewTreeObserver().addOnPreDrawListener(mOnPredrawListener);
             handler.postDelayed(this::finishStartupDraw, 500);
+        } else if (LorieView.connected()) {
+            showMainScreenBriefly();
+            clientConnectedStateChanged();
         }
         onPreferencesChanged("");
 
@@ -258,6 +267,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        handler.removeCallbacks(hideMainScreen);
         unregisterReceiver(receiver);
         super.onDestroy();
     }
@@ -273,25 +283,18 @@ public class MainActivity extends AppCompatActivity {
             service.asBinder().linkToDeath(() -> {
                 service = null;
 
-                Log.v("Lorie", "Disconnected");
                 runOnUiThread(() -> { LorieView.connect(-1); clientConnectedStateChanged();} );
             }, 0);
         } catch (RemoteException ignored) {}
 
         try {
             if (service != null && service.asBinder().isBinderAlive()) {
-                Log.v("LorieBroadcastReceiver", "Extracting logcat fd.");
-                ParcelFileDescriptor logcatOutput = service.getLogcatOutput();
-                if (logcatOutput != null)
-                    LorieView.startLogcat(logcatOutput.detachFd());
-
                 tryConnect();
 
                 if (intent != getIntent())
                     getIntent().putExtra(null, bundle);
             }
         } catch (Exception e) {
-            Log.e("MainActivity", "Something went wrong while we were establishing connection", e);
         }
     }
 
@@ -308,8 +311,8 @@ public class MainActivity extends AppCompatActivity {
         try {
             ParcelFileDescriptor fd = service.getXConnection();
             if (fd != null) {
-                Log.v("MainActivity", "Extracting X connection socket.");
                 LorieView.connect(fd.detachFd());
+                showMainScreenBriefly();
                 finishStartupDraw();
                 getLorieView().triggerCallback();
                 clientConnectedStateChanged();
@@ -317,7 +320,6 @@ public class MainActivity extends AppCompatActivity {
             } else
                 handler.postDelayed(this::tryConnect, 250);
         } catch (Exception e) {
-            Log.e("MainActivity", "Something went wrong while we were establishing connection", e);
             service = null;
 
             handler.postDelayed(this::tryConnect, 250);
@@ -606,9 +608,7 @@ public class MainActivity extends AppCompatActivity {
      * @param context calling context
      */
     public static void toggleKeyboardVisibility(Context context) {
-        Log.d("MainActivity", "Toggling keyboard visibility");
         if(inputMethodManager != null) {
-            android.util.Log.d("toggleKeyboardVisibility", "externalKeyboardConnected " + externalKeyboardConnected + " showIMEWhileExternalConnected " + showIMEWhileExternalConnected);
             if (!externalKeyboardConnected || showIMEWhileExternalConnected)
                 inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
             else
@@ -622,8 +622,9 @@ public class MainActivity extends AppCompatActivity {
     void clientConnectedStateChanged() {
         runOnUiThread(()-> {
             boolean connected = LorieView.connected();
+            boolean showMainScreen = !connected || SystemClock.uptimeMillis() < mainScreenVisibleUntil;
             setTerminalToolbarView();
-            findViewById(R.id.stub).setVisibility(connected?View.INVISIBLE:View.VISIBLE);
+            findViewById(R.id.stub).setVisibility(showMainScreen?View.VISIBLE:View.INVISIBLE);
             getLorieView().setVisibility(connected?View.VISIBLE:View.INVISIBLE);
 
             // We should recover connection in the case if file descriptor for some reason was broken...

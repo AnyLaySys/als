@@ -238,7 +238,6 @@ lorieStylusProc(DeviceIntPtr device, int what) {
 
 void
 lorieSetStylusEnabled(Bool enabled) {
-    __android_log_print(ANDROID_LOG_DEBUG, "LorieNative", "Requested stylus: %d, current loriePen %p, current lorieEraser %p\n", enabled, loriePen, lorieEraser);
     if (enabled) {
         if (loriePen == NULL) {
             loriePen = AddInputDevice(serverClient, lorieStylusProc, TRUE);
