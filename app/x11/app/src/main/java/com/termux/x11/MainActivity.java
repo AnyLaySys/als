@@ -23,7 +23,6 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Build.VERSION_CODES;
 import android.window.OnBackInvokedDispatcher;
@@ -154,6 +153,10 @@ public class MainActivity extends AppCompatActivity {
             editor.putString("displayResolutionMode", "native");
             changed = true;
         }
+        if (prefs.showAdditionalKbd.get() && !prefs.additionalKbdVisible.get()) {
+            editor.putBoolean("additionalKbdVisible", true);
+            changed = true;
+        }
         if (changed)
             editor.commit();
     }
@@ -190,7 +193,6 @@ public class MainActivity extends AppCompatActivity {
 
         frm = findViewById(R.id.frame);
         findViewById(R.id.preferences_button).setOnClickListener((l) -> startActivity(new Intent(this, LoriePreferences.class) {{ setAction(Intent.ACTION_MAIN); }}));
-        findViewById(R.id.help_button).setOnClickListener((l) -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/termux/termux-x11/blob/master/README.md#running-graphical-applications"))));
         findViewById(R.id.exit_button).setOnClickListener((l) -> finish());
 
         LorieView lorieView = findViewById(R.id.lorieView);

@@ -5,9 +5,7 @@
     ]>
 <resources>
     <string name="x11_app_name">&TERMUX_X11_APP_NAME;</string>
-    <string name="not_connected">Not connected</string>
-    <string name="preferences_button_text">PREFERENCES</string>
-    <string name="help_button_text">HELP</string>
+    <string name="settings">Settings</string>
     <string name="exit_button_text">EXIT</string>
     <string name="lorie_notification_content_text">Pull down to show options</string>
     <string name="lorie_notification_open_preferences">Preferences</string>
