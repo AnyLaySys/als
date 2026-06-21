@@ -47,10 +47,7 @@ import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -263,113 +260,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         unregisterReceiver(receiver);
         super.onDestroy();
-    }
-
-    void setSize(View v, int width, int height) {
-        ViewGroup.LayoutParams p = v.getLayoutParams();
-        p.width = (int) (width * getResources().getDisplayMetrics().density);
-        p.height = (int) (height * getResources().getDisplayMetrics().density);
-        v.setLayoutParams(p);
-        v.setMinimumWidth((int) (width * getResources().getDisplayMetrics().density));
-        v.setMinimumHeight((int) (height * getResources().getDisplayMetrics().density));
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    void initMouseAuxButtons() {
-        final ViewPager pager = getTerminalToolbarViewPager();
-        Button left = findViewById(R.id.mouse_button_left_click);
-        Button right = findViewById(R.id.mouse_button_right_click);
-        Button middle = findViewById(R.id.mouse_button_middle_click);
-        ImageButton pos = findViewById(R.id.mouse_buttons_position);
-        LinearLayout primaryLayer = findViewById(R.id.mouse_buttons);
-        LinearLayout secondaryLayer = findViewById(R.id.mouse_buttons_secondary_layer);
-
-        boolean mouseHelperEnabled = prefs.showMouseHelper.get() && "1".equals(prefs.touchMode.get());
-        primaryLayer.setVisibility(mouseHelperEnabled ? View.VISIBLE : View.GONE);
-
-        pos.setOnClickListener((v) -> {
-            if (secondaryLayer.getOrientation() == LinearLayout.HORIZONTAL) {
-                setSize(left, 48, 96);
-                setSize(right, 48, 96);
-                secondaryLayer.setOrientation(LinearLayout.VERTICAL);
-            } else {
-                setSize(left, 96, 48);
-                setSize(right, 96, 48);
-                secondaryLayer.setOrientation(LinearLayout.HORIZONTAL);
-            }
-            handler.postDelayed(() -> {
-                float maxX = frm.getX() + frm.getWidth() - primaryLayer.getWidth();
-                float maxY = frm.getY() + frm.getHeight() - primaryLayer.getHeight();
-                if (pager.getVisibility() == View.VISIBLE)
-                    maxY -= pager.getHeight();
-                primaryLayer.setX(MathUtils.clamp(primaryLayer.getX(), frm.getX(), maxX));
-                primaryLayer.setY(MathUtils.clamp(primaryLayer.getY(), frm.getY(), maxY));
-            }, 10);
-        });
-
-        Map.of(left, InputStub.BUTTON_LEFT, middle, InputStub.BUTTON_MIDDLE, right, InputStub.BUTTON_RIGHT)
-                .forEach((v, b) -> v.setOnTouchListener((__, e) -> {
-            switch(e.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                case MotionEvent.ACTION_POINTER_DOWN:
-                    getLorieView().sendMouseEvent(0, 0, b, true, true);
-                    v.setPressed(true);
-                    break;
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_POINTER_UP:
-                    getLorieView().sendMouseEvent(0, 0, b, false, true);
-                    v.setPressed(false);
-                    break;
-            }
-            return true;
-        }));
-
-        pos.setOnTouchListener(new View.OnTouchListener() {
-            final int touchSlop = (int) Math.pow(ViewConfiguration.get(MainActivity.this).getScaledTouchSlop(), 2);
-            final int tapTimeout = ViewConfiguration.getTapTimeout();
-            final float[] startOffset = new float[2];
-            final int[] startPosition = new int[2];
-            long startTime;
-            @Override
-            public boolean onTouch(View v, MotionEvent e) {
-                switch(e.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        primaryLayer.getLocationInWindow(startPosition);
-                        startOffset[0] = e.getX();
-                        startOffset[1] = e.getY();
-                        startTime = SystemClock.uptimeMillis();
-                        pos.setPressed(true);
-                        break;
-                    case MotionEvent.ACTION_MOVE: {
-                        final ViewPager pager = getTerminalToolbarViewPager();
-                        int[] offset = new int[2];
-                        primaryLayer.getLocationInWindow(offset);
-                        float maxX = frm.getX() + frm.getWidth() - primaryLayer.getWidth();
-                        float maxY = frm.getY() + frm.getHeight() - primaryLayer.getHeight();
-                        if (pager.getVisibility() == View.VISIBLE)
-                            maxY -= pager.getHeight();
-
-                        primaryLayer.setX(MathUtils.clamp(offset[0] - startOffset[0] + e.getX(), frm.getX(), maxX));
-                        primaryLayer.setY(MathUtils.clamp(offset[1] - startOffset[1] + e.getY(), frm.getY(), maxY));
-                        break;
-                    }
-                    case MotionEvent.ACTION_UP: {
-                        final int[] _pos = new int[2];
-                        primaryLayer.getLocationInWindow(_pos);
-                        int deltaX = (int) (startOffset[0] - e.getX()) + (startPosition[0] - _pos[0]);
-                        int deltaY = (int) (startOffset[1] - e.getY()) + (startPosition[1] - _pos[1]);
-                        pos.setPressed(false);
-
-                        if (deltaX * deltaX + deltaY * deltaY < touchSlop && SystemClock.uptimeMillis() - startTime <= tapTimeout) {
-                            v.performClick();
-                            return true;
-                        }
-                        break;
-                    }
-                }
-                return true;
-            }
-        });
     }
 
     void onReceiveConnection(Intent intent) {

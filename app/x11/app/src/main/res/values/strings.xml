@@ -48,8 +48,6 @@
     <string name="lorie_pref_stylusIsMouse_summary">Make your stylus work like a mouse. When activated, stylus will only move the cursor and send mouse clicks, ignoring pressure, angle, and tilt.</string>
     <string name="lorie_pref_stylusButtonContactModifierMode">Stylus button contact modifier mode</string>
     <string name="lorie_pref_stylusButtonContactModifierMode_summary">Enable this option to send right or middle mouse buttons only when stylus touches the screen while the button is pressed.</string>
-    <string name="lorie_pref_showMouseHelper">Show mouse click helper overlay</string>
-    <string name="lorie_pref_showMouseHelper_summary">Onscreen mouse buttons usable with touchpad</string>
     <string name="lorie_pref_pointerCapture">Capture external pointer devices when possible</string>
     <string name="lorie_pref_pointerCapture_summary">Intercept all hardware pointer events. Pointer is back to Android after pressing Escape key.</string>
     <string name="lorie_pref_transformCapturedPointer">Transform captured pointer movements</string>

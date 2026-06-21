@@ -76,8 +76,8 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.preference:preference:1.2.1")
+    implementation(libs.material)
+    implementation(libs.androidx.preference)
     implementation(libs.termux.app) {
         exclude(group = "com.github.termux.termux-app", module = "termux-shared")
     }
