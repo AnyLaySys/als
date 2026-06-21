@@ -74,14 +74,17 @@ fun Field(
 
 @Composable
 private fun ALSListDialog(items: List<String>, onDismiss: () -> Unit, onClick: (String) -> Unit) {
-    Dialog(onDismiss, DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+    Dialog(
+        onDismiss, DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
         Box(
             Modifier
                 .fillMaxSize()
                 .clickable(remember { MutableInteractionSource() }, null) { onDismiss() },
             Alignment.Center
         ) {
-            val maxHeight = with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * 0.9f).toDp() }
+            val maxHeight =
+                with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * 0.9f).toDp() }
             Surface(
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
@@ -109,7 +112,9 @@ private fun ALSListDialog(items: List<String>, onDismiss: () -> Unit, onClick: (
 }
 
 @Composable
-private fun RowScope.ALSListValue(value: String, onValueChange: ((String) -> Unit)?, style: TextStyle) {
+private fun RowScope.ALSListValue(
+    value: String, onValueChange: ((String) -> Unit)?, style: TextStyle
+) {
     Box(Modifier.weight(6f), Alignment.CenterEnd) {
         if (onValueChange != null) {
             BasicTextField(
