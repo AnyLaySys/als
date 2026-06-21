@@ -1,6 +1,7 @@
 package sui.k.als.qvm.gunyah
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import sui.k.als.app.qvm.gunyah.QvmGunyahConfig
 
 @Composable
 fun QvmGunyah(

@@ -1,10 +1,10 @@
 package sui.k.als.qvm.gunyah
 
-import android.content.Context
-import android.content.Intent
-import sui.k.als.alsDir
-import sui.k.als.tty.shellQuote
-import sui.k.als.x11Dir
+import android.content.*
+import sui.k.als.app.qvm.gunyah.QvmGunyahConfig
+import sui.k.als.app.qvm.gunyah.toQvmGunyahDisplayDevice
+import sui.k.als.tty.*
+import sui.k.als.ui.*
 
 fun QvmGunyahConfig.toQvmGunyahQemuCommand(): String {
     val extra = extraQemuArgs.trim()
@@ -65,7 +65,9 @@ fun buildQvmGunyahScript(config: QvmGunyahConfig): String = $$"""
 """.trimIndent()
 
 fun buildQvmGunyahStartCommand(config: QvmGunyahConfig): String =
-    "cat > ${shellQuote("$alsDir/qemu-gunyah.sh")} <<'ALS_QEMU_GUNYAH'\n${buildQvmGunyahScript(config)}\nALS_QEMU_GUNYAH\nchmod 700 ${
+    "cat > ${shellQuote("$alsDir/qemu-gunyah.sh")} <<'ALS_QEMU_GUNYAH'\n${
+        buildQvmGunyahScript(config)
+    }\nALS_QEMU_GUNYAH\nchmod 700 ${
         shellQuote("$alsDir/qemu-gunyah.sh")
     }\nsh ${shellQuote("$alsDir/qemu-gunyah.sh")}"
 

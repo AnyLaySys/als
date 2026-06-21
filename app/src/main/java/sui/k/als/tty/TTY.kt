@@ -134,7 +134,6 @@ private class TTYCoalescingHandler(private val original: Handler) :
     Handler(Looper.getMainLooper()) {
     private val pending = AtomicBoolean(false)
     private val dropped = AtomicBoolean(false)
-
     override fun sendMessageAtTime(msg: Message, uptimeMillis: Long): Boolean {
         if (msg.what != 1) return super.sendMessageAtTime(msg, uptimeMillis)
         if (!pending.compareAndSet(false, true)) {
@@ -161,7 +160,6 @@ open class TTYViewStub : TerminalViewClient {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent, session: TerminalSession) = false
-
     override fun onKeyUp(keyCode: Int, event: KeyEvent) = false
     override fun onSingleTapUp(event: MotionEvent) {}
     override fun onLongPress(event: MotionEvent) = false

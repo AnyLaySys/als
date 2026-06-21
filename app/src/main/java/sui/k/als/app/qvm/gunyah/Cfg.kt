@@ -1,6 +1,6 @@
-package sui.k.als.qvm.gunyah
+package sui.k.als.app.qvm.gunyah
 
-import org.json.JSONObject
+import org.json.*
 
 data class QvmGunyahConfig(
     val name: String = "Ubuntu 26.04",
@@ -22,25 +22,13 @@ data class QvmGunyahConfig(
     val extraQemuArgs: String = ""
 )
 
-fun QvmGunyahConfig.toQvmGunyahJson(): String = JSONObject()
-    .put("name", name)
-    .put("isoPath", isoPath)
-    .put("cpuCores", cpuCores)
-    .put("memoryMb", memoryMb)
-    .put("width", width)
-    .put("height", height)
-    .put("sshPort", sshPort)
-    .put("cdrom", cdrom)
-    .put("iothread", iothread)
-    .put("network", network)
-    .put("tablet", tablet)
-    .put("keyboard", keyboard)
-    .put("displayOutput", displayOutput)
-    .put("displayDevice", displayDevice)
-    .put("audio", audio)
-    .put("serial", serial)
-    .put("extraQemuArgs", extraQemuArgs)
-    .toString(2)
+fun QvmGunyahConfig.toQvmGunyahJson(): String =
+    JSONObject().put("name", name).put("isoPath", isoPath).put("cpuCores", cpuCores)
+        .put("memoryMb", memoryMb).put("width", width).put("height", height).put("sshPort", sshPort)
+        .put("cdrom", cdrom).put("iothread", iothread).put("network", network).put("tablet", tablet)
+        .put("keyboard", keyboard).put("displayOutput", displayOutput)
+        .put("displayDevice", displayDevice).put("audio", audio).put("serial", serial)
+        .put("extraQemuArgs", extraQemuArgs).toString(2)
 
 fun parseQvmGunyahConfigJson(text: String): QvmGunyahConfig {
     val base = QvmGunyahConfig()
@@ -59,7 +47,8 @@ fun parseQvmGunyahConfigJson(text: String): QvmGunyahConfig {
         tablet = json.optBoolean("tablet", base.tablet),
         keyboard = json.optBoolean("keyboard", base.keyboard),
         displayOutput = json.optBoolean("displayOutput", base.displayOutput),
-        displayDevice = json.optString("displayDevice", base.displayDevice).toQvmGunyahDisplayDevice(),
+        displayDevice = json.optString("displayDevice", base.displayDevice)
+            .toQvmGunyahDisplayDevice(),
         audio = json.optBoolean("audio", base.audio),
         serial = json.optBoolean("serial", base.serial),
         extraQemuArgs = json.optString("extraQemuArgs", base.extraQemuArgs)

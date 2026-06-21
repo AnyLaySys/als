@@ -1,4 +1,4 @@
-package sui.k.als
+package sui.k.als.ui
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -11,8 +11,9 @@ import androidx.compose.ui.viewinterop.*
 import androidx.core.content.*
 import androidx.core.graphics.drawable.*
 import kotlinx.coroutines.*
+import sui.k.als.R
 import sui.k.als.tty.*
-import sui.k.als.ui.*
+import kotlin.time.Duration.Companion.milliseconds
 
 var suPath by mutableStateOf("su")
 val su get() = suPath
@@ -28,42 +29,36 @@ fun Splash(
     var showSuInput by remember { mutableStateOf(false) }
     var checkCount by remember { mutableIntStateOf(0) }
     var inputPath by remember { mutableStateOf("") }
-
     val appIcon = remember {
         context.packageManager.getApplicationIcon(context.packageName).toBitmap().asImageBitmap()
     }
-
     LaunchedEffect(checkCount) {
         val sp = context.getSharedPreferences("su", 0)
         suPath = sp.getString("su", "su") ?: "su"
         inputPath = suPath
-
         val suWorked = try {
             Runtime.getRuntime().exec(arrayOf(suPath, "-v")).waitFor() == 0
         } catch (_: Exception) {
             false
         }
-
         if (!suWorked) {
             showSuInput = true
             return@LaunchedEffect
         }
-
         showSuInput = false
         if (active == null) {
             val created = createTTYInstance(context, TTYSessionStub(), TTYViewStub())
             internalInstance = created
             launch {
-                delay(90)
+                delay(90.milliseconds)
                 cmd(created.session, su)
                 cmd(created.session, "clear")
             }
         }
         showIcon = true
-        delay(900)
+        delay(900.milliseconds)
         onTimeout?.invoke()
     }
-
     Box(
         modifier
             .fillMaxSize()
@@ -71,12 +66,10 @@ fun Splash(
     ) {
         active?.let { tty ->
             AndroidView(factory = {
-                val parent = tty.view.parent as? android.view.ViewGroup
-                parent?.removeView(tty.view)
+                (tty.view.parent as? android.view.ViewGroup)?.removeView(tty.view)
                 tty.view
             }, modifier = Modifier.fillMaxSize(), update = { it.onScreenUpdated() })
         }
-
         if (showSuInput) {
             Box(
                 Modifier

@@ -1,7 +1,7 @@
 package sui.k.als.tty
 
 import com.termux.terminal.*
-import sui.k.als.*
+import sui.k.als.ui.*
 
 object TTYEnv {
     val args = arrayOf("-i")

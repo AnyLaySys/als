@@ -71,7 +71,7 @@
     <string name="volatile_mode">Volatile Mode</string>
     <string name="xres">X Resolution</string>
     <string name="yres">Y Resolution</string>
-    <string name="qvm_gunyah">QVM Gunyah</string>
+    <string name="qvm_gunyah">QEMU Gunyah</string>
     <string name="ssh_port">SSH Port</string>
     <string name="extra_qemu_args">Extra QEMU Args</string>
     <string name="virtio_tablet">VirtIO Tablet</string>

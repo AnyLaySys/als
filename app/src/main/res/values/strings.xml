@@ -96,7 +96,7 @@
     <string name="compress">压缩镜像 (-c)</string>
     <string name="apply">应用</string>
     <string name="delete">删除</string>
-    <string name="qvm_gunyah">QVM Gunyah</string>
+    <string name="qvm_gunyah">QEMU Gunyah</string>
     <string name="ssh_port">SSH 端口</string>
     <string name="extra_qemu_args">附加 QEMU 参数</string>
     <string name="virtio_tablet">VirtIO 触摸板</string>
