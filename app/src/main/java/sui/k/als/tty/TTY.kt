@@ -9,15 +9,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.*
-import androidx.compose.ui.platform.*
 import androidx.compose.ui.viewinterop.*
 import com.termux.terminal.*
 import com.termux.view.*
-import java.util.concurrent.*
+import java.util.concurrent.atomic.*
 import android.content.ClipboardManager as AndroidClipboardManager
 
-data class TTYInstance(val session: TerminalSession, val view: TerminalView, val thread: HandlerThread)
+data class TTYInstance(val session: TerminalSession, val view: TerminalView)
 
 val LocalSession = staticCompositionLocalOf<TerminalSession?> { null }
 
@@ -42,7 +40,8 @@ fun TTYScreen(instance: TTYInstance, content: @Composable () -> Unit = {}) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .imePadding()) {
+                    .imePadding()
+            ) {
                 content()
             }
         }
@@ -52,11 +51,8 @@ fun TTYScreen(instance: TTYInstance, content: @Composable () -> Unit = {}) {
 fun createTTYInstance(
     context: Context, sessionClient: TTYSessionStub, viewClient: TTYViewStub
 ): TTYInstance {
-    val thread = HandlerThread("TTY")
-    thread.start()
-    val sessionTask = FutureTask { TerminalSession(TTYEnv, 9216, sessionClient) }
-    Handler(thread.looper).post(sessionTask)
-    val session = sessionTask.get()
+    val session = TerminalSession(TTYEnv, 9216, sessionClient)
+    installTTYMessageCoalescing(session)
     val view = TerminalView(context, null).apply {
         setLayerType(View.LAYER_TYPE_HARDWARE, null)
         isFocusable = true
@@ -74,29 +70,22 @@ fun createTTYInstance(
         attachSession(session)
     }
     sessionClient.bindView(view)
-    sessionClient.bindThread(thread)
     viewClient.bindView(view)
-    return TTYInstance(session, view, thread)
+    return TTYInstance(session, view)
 }
 
 open class TTYSessionStub : TerminalSessionClient {
     private var view: TerminalView? = null
-    private var thread: HandlerThread? = null
     fun bindView(targetView: TerminalView) {
         view = targetView
     }
-    fun bindThread(targetThread: HandlerThread) {
-        thread = targetThread
-    }
 
     override fun onTextChanged(session: TerminalSession) {
-        view?.postInvalidateOnAnimation()
+        view?.onScreenUpdated()
     }
 
     override fun onTitleChanged(session: TerminalSession) {}
-    override fun onSessionFinished(session: TerminalSession) {
-        thread?.quitSafely()
-    }
+    override fun onSessionFinished(session: TerminalSession) {}
     override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
         (view?.context?.getSystemService(Context.CLIPBOARD_SERVICE) as? AndroidClipboardManager)?.setPrimaryClip(
             ClipData.newPlainText("T", text)
@@ -114,7 +103,7 @@ open class TTYSessionStub : TerminalSessionClient {
     override fun onBell(session: TerminalSession) {}
     override fun onColorsChanged(session: TerminalSession) {}
     override fun onTerminalCursorStateChange(visible: Boolean) {
-        view?.postInvalidateOnAnimation()
+        view?.onScreenUpdated()
     }
 
     override fun getTerminalCursorStyle() = 2
@@ -132,6 +121,36 @@ fun shellQuote(value: String) = "'${value.replace("'", "'\\''")}'"
 
 fun cmd(session: TerminalSession, command: String) {
     session.write("$command\n")
+}
+
+private fun installTTYMessageCoalescing(session: TerminalSession) {
+    val field = TerminalSession::class.java.getDeclaredField("mMainThreadHandler")
+    field.isAccessible = true
+    val original = field.get(session) as Handler
+    field.set(session, TTYCoalescingHandler(original))
+}
+
+private class TTYCoalescingHandler(private val original: Handler) :
+    Handler(Looper.getMainLooper()) {
+    private val pending = AtomicBoolean(false)
+    private val dropped = AtomicBoolean(false)
+
+    override fun sendMessageAtTime(msg: Message, uptimeMillis: Long): Boolean {
+        if (msg.what != 1) return super.sendMessageAtTime(msg, uptimeMillis)
+        if (!pending.compareAndSet(false, true)) {
+            dropped.set(true)
+            return true
+        }
+        return super.sendMessageAtTime(msg, uptimeMillis)
+    }
+
+    override fun handleMessage(msg: Message) {
+        original.handleMessage(msg)
+        if (msg.what == 1) {
+            pending.set(false)
+            if (dropped.getAndSet(false)) sendMessage(obtainMessage(1))
+        }
+    }
 }
 
 open class TTYViewStub : TerminalViewClient {

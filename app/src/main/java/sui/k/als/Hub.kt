@@ -38,7 +38,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
     var showQvmGunyah by remember { mutableStateOf(false) }
     var qvmGunyahSession by remember { mutableStateOf<TerminalSession?>(null) }
     val close =
-        { sessions.forEach { it.session.finishIfRunning(); it.thread.quitSafely() }; sessions = emptyList(); active = null; qvmGunyahSession = null }
+        { sessions.forEach { it.session.finishIfRunning() }; sessions = emptyList(); active = null; qvmGunyahSession = null }
     val create: (String, Boolean, Boolean) -> Unit = { command, enterSu, gunyah ->
         val instance = createTTYInstance(ctx, object : TTYSessionStub() {
             override fun onSessionFinished(session: TerminalSession) {
