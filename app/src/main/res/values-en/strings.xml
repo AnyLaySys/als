@@ -71,4 +71,18 @@
     <string name="volatile_mode">Volatile Mode</string>
     <string name="xres">X Resolution</string>
     <string name="yres">Y Resolution</string>
+    <string name="qvm_gunyah">QVM Gunyah</string>
+    <string name="ssh_port">SSH Port</string>
+    <string name="extra_qemu_args">Extra QEMU Args</string>
+    <string name="virtio_tablet">VirtIO Tablet</string>
+    <string name="virtio_keyboard">VirtIO Keyboard</string>
+    <string name="virtio_gpu">VirtIO GPU</string>
+    <string name="ramfb">RAMFB GPU</string>
+    <string name="serial_console">Serial Console</string>
+    <string name="sdl_display">SDL Display</string>
+    <string name="import_config">Import</string>
+    <string name="export_config">Export</string>
+    <string name="save_config">Save</string>
+    <string name="run_vm">Run</string>
+    <string name="enter_terminal">Terminal</string>
 </resources>

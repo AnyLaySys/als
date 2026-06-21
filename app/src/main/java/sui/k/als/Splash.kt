@@ -55,7 +55,7 @@ fun Splash(
             internalInstance = created
             launch {
                 delay(90)
-                cmd(created.session, shellQuote(su))
+                cmd(created.session, su)
                 cmd(created.session, "clear")
             }
         }
@@ -88,7 +88,7 @@ fun Splash(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     ALSList(
-                        data = "",
+                        "",
                         value = inputPath,
                         first = true,
                         last = true,

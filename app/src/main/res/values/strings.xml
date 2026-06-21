@@ -96,4 +96,18 @@
     <string name="compress">压缩镜像 (-c)</string>
     <string name="apply">应用</string>
     <string name="delete">删除</string>
+    <string name="qvm_gunyah">QVM Gunyah</string>
+    <string name="ssh_port">SSH 端口</string>
+    <string name="extra_qemu_args">附加 QEMU 参数</string>
+    <string name="virtio_tablet">VirtIO 触摸板</string>
+    <string name="virtio_keyboard">VirtIO 键盘</string>
+    <string name="virtio_gpu">VirtIO 显卡</string>
+    <string name="ramfb">RAMFB 显卡</string>
+    <string name="serial_console">串口控制台</string>
+    <string name="sdl_display">SDL 显示</string>
+    <string name="import_config">导入</string>
+    <string name="export_config">导出</string>
+    <string name="save_config">保存</string>
+    <string name="run_vm">运行</string>
+    <string name="enter_terminal">终端</string>
 </resources>

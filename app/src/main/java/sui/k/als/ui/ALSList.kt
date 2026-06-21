@@ -19,23 +19,16 @@ import sui.k.als.*
 
 @Composable
 fun ALSList(
-    data: Any?,
-    show: Boolean = false,
+    text: String,
     value: String? = null,
     checked: Boolean = true,
     first: Boolean = false,
     last: Boolean = false,
     background: Color? = null,
-    onDismiss: () -> Unit = {},
     onValueChange: ((String) -> Unit)? = null,
     iconContent: @Composable (RowScope.() -> Unit)? = null,
     onClick: (String) -> Unit = {}
 ) {
-    if (data is List<*> && show) {
-        ALSListDialog(data, onDismiss, onClick)
-        return
-    }
-    val text = data?.toString().orEmpty()
     val style = ALSListTextStyle()
     Surface(
         modifier = Modifier
@@ -46,27 +39,16 @@ fun ALSList(
         shape = ALSListShape(first, last)
     ) {
         Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (value == null && onValueChange != null) {
-                BasicTextField(
-                    value = text,
-                    onValueChange = onValueChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    textStyle = style,
-                    cursorBrush = SolidColor(Color(0xFFA8C7FA))
-                )
-            } else {
-                Text(
-                    text,
-                    Modifier.weight(4f),
-                    color = if (checked) Color(0xFFE3E2E6) else Color(0xFF8E8E93),
-                    style = style,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                value?.let { ALSListValue(it, onValueChange, style) }
-                iconContent?.invoke(this)
-            }
+            Text(
+                text,
+                Modifier.weight(4f),
+                color = if (checked) Color(0xFFE3E2E6) else Color(0xFF8E8E93),
+                style = style,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            value?.let { ALSListValue(it, onValueChange, style) }
+            iconContent?.invoke(this)
         }
     }
 }
@@ -83,7 +65,7 @@ fun Field(
     var show by remember { mutableStateOf(false) }
     ALSList(label, value = value, first = first, last = last, onClick = { show = true })
     if (show) {
-        ALSList(data = options, show = true, onDismiss = { show = false }) {
+        ALSListDialog(options, { show = false }) {
             onSelected(it)
             show = false
         }
@@ -91,7 +73,7 @@ fun Field(
 }
 
 @Composable
-private fun ALSListDialog(items: List<*>, onDismiss: () -> Unit, onClick: (String) -> Unit) {
+private fun ALSListDialog(items: List<String>, onDismiss: () -> Unit, onClick: (String) -> Unit) {
     Dialog(onDismiss, DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Box(
             Modifier
@@ -112,19 +94,13 @@ private fun ALSListDialog(items: List<*>, onDismiss: () -> Unit, onClick: (Strin
                 Column(
                     Modifier
                         .padding(4.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
                     items.forEachIndexed { index, item ->
-                        ALSList(
-                            item,
-                            first = index == 0,
-                            last = index == items.lastIndex,
-                            onClick = {
-                                onClick(it)
-                                onDismiss()
-                            }
-                        )
+                        ALSList(item, first = index == 0, last = index == items.lastIndex) {
+                            onClick(it)
+                            onDismiss()
+                        }
                     }
                 }
             }
@@ -165,9 +141,8 @@ private fun ALSListTextStyle() = TextStyle(
     fontWeight = FontWeight.Medium
 )
 
-private fun ALSListShape(first: Boolean, last: Boolean) = RoundedCornerShape(
-    topStart = if (first) 10.dp else 3.dp,
-    topEnd = if (first) 10.dp else 3.dp,
-    bottomStart = if (last) 10.dp else 3.dp,
-    bottomEnd = if (last) 10.dp else 3.dp
-)
+private fun ALSListShape(first: Boolean, last: Boolean): RoundedCornerShape {
+    val top = if (first) 9.dp else 0.dp
+    val bottom = if (last) 9.dp else 0.dp
+    return RoundedCornerShape(top, top, bottom, bottom)
+}

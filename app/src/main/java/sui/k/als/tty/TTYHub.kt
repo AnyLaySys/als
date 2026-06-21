@@ -29,7 +29,7 @@ fun TTYHub(
     ) {
         sessions.forEachIndexed { i, tty ->
             ALSList(
-                data = stringResource(R.string.session) + (i + 1),
+                stringResource(R.string.session) + (i + 1),
                 first = i == 0,
                 last = i == sessions.size - 1,
                 iconContent = { ALSButton(R.drawable.delete) { onDelete(tty) } }) { onSelect(tty) }

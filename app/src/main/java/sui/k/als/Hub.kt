@@ -13,6 +13,9 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.unit.*
 import com.termux.terminal.*
 import kotlinx.coroutines.*
+import sui.k.als.qvm.gunyah.QvmGunyah
+import sui.k.als.qvm.gunyah.buildQvmGunyahStartCommand
+import sui.k.als.qvm.gunyah.openQvmGunyahX11
 import sui.k.als.tty.*
 import sui.k.als.ui.*
 import kotlin.time.Duration.Companion.milliseconds
@@ -32,19 +35,19 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
     var active by remember { mutableStateOf<TTYInstance?>(null) }
     var showTTY by remember { mutableStateOf(false) }
     var showTTYHub by remember { mutableStateOf(false) }
-    var showGunyah by remember { mutableStateOf(false) }
-    var gunyahSession by remember { mutableStateOf<TerminalSession?>(null) }
+    var showQvmGunyah by remember { mutableStateOf(false) }
+    var qvmGunyahSession by remember { mutableStateOf<TerminalSession?>(null) }
     val close =
-        { sessions.forEach { it.session.finishIfRunning() }; sessions = emptyList(); active = null; gunyahSession = null }
+        { sessions.forEach { it.session.finishIfRunning() }; sessions = emptyList(); active = null; qvmGunyahSession = null }
     val create: (String, Boolean, Boolean) -> Unit = { command, enterSu, gunyah ->
         val instance = createTTYInstance(ctx, object : TTYSessionStub() {
             override fun onSessionFinished(session: TerminalSession) {
-                val wasGunyah = gunyahSession == session
-                if (wasGunyah) gunyahSession = null
+                val wasQvmGunyah = qvmGunyahSession == session
+                if (wasQvmGunyah) qvmGunyahSession = null
                 sessions = sessions.filter { it.session != session }
                 if (active?.session == session) active = sessions.lastOrNull()
                 if (active == null) {
-                    showTTY = false; showTTYHub = sessions.isNotEmpty(); showGunyah = wasGunyah
+                    showTTY = false; showTTYHub = sessions.isNotEmpty(); showQvmGunyah = wasQvmGunyah
                 }
             }
         }, object : TTYViewStub() {
@@ -58,32 +61,36 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
             scope.launch {
                 if (enterSu) {
                     delay(90.milliseconds)
-                    cmd(instance.session, shellQuote(su))
+                    cmd(instance.session, su)
                     delay(90.milliseconds)
                 }
                 cmd(instance.session, command)
             }
         }
-        if (gunyah) gunyahSession = instance.session
+        if (gunyah) qvmGunyahSession = instance.session
         sessions = sessions + instance; active = instance; showTTY = true; showTTYHub = false
     }
     DisposableEffect(Unit) { onDispose(close) }
     BackHandler {
         if (showTTY) {
-            val toGunyah = active?.session == gunyahSession
-            showTTY = false; showTTYHub = !toGunyah; showGunyah = toGunyah
+            val toQvmGunyah = active?.session == qvmGunyahSession
+            showTTY = false; showTTYHub = !toQvmGunyah; showQvmGunyah = toQvmGunyah
         } else {
-            showTTYHub = false; showGunyah = false
+            showTTYHub = false; showQvmGunyah = false
         }
     }
-    val gunyahTTY = sessions.firstOrNull { it.session == gunyahSession }
-    if (showGunyah) QvmGunyah(started = gunyahTTY != null, onCreate = {
-        showGunyah = false; create(gunyahCommand(it), true, true)
+    val qvmGunyahTTY = sessions.firstOrNull { it.session == qvmGunyahSession }
+    if (showQvmGunyah) QvmGunyah(started = qvmGunyahTTY != null, onCreate = {
+        qvmGunyahTTY?.let { tty ->
+            active = tty; showTTY = true; showTTYHub = false; showQvmGunyah = false
+        } ?: run {
+            showQvmGunyah = false; create(buildQvmGunyahStartCommand(it), true, true)
+        }
     }, onEnter = {
-        gunyahTTY?.let { active = it; showTTY = true; showTTYHub = false; showGunyah = false }
+        qvmGunyahTTY?.let { active = it; showTTY = true; showTTYHub = false; showQvmGunyah = false }
     }, onX11 = {
-        gunyahTTY?.let { active = it; showTTY = true; showTTYHub = false; showGunyah = false }
-        ctx.openX11()
+        qvmGunyahTTY?.let { active = it; showTTY = true; showTTYHub = false; showQvmGunyah = false }
+        ctx.openQvmGunyahX11()
     }) else if (showTTY) active?.let { TTYScreen(it) { TTYIME() } } else if (showTTYHub) TTYHub(
         sessions,
         onSelect = { active = it; showTTY = true; showTTYHub = false },
@@ -92,7 +99,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
         Modifier.fillMaxSize(), Alignment.Center
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-            ALSButton(R.drawable.arrow_forward) { showGunyah = true }
+            ALSButton(R.drawable.arrow_forward) { showQvmGunyah = true }
             ALSButton(R.drawable.terminal) {
                 if (sessions.isEmpty()) create(shellQuote("$alsDir/app/ate"), true, false) else showTTYHub = true
             }
