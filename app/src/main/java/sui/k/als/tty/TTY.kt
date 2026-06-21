@@ -2,10 +2,10 @@ package sui.k.als.tty
 
 import android.content.*
 import android.graphics.*
+import android.os.*
 import android.view.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.graphics.Color
@@ -14,18 +14,15 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.viewinterop.*
 import com.termux.terminal.*
 import com.termux.view.*
-import java.util.concurrent.atomic.*
+import java.util.concurrent.*
 import android.content.ClipboardManager as AndroidClipboardManager
 
-data class TTYInstance(val session: TerminalSession, val view: TerminalView)
+data class TTYInstance(val session: TerminalSession, val view: TerminalView, val thread: HandlerThread)
 
 val LocalSession = staticCompositionLocalOf<TerminalSession?> { null }
 
 @Composable
 fun TTYScreen(instance: TTYInstance, content: @Composable () -> Unit = {}) {
-    val density = LocalDensity.current
-    var imeHeightPx by remember { mutableIntStateOf(0) }
-    val imePadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
     LaunchedEffect(instance) {
         instance.view.requestFocus()
         instance.view.onScreenUpdated()
@@ -40,15 +37,12 @@ fun TTYScreen(instance: TTYInstance, content: @Composable () -> Unit = {}) {
                 factory = { instance.view },
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = imePadding + with(density) { imeHeightPx.toDp() }),
+                    .imePadding(),
                 update = { view -> view.onScreenUpdated() })
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = imePadding)
-                    .onGloballyPositioned { layout ->
-                        imeHeightPx = layout.size.height
-                    }) {
+                    .imePadding()) {
                 content()
             }
         }
@@ -58,7 +52,11 @@ fun TTYScreen(instance: TTYInstance, content: @Composable () -> Unit = {}) {
 fun createTTYInstance(
     context: Context, sessionClient: TTYSessionStub, viewClient: TTYViewStub
 ): TTYInstance {
-    val session = TerminalSession(TTYEnv, 9216, sessionClient)
+    val thread = HandlerThread("TTY")
+    thread.start()
+    val sessionTask = FutureTask { TerminalSession(TTYEnv, 9216, sessionClient) }
+    Handler(thread.looper).post(sessionTask)
+    val session = sessionTask.get()
     val view = TerminalView(context, null).apply {
         setLayerType(View.LAYER_TYPE_HARDWARE, null)
         isFocusable = true
@@ -76,29 +74,29 @@ fun createTTYInstance(
         attachSession(session)
     }
     sessionClient.bindView(view)
+    sessionClient.bindThread(thread)
     viewClient.bindView(view)
-    return TTYInstance(session, view)
+    return TTYInstance(session, view, thread)
 }
 
 open class TTYSessionStub : TerminalSessionClient {
     private var view: TerminalView? = null
-    private val updated = AtomicBoolean(false)
+    private var thread: HandlerThread? = null
     fun bindView(targetView: TerminalView) {
         view = targetView
     }
+    fun bindThread(targetThread: HandlerThread) {
+        thread = targetThread
+    }
 
     override fun onTextChanged(session: TerminalSession) {
-        if (updated.compareAndSet(false, true)) {
-            view?.post {
-                updated.set(false)
-                view?.onScreenUpdated()
-                view?.invalidate()
-            }
-        }
+        view?.postInvalidateOnAnimation()
     }
 
     override fun onTitleChanged(session: TerminalSession) {}
-    override fun onSessionFinished(session: TerminalSession) {}
+    override fun onSessionFinished(session: TerminalSession) {
+        thread?.quitSafely()
+    }
     override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
         (view?.context?.getSystemService(Context.CLIPBOARD_SERVICE) as? AndroidClipboardManager)?.setPrimaryClip(
             ClipData.newPlainText("T", text)
@@ -109,21 +107,14 @@ open class TTYSessionStub : TerminalSessionClient {
         val context = view?.context ?: return
         val manager = context.getSystemService(Context.CLIPBOARD_SERVICE) as AndroidClipboardManager
         manager.primaryClip?.getItemAt(0)?.let { item ->
-            ttyIO.execute {
-                session?.write(item.coerceToText(context).toString())
-            }
+            session?.write(item.coerceToText(context).toString())
         }
     }
 
     override fun onBell(session: TerminalSession) {}
     override fun onColorsChanged(session: TerminalSession) {}
     override fun onTerminalCursorStateChange(visible: Boolean) {
-        if (updated.compareAndSet(false, true)) {
-            view?.post {
-                updated.set(false)
-                view?.onScreenUpdated()
-            }
-        }
+        view?.postInvalidateOnAnimation()
     }
 
     override fun getTerminalCursorStyle() = 2
@@ -135,6 +126,12 @@ open class TTYSessionStub : TerminalSessionClient {
     override fun logVerbose(tag: String?, msg: String?) {}
     override fun logStackTraceWithMessage(tag: String?, msg: String?, error: Exception?) {}
     override fun logStackTrace(tag: String?, error: Exception?) {}
+}
+
+fun shellQuote(value: String) = "'${value.replace("'", "'\\''")}'"
+
+fun cmd(session: TerminalSession, command: String) {
+    session.write("$command\n")
 }
 
 open class TTYViewStub : TerminalViewClient {
