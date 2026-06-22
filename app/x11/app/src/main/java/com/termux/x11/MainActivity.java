@@ -57,7 +57,10 @@ import com.google.android.material.color.DynamicColors;
 import com.termux.x11.input.InputEventSender;
 import com.termux.x11.input.InputStub;
 import com.termux.x11.input.TouchInputHandler;
-import com.termux.x11.utils.FullscreenWorkaround;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
 import com.termux.x11.utils.X11ToolbarViewPager;
 
 import java.util.Map;
@@ -235,8 +238,20 @@ public class MainActivity extends AppCompatActivity {
 
         inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 
-        // Taken from Stackoverflow answer https://stackoverflow.com/questions/7417123/android-how-to-adjust-layout-in-full-screen-mode-when-softkeyboard-is-visible/7509285#
-        FullscreenWorkaround.assistActivity(this);
+        // Listening for keyboard insets to manually resize content (replaces buggy ADJUST_RESIZE)
+        ViewCompat.setOnApplyWindowInsetsListener(frm, (v, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            boolean fs = prefs.fullscreen.get();
+            v.setPadding(
+                bars.left,
+                fs ? 0 : bars.top,
+                bars.right,
+                ime.bottom + (fs ? 0 : bars.bottom)
+            );
+            return windowInsets;
+        });
+
         mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotification = buildNotification();
         mNotificationManager.notify(mNotificationId, mNotification);
@@ -417,7 +432,6 @@ public class MainActivity extends AppCompatActivity {
             prefs.additionalKbdVisible.put(visible);
 
         setTerminalToolbarView();
-        getWindow().setSoftInputMode(prefs.Reseed.get() ? SOFT_INPUT_ADJUST_RESIZE : SOFT_INPUT_ADJUST_PAN);
     }
 
     public void toggleExtraKeys() {
@@ -475,7 +489,6 @@ public class MainActivity extends AppCompatActivity {
         View decorView = window.getDecorView();
         boolean fullscreen = prefs.fullscreen.get();
         boolean hideCutout = prefs.hideCutout.get();
-        boolean reseed = prefs.Reseed.get();
 
         if (oldHideCutout != hideCutout || oldFullscreen != fullscreen) {
             oldHideCutout = hideCutout;
@@ -533,10 +546,6 @@ public class MainActivity extends AppCompatActivity {
             window.addFlags(FLAG_KEEP_SCREEN_ON);
         else
             window.clearFlags(FLAG_KEEP_SCREEN_ON);
-
-        window.setSoftInputMode(reseed ? SOFT_INPUT_ADJUST_RESIZE : SOFT_INPUT_ADJUST_PAN);
-
-        ((FrameLayout) findViewById(android.R.id.content)).getChildAt(0).setFitsSystemWindows(!fullscreen);
     }
 
     @Override
