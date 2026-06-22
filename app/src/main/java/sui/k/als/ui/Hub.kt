@@ -93,11 +93,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
             ?: run { showQvmGunyah = false; create(buildQvmGunyahStartCommand(it), true, true) }
     }, onEnter = switchToQvm, onX11 = { switchToQvm(); ctx.openQvmGunyahX11() })
     else if (showApp) App(onQemuGunyah = { showApp = false; showQvmGunyah = true }, onX11 = {
-        showApp = false; ctx.startActivity(
-        Intent().setClassName(
-            ctx.packageName, "com.termux.x11.MainActivity"
-        )
-    )
+        ctx.startActivity(Intent().setClassName(ctx.packageName, "com.termux.x11.MainActivity"))
     })
     else if (showTTY) active?.let { TTYScreen(it) { TTYIME() } }
     else if (showTTYHub) TTYHub(

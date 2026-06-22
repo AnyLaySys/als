@@ -36,10 +36,6 @@ public class X11ToolbarViewPager {
         KeyboardView.applyToolbarLayout(activity);
     }
 
-    public static boolean handleBack(MainActivity activity) {
-        return KeyboardView.handleBack(activity);
-    }
-
     public static void releaseKeyboardModifiers(LorieView view) {
         KeyboardView.releaseModifiers(view);
     }
@@ -204,15 +200,6 @@ public class X11ToolbarViewPager {
             return (content != null && content.getWidth() > 0 ? content.getWidth() : activity.getResources().getDisplayMetrics().widthPixels) / 2;
         }
 
-        static boolean handleBack(MainActivity activity) {
-            if (!fullKeyboardVisible && !floating) return false;
-            fullKeyboardVisible = floating = false;
-            applyToolbarLayout(activity);
-            ViewPager pager = activity.getTerminalToolbarViewPager();
-            if (pager != null) pager.invalidate();
-            return true;
-        }
-
         private static void putKey(String label, int keyCode) {
             KEY_CODES.put(label, keyCode);
         }
@@ -247,7 +234,7 @@ public class X11ToolbarViewPager {
         }
 
         @Override
-        protected void onDraw(Canvas canvas) {
+        protected void onDraw(@NonNull Canvas canvas) {
             super.onDraw(canvas);
             drawRows(canvas);
         }
@@ -255,8 +242,10 @@ public class X11ToolbarViewPager {
         private void drawRows(Canvas canvas) {
             String[][] rows = rows();
             float left = areaLeft(), top = areaTop(), width = areaWidth(), rowHeight = areaHeight() / rows.length;
-            for (int r = 0; r < rows.length; r++)
-                drawRow(canvas, rows[r], left, top + r * rowHeight, width, rowHeight);
+            for (String[] row : rows) {
+                drawRow(canvas, row, left, top, width, rowHeight);
+                top += rowHeight;
+            }
         }
 
         private void drawRow(Canvas canvas, String[] row, float left, float top, float areaWidth, float rowHeight) {
@@ -289,7 +278,7 @@ public class X11ToolbarViewPager {
         }
 
         private String displayLabel(String label) {
-            if (isControlKey(label) || isModifier(label) && label.length() == 1) return "";
+            if (isControlKey(label)) return "";
             if (isModifier(label) || label.length() > 1) return label;
             String base = label.toLowerCase(Locale.US);
             if (shiftActive) {
@@ -300,21 +289,26 @@ public class X11ToolbarViewPager {
         }
 
         @Override
-        public boolean onTouchEvent(MotionEvent event) {
+        public boolean onTouchEvent(@NonNull MotionEvent event) {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                 case MotionEvent.ACTION_POINTER_DOWN:
                     if ((fullKeyboardVisible && areaAt(event.getX(event.getActionIndex()), event.getY(event.getActionIndex())) == TOUCHPAD) || touchpadPointerId != -1) {
-                        return touchpad(event);
+                        touchpad(event);
+                        return true;
                     }
                     startTouch(event, event.getActionIndex());
                     performClick();
                     return true;
                 case MotionEvent.ACTION_MOVE:
-                    return touchpadPointerId != -1 ? touchpad(event) : moveTouches(event);
+                    if (touchpadPointerId != -1) touchpad(event);
+                    else moveTouches(event);
+                    return true;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
-                    return touchpadPointerId != -1 ? touchpad(event) : finishTouch(event.getPointerId(event.getActionIndex()), event);
+                    if (touchpadPointerId != -1) touchpad(event);
+                    else finishTouch(event.getPointerId(event.getActionIndex()), event);
+                    return true;
                 case MotionEvent.ACTION_CANCEL:
                     finishTouchpad();
                     finishAll();
@@ -329,8 +323,6 @@ public class X11ToolbarViewPager {
             if (ref == null) return;
             KeyTouch touch = new KeyTouch();
             touch.pointerId = event.getPointerId(index);
-            touch.row = ref.row;
-            touch.col = ref.col;
             touch.label = ref.label;
             touch.downRawX = touch.lastRawX = rawX(event, index);
             touch.downRawY = touch.lastRawY = rawY(event, index);
@@ -347,7 +339,7 @@ public class X11ToolbarViewPager {
             invalidate();
         }
 
-        private boolean moveTouches(MotionEvent event) {
+        private void moveTouches(MotionEvent event) {
             for (int i = 0; i < touches.size(); i++) {
                 KeyTouch touch = touches.valueAt(i);
                 if (!isControlKey(touch.label)) continue;
@@ -377,12 +369,11 @@ public class X11ToolbarViewPager {
                     invalidate();
                 }
             }
-            return true;
         }
 
-        private boolean finishTouch(int pointerId, MotionEvent event) {
+        private void finishTouch(int pointerId, MotionEvent event) {
             KeyTouch touch = touches.get(pointerId);
-            if (touch == null) return true;
+            if (touch == null) return;
             handler.removeCallbacks(touch.repeat);
             if (isModifier(touch.label)) setModifier(touch.label, false);
             if (isControlKey(touch.label)) {
@@ -394,7 +385,6 @@ public class X11ToolbarViewPager {
             if (touches.size() == 0 && getParent() != null)
                 getParent().requestDisallowInterceptTouchEvent(false);
             invalidate();
-            return true;
         }
 
         private void finishAll() {
@@ -450,10 +440,9 @@ public class X11ToolbarViewPager {
             int rowIndex = Math.min(rows.length - 1, Math.max(0, (int) (localY / (height / rows.length))));
             String[] row = rows[rowIndex];
             float total = rowWeight(row), keyLeft = 0;
-            for (int c = 0; c < row.length; c++) {
-                float keyWidth = width * keyWeight(row[c]) / total;
-                if (localX >= keyLeft && localX <= keyLeft + keyWidth)
-                    return new KeyRef(rowIndex, c, row[c]);
+            for (String key : row) {
+                float keyWidth = width * keyWeight(key) / total;
+                if (localX >= keyLeft && localX <= keyLeft + keyWidth) return new KeyRef(key);
                 keyLeft += keyWidth;
             }
             return null;
@@ -484,7 +473,7 @@ public class X11ToolbarViewPager {
             return (!fullKeyboardVisible || !portrait()) ? getHeight() : getHeight() / 2f;
         }
 
-        private boolean touchpad(MotionEvent event) {
+        private void touchpad(MotionEvent event) {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     touchpadPointerId = event.getPointerId(event.getActionIndex());
@@ -505,7 +494,7 @@ public class X11ToolbarViewPager {
                     };
                     handler.postDelayed(touchpadLongPressRunnable, ViewConfiguration.getLongPressTimeout());
                     if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
-                    return true;
+                    return;
                 case MotionEvent.ACTION_POINTER_DOWN:
                     if (touchpadLongPressRunnable != null) {
                         handler.removeCallbacks(touchpadLongPressRunnable);
@@ -515,16 +504,16 @@ public class X11ToolbarViewPager {
                     touchpadDownX = touchpadLastX = focusX(event);
                     touchpadDownY = touchpadLastY = focusY(event);
                     touchpadMoved = false;
-                    return true;
+                    return;
                 case MotionEvent.ACTION_POINTER_UP:
                     int index = event.getActionIndex() == 0 ? 1 : 0;
                     touchpadPointerId = event.getPointerId(index);
                     touchpadLastX = event.getX(index);
                     touchpadLastY = event.getY(index);
-                    return true;
+                    return;
                 case MotionEvent.ACTION_MOVE:
                     int idx = event.findPointerIndex(touchpadPointerId);
-                    if (idx < 0) return true;
+                    if (idx < 0) return;
                     float x = event.getPointerCount() > 1 ? focusX(event) : event.getX(idx);
                     float y = event.getPointerCount() > 1 ? focusY(event) : event.getY(idx);
                     float dx = x - touchpadLastX, dy = y - touchpadLastY;
@@ -543,7 +532,7 @@ public class X11ToolbarViewPager {
                         touchpadLastX = x;
                         touchpadLastY = y;
                     }
-                    return true;
+                    return;
                 case MotionEvent.ACTION_UP:
                     if (touchpadLongPressRunnable != null) {
                         handler.removeCallbacks(touchpadLongPressRunnable);
@@ -552,12 +541,11 @@ public class X11ToolbarViewPager {
                     if (!isTouchpadDragging && !touchpadMoved && event.getEventTime() - touchpadDownTime <= tapTimeout)
                         clickTouchpad(touchpadMaxPointers);
                     finishTouchpad();
-                    return true;
+                    return;
                 case MotionEvent.ACTION_CANCEL:
                     finishTouchpad();
-                    return true;
+                    return;
                 default:
-                    return true;
             }
         }
 
@@ -662,7 +650,7 @@ public class X11ToolbarViewPager {
         }
 
         @Override
-        protected void onConfigurationChanged(android.content.res.Configuration newConfig) {
+        protected void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
             super.onConfigurationChanged(newConfig);
             fullKeyboardVisible = floating = false;
             keyboardOffsetX = keyboardOffsetY = 0;
@@ -680,18 +668,15 @@ public class X11ToolbarViewPager {
     }
 
     private static class KeyRef {
-        final int row, col;
         final String label;
 
-        KeyRef(int row, int col, String label) {
-            this.row = row;
-            this.col = col;
+        KeyRef(String label) {
             this.label = label;
         }
     }
 
     private static class KeyTouch {
-        int pointerId, row, col, startOffsetX, startOffsetY;
+        int pointerId, startOffsetX, startOffsetY;
         float downRawX, downRawY, lastRawX, lastRawY;
         boolean dragging;
         String label;
