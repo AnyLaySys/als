@@ -81,7 +81,6 @@ public class MainActivity extends AppCompatActivity {
     private static boolean showIMEWhileExternalConnected = true;
     private static boolean externalKeyboardConnected = false;
     private View.OnKeyListener mLorieKeyListener;
-    private boolean isInPictureInPictureMode = false;
     private long lastBackPressedAt = 0;
     private long mainScreenVisibleUntil = 0;
     private final Runnable hideMainScreen = () -> {
@@ -159,10 +158,6 @@ public class MainActivity extends AppCompatActivity {
         }
         if (changed)
             editor.commit();
-    }
-
-    private float toolbarAlpha() {
-        return isInPictureInPictureMode ? 0.f : 0.27f;
     }
 
     private void showMainScreenBriefly() {
@@ -350,8 +345,6 @@ public class MainActivity extends AppCompatActivity {
         lorieView.triggerCallback();
 
         showIMEWhileExternalConnected = prefs.showIMEWhileExternalConnected.get();
-
-        getTerminalToolbarViewPager().setAlpha(toolbarAlpha());
 
         lorieView.requestLayout();
         lorieView.invalidate();
@@ -598,10 +591,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, @NonNull Configuration newConfig) {
-        this.isInPictureInPictureMode = isInPictureInPictureMode;
-        final ViewPager pager = getTerminalToolbarViewPager();
-        pager.setAlpha(toolbarAlpha());
-
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
     }
 
