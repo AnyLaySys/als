@@ -225,7 +225,7 @@ int rendererInitThread(void* cookie) {
     return 1;
 }
 
-void rendererInit(JNIEnv* env) {
+void renderer_impl_init(JNIEnv* env) {
     pthread_t t;
     JavaVM* vm;
 
@@ -246,11 +246,11 @@ void rendererInit(JNIEnv* env) {
 
     pthread_create(&t, NULL, (void*(*)(void*)) rendererInitThread, vm);
 }
-void rendererSetFiltering(JNIEnv* env, jobject self, jint f) {
+void renderer_impl_set_filtering(JNIEnv* env, jobject self, jint f) {
     filtering = f;
 }
 
-void rendererTestCapabilities(int* legacy_drawing) {
+void renderer_impl_test_capabilities(int* legacy_drawing) {
     // Some devices do not support sampling from HAL_PIXEL_FORMAT_BGRA_8888, here we are checking it.
     const EGLint imageAttributes[] = {EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE};
     EGLint numConfigs;
@@ -344,7 +344,7 @@ void rendererTestCapabilities(int* legacy_drawing) {
     }
 }
 
-__unused void rendererSetSharedState(struct lorie_shared_server_state* newState) {
+__unused void renderer_impl_set_shared_state(struct lorie_shared_server_state* newState) {
     pthread_mutex_lock(&stateLock);
     pendingState = newState;
     stateChanged = true;
@@ -356,14 +356,14 @@ __unused void rendererSetSharedState(struct lorie_shared_server_state* newState)
     pthread_mutex_unlock(&stateLock);
 }
 
-void rendererAddBuffer(LorieBuffer* buf) {
+void renderer_impl_add_buffer(LorieBuffer* buf) {
     pthread_spin_lock(&bufferLock);
     LorieBuffer_addToList(buf, &addedBuffers);
     pthread_cond_signal(&stateCond);
     pthread_spin_unlock(&bufferLock);
 }
 
-void rendererRemoveBuffer(uint64_t id) {
+void renderer_impl_remove_buffer(uint64_t id) {
     pthread_spin_lock(&bufferLock);
     LorieBuffer* buf = LorieBufferList_findById(&addedBuffers, id);
     if (buf)
@@ -380,7 +380,7 @@ void rendererRemoveBuffer(uint64_t id) {
     pthread_spin_unlock(&bufferLock);
 }
 
-void rendererRemoveAllBuffers(void) {
+void renderer_impl_remove_all_buffers(void) {
     LorieBuffer *buf = NULL;
 
     pthread_spin_lock(&bufferLock);
@@ -396,7 +396,7 @@ void rendererRemoveAllBuffers(void) {
     pthread_spin_unlock(&bufferLock);
 }
 
-void rendererSetWindow(JNIEnv *env, __unused jobject thiz, jobject jsfc) {
+void renderer_impl_set_window(JNIEnv *env, __unused jobject thiz, jobject jsfc) {
     ANativeWindow* newWin = jsfc ? ANativeWindow_fromSurface(env, jsfc) : NULL;
     if (newWin)
         ANativeWindow_acquire(newWin);
@@ -445,7 +445,7 @@ static inline __always_inline void releaseWinAndSurface(ANativeWindow** anw, EGL
     }
 }
 
-void rendererSetViewport(__unused JNIEnv *env, __unused jclass clazz, int x, int y, int w, int h, int ew, int eh) {
+void renderer_impl_set_viewport(__unused JNIEnv *env, __unused jclass clazz, int x, int y, int w, int h, int ew, int eh) {
     pthread_mutex_lock(&stateLock);
     viewportX = x;
     viewportY = y;
@@ -461,7 +461,7 @@ void rendererSetViewport(__unused JNIEnv *env, __unused jclass clazz, int x, int
     pthread_mutex_unlock(&stateLock);
 }
 
-void rendererSetZoom(__unused JNIEnv *env, __unused jclass clazz, int percent) {
+void renderer_impl_set_zoom(__unused JNIEnv *env, __unused jclass clazz, int percent) {
     pthread_mutex_lock(&stateLock);
     zoomPercent = percent < 100 ? 100 : (percent > 400 ? 400 : percent);
     reportedViewportX = reportedViewportY = reportedViewportW = reportedViewportH = -1;

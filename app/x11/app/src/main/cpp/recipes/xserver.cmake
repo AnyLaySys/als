@@ -269,6 +269,19 @@ foreach (part glx glxvnd fb mi dix composite damageext dbe randr miext_damage re
     set(XSERVER_LIBS ${XSERVER_LIBS} xserver_${part})
 endforeach ()
 
+set(LORIE_RENDERER_RS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../rust/lorie_renderer")
+set(LORIE_RENDERER_RS_TARGET "aarch64-linux-android")
+set(LORIE_RENDERER_RS_LIB "${CMAKE_CURRENT_BINARY_DIR}/lorie-renderer-rs/${LORIE_RENDERER_RS_TARGET}/release/liblorie_renderer.a")
+add_custom_command(
+        OUTPUT ${LORIE_RENDERER_RS_LIB}
+        COMMAND ${CMAKE_COMMAND} -E env "CARGO_TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR}/lorie-renderer-rs" cargo ndk -t arm64-v8a build --release
+        WORKING_DIRECTORY ${LORIE_RENDERER_RS_DIR}
+        DEPENDS "${LORIE_RENDERER_RS_DIR}/Cargo.toml" "${LORIE_RENDERER_RS_DIR}/src/lib.rs")
+add_custom_target(lorie_renderer_rs_build DEPENDS ${LORIE_RENDERER_RS_LIB})
+add_library(lorie_renderer_rs STATIC IMPORTED GLOBAL)
+set_target_properties(lorie_renderer_rs PROPERTIES IMPORTED_LOCATION ${LORIE_RENDERER_RS_LIB})
+add_dependencies(lorie_renderer_rs lorie_renderer_rs_build)
+
 add_library(Xlorie SHARED
         "xserver/mi/miinitext.c"
         "xserver/hw/xquartz/keysym2ucs.c"
@@ -279,12 +292,12 @@ add_library(Xlorie SHARED
         "lorie/InitOutput.c"
         "lorie/InitInput.c"
         "lorie/InputXKB.c"
-        "lorie/renderer.c"
+        "lorie/renderer_impl.c"
         "lorie/buffer.c"
         "lorie/activity.c")
 target_include_directories(Xlorie PRIVATE ${inc} "libxcvt/include")
 target_link_options(Xlorie PRIVATE "-Wl,--as-needed" "-Wl,--no-undefined" "-fvisibility=hidden" "-Wl,-z,max-page-size=16384" "-Wl,-z,common-page-size=16384")
-target_link_libraries(Xlorie "-Wl,--whole-archive" ${XSERVER_LIBS} "-Wl,--no-whole-archive" android mediandk log m z EGL GLESv2)
+target_link_libraries(Xlorie "-Wl,--whole-archive" ${XSERVER_LIBS} "-Wl,--no-whole-archive" lorie_renderer_rs android mediandk log m z EGL GLESv2)
 target_compile_options(Xlorie PRIVATE ${compile_options})
 target_apply_patch(Xlorie "${CMAKE_CURRENT_SOURCE_DIR}/xserver" "${CMAKE_CURRENT_SOURCE_DIR}/patches/xserver.patch")
 target_apply_patch(Xlorie "${CMAKE_CURRENT_SOURCE_DIR}/libepoxy" "${CMAKE_CURRENT_SOURCE_DIR}/patches/libepoxy.patch")

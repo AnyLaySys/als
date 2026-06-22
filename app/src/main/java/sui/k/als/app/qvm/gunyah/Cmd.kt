@@ -38,10 +38,10 @@ fun QvmGunyahConfig.toQvmGunyahQemuCommand(): String {
     return args.joinToString(" ")
 }
 
-fun buildQvmGunyahScript(config: QvmGunyahConfig): String = $$"""
+fun buildQvmGunyahStartCommand(config: QvmGunyahConfig): String = $$"""
     [ "$(id -u)" = 0 ] || exit 1;
-    X11_DIR=$${shellQuote(x11Dir)};
-    QEMU_DIR=$${shellQuote("$alsDir/qemu-gunyah")};
+    X11_DIR=$${x11Dir};
+    QEMU_DIR=$${"$alsDir/qemu-gunyah"};
     CACHE_XKB=/data/data/sui.k.als/cache/x11/xkb;
     APK=$(pm path sui.k.als | sed 's/^package://' | tr '\n' ':' | sed 's/:$//');
     [ -n "$APK" ] || exit 1;
@@ -63,13 +63,6 @@ fun buildQvmGunyahScript(config: QvmGunyahConfig): String = $$"""
     export DISPLAY=:1 XAUTHORITY="$X11_DIR/home/.Xauthority" HOME="$X11_DIR/home" TMPDIR="$X11_DIR/tmp" XDG_RUNTIME_DIR="$X11_DIR/tmp" XKB_CONFIG_ROOT="$X11_DIR/xkb" LD_LIBRARY_PATH="$QEMU_DIR/lib:/system/lib64:/vendor/lib64" SDL_VIDEODRIVER=x11 SDL_AUDIODRIVER=aaudio SDL_VIDEO_X11_XRANDR=0 SDL_VIDEO_X11_XINERAMA=0 SDL_VIDEO_X11_XVIDMODE=0 SDL_VIDEO_X11_XCURSOR=0 LANG=C LC_ALL=C &&
     $${config.toQvmGunyahQemuCommand()}
 """.trimIndent()
-
-fun buildQvmGunyahStartCommand(config: QvmGunyahConfig): String =
-    "cat > ${shellQuote("$alsDir/qemu-gunyah.sh")} <<'ALS_QEMU_GUNYAH'\n${
-        buildQvmGunyahScript(config)
-    }\nALS_QEMU_GUNYAH\nchmod 700 ${
-        shellQuote("$alsDir/qemu-gunyah.sh")
-    }\nsh ${shellQuote("$alsDir/qemu-gunyah.sh")}"
 
 fun Context.openQvmGunyahX11() {
     startActivity(Intent().setClassName(packageName, "com.termux.x11.MainActivity"))
