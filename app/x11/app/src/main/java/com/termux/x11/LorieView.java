@@ -29,6 +29,7 @@ import android.view.Display;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.WindowManager;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.CorrectionInfo;
@@ -624,7 +625,7 @@ public class LorieView extends SurfaceView implements InputStub {
 
     private void sendWindowChange() {
         String name;
-        int framerate = (int) (getDisplay() != null ? getDisplay().getRefreshRate() : 30);
+        int framerate = Math.round(requestHighRefreshRate());
 
         if (getDisplay() == null || getDisplay().getDisplayId() == Display.DEFAULT_DISPLAY)
             name = "builtin";
@@ -634,6 +635,41 @@ public class LorieView extends SurfaceView implements InputStub {
             name = "external";
 
         sendWindowChange(p.x, p.y, framerate, name);
+    }
+
+    private float requestHighRefreshRate() {
+        Display display = getDisplay();
+        if (display == null)
+            return 30;
+
+        float rate = display.getRefreshRate();
+        int modeId = 0;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Display.Mode current = display.getMode();
+            int width = current != null ? current.getPhysicalWidth() : 0;
+            int height = current != null ? current.getPhysicalHeight() : 0;
+            modeId = current != null ? current.getModeId() : 0;
+            for (Display.Mode mode : display.getSupportedModes()) {
+                if ((width == 0 || height == 0 || (mode.getPhysicalWidth() == width && mode.getPhysicalHeight() == height)) && mode.getRefreshRate() > rate) {
+                    rate = mode.getRefreshRate();
+                    modeId = mode.getModeId();
+                }
+            }
+            MainActivity activity = MainActivity.getInstance();
+            if (activity != null && modeId != 0) {
+                WindowManager.LayoutParams lp = activity.getWindow().getAttributes();
+                if (lp.preferredDisplayModeId != modeId) {
+                    lp.preferredDisplayModeId = modeId;
+                    activity.getWindow().setAttributes(lp);
+                }
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && getHolder().getSurface().isValid())
+            getHolder().getSurface().setFrameRate(rate, Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE);
+
+        return rate;
     }
 
     @Keep

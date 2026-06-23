@@ -1,5 +1,5 @@
-local.properties
 *.iml
+local.properties
 .cxx/
 .externalNativeBuild/
 .gradle/
