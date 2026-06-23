@@ -5,6 +5,7 @@ import org.json.*
 data class QvmGunyahConfig(
     val name: String = "Ubuntu 26.04",
     val isoPath: String = "",
+    val diskPath: String = "",
     val cpuCores: Int = 4,
     val memoryMb: Int = 4096,
     val width: Int = 2376,
@@ -23,7 +24,7 @@ data class QvmGunyahConfig(
 )
 
 fun QvmGunyahConfig.toQvmGunyahJson(): String =
-    JSONObject().put("name", name).put("isoPath", isoPath).put("cpuCores", cpuCores)
+    JSONObject().put("name", name).put("isoPath", isoPath).put("diskPath", diskPath).put("cpuCores", cpuCores)
         .put("memoryMb", memoryMb).put("width", width).put("height", height).put("sshPort", sshPort)
         .put("cdrom", cdrom).put("iothread", iothread).put("network", network).put("tablet", tablet)
         .put("keyboard", keyboard).put("displayOutput", displayOutput)
@@ -36,6 +37,7 @@ fun parseQvmGunyahConfigJson(text: String): QvmGunyahConfig {
     return QvmGunyahConfig(
         name = json.optString("name", base.name),
         isoPath = json.optString("isoPath", base.isoPath),
+        diskPath = json.optString("diskPath", base.diskPath),
         cpuCores = json.optInt("cpuCores", base.cpuCores).coerceAtLeast(1),
         memoryMb = json.optInt("memoryMb", base.memoryMb).coerceAtLeast(256),
         width = json.optInt("width", base.width).coerceAtLeast(320),

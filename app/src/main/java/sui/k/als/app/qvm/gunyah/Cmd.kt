@@ -20,9 +20,11 @@ fun QvmGunyahConfig.toQvmGunyahQemuCommand(): String {
         "-object arm-confidential-guest,id=prot0,swiotlb-size=64M"
     )
     if (iothread) args += "-object iothread,id=io0"
-    if (cdrom && isoPath.isNotBlank()) args += "-drive file=$isoPath,format=raw,if=none,id=dr0,media=cdrom,readonly=on,cache=unsafe,aio=threads,discard=unmap"
+    if (diskPath.isNotBlank()) args += "-drive file=${diskPath.qvmGunyahShellPath()},format=raw,if=none,id=hd0,cache=unsafe,aio=threads,discard=unmap"
+    if (cdrom && isoPath.isNotBlank()) args += "-drive file=${isoPath.qvmGunyahShellPath()},format=raw,if=none,id=dr0,media=cdrom,readonly=on,cache=unsafe,aio=threads,discard=unmap"
     if (network) args += "-netdev user,id=usernet,hostfwd=tcp::$sshPort-:22"
     if (audio) args += "-audiodev aaudio,id=aa"
+    if (diskPath.isNotBlank()) args += $$"-device virtio-blk-pci,drive=hd0,num-queues=$(nproc)$${if (iothread) ",iothread=io0" else ""},disable-legacy=on,disable-modern=off"
     if (cdrom && isoPath.isNotBlank()) args += $$"-device virtio-blk-pci,drive=dr0,num-queues=$(nproc)$${if (iothread) ",iothread=io0" else ""},disable-legacy=on,disable-modern=off,bootindex=1"
     if (network) args += "-device virtio-net-pci,netdev=usernet"
     if (tablet) args += "-device virtio-tablet-pci"
@@ -37,6 +39,8 @@ fun QvmGunyahConfig.toQvmGunyahQemuCommand(): String {
     if (extra.isNotEmpty()) args += extra
     return args.joinToString(" ")
 }
+
+private fun String.qvmGunyahShellPath(): String = "'${replace("'", "'\\''")}'"
 
 fun buildQvmGunyahStartCommand(config: QvmGunyahConfig): String = $$"""
     [ "$(id -u)" = 0 ] || exit 1;

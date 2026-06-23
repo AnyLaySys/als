@@ -1,5 +1,11 @@
 package sui.k.als.qvm.gunyah
 
+import android.content.*
+import android.net.*
+import android.os.*
+import android.provider.*
+import androidx.activity.compose.*
+import androidx.activity.result.contract.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -23,6 +29,12 @@ fun QvmGunyahScreen(
 ) {
     val context = LocalContext.current
     var config by remember { mutableStateOf(QvmGunyahConfigStore.load(context)) }
+    val cdrom = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
+        it?.let { config = config.copy(isoPath = context.qvmGunyahPath(it)) }
+    }
+    val disk = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {
+        it?.let { config = config.copy(diskPath = context.qvmGunyahPath(it)) }
+    }
     fun save() = QvmGunyahConfigStore.save(context, config)
     Box(
         Modifier
@@ -59,8 +71,11 @@ fun QvmGunyahScreen(
                 QvmGunyahToggle(stringResource(R.string.cdrom), config.cdrom, true) {
                     config = config.copy(cdrom = it)
                 }
-                QvmGunyahText(stringResource(R.string.cdrom_path), config.isoPath) {
-                    config = config.copy(isoPath = it)
+                QvmGunyahPath(stringResource(R.string.cdrom_path), config.isoPath) {
+                    cdrom.launch(arrayOf("*/*"))
+                }
+                QvmGunyahPath(stringResource(R.string.disk_path), config.diskPath) {
+                    disk.launch(arrayOf("*/*"))
                 }
                 QvmGunyahToggle(
                     stringResource(R.string.io_thread_optimization), config.iothread, last = true
@@ -142,6 +157,17 @@ private fun QvmGunyahText(
 }
 
 @Composable
+private fun QvmGunyahPath(
+    label: String,
+    value: String,
+    first: Boolean = false,
+    last: Boolean = false,
+    onClick: () -> Unit
+) {
+    ALSList(label, value = value, first = first, last = last, onClick = { onClick() })
+}
+
+@Composable
 private fun QvmGunyahNumber(
     label: String,
     value: Int,
@@ -192,4 +218,17 @@ private fun QvmGunyahDisplayDevice(
     ) { selected ->
         onChange(options.first { it.second == selected }.first)
     }
+}
+
+private fun Context.qvmGunyahPath(uri: Uri): String {
+    val doc = if (DocumentsContract.isDocumentUri(this, uri)) DocumentsContract.getDocumentId(uri) else null
+    if (uri.authority == "com.android.externalstorage.documents" && doc != null) {
+        val parts = doc.split(":", limit = 2)
+        if (parts[0].equals("primary", true)) return Environment.getExternalStorageDirectory().path + "/" + parts.getOrElse(1) { "" }
+        return "/storage/${parts[0]}/${parts.getOrElse(1) { "" }}"
+    }
+    if (uri.authority == "com.android.providers.downloads.documents" && doc != null && doc.startsWith("raw:")) return doc.removePrefix("raw:")
+    return contentResolver.query(uri, arrayOf(MediaStore.MediaColumns.DATA), null, null, null)?.use {
+        if (it.moveToFirst()) it.getString(0) else null
+    } ?: uri.path.orEmpty()
 }
