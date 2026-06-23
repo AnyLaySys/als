@@ -1,11 +1,14 @@
 # Normally xkbcomp is build as executable, but in our case it is better to embed it.
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/X11")
+if (NOT HOST_GCC)
+    set(HOST_GCC gcc)
+endif ()
 
 add_custom_command(
         OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/ks_tables.h"
-        COMMAND "/usr/bin/gcc" "-o" "${CMAKE_CURRENT_BINARY_DIR}/makekeys" "${CMAKE_CURRENT_SOURCE_DIR}/libx11/src/util/makekeys.c" "&&"
-            "${CMAKE_CURRENT_BINARY_DIR}/makekeys" "keysymdef.h" "XF86keysym.h" "Sunkeysym.h" "DECkeysym.h" "HPkeysym.h" ">" "${CMAKE_CURRENT_BINARY_DIR}/ks_tables.h"
+        COMMAND "${HOST_GCC}" "-o" "${CMAKE_CURRENT_BINARY_DIR}/makekeys.exe" "${CMAKE_CURRENT_SOURCE_DIR}/libx11/src/util/makekeys.c" "&&"
+            "${CMAKE_CURRENT_BINARY_DIR}/makekeys.exe" "keysymdef.h" "XF86keysym.h" "Sunkeysym.h" "DECkeysym.h" "HPkeysym.h" ">" "${CMAKE_CURRENT_BINARY_DIR}/ks_tables.h"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/xorgproto/include/X11"
         COMMENT "Generating source code (ks_tables.h)"
         VERBATIM)
@@ -65,7 +68,7 @@ target_include_directories(xkbcomp
         "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(xkbcomp PRIVATE xorgproto)
 target_link_options(xkbcomp PRIVATE "-fPIE" "-fPIC")
-target_compile_options(xkbcomp PRIVATE ${common_compile_options} "-fvisibility=hidden" "-DHAVE_STRCASECMP" "-DHAVE_STRDUP" "-DDFLT_XKB_CONFIG_ROOT=\"/\"" "-DHAVE_SYS_IOCTL_H" "-fPIE" "-fPIC" "-DPACKAGE_VERSION=\"2.70\"" "-Wno-shadow")
+target_compile_options(xkbcomp PRIVATE ${common_compile_options} "-include" "${CMAKE_SYSROOT}/usr/include/xlocale.h" "-fvisibility=hidden" "-DHAVE_STRCASECMP" "-DHAVE_STRDUP" "-DDFLT_XKB_CONFIG_ROOT=\"/\"" "-DHAVE_SYS_IOCTL_H" "-fPIE" "-fPIC" "-DPACKAGE_VERSION=\"2.70\"" "-Wno-shadow")
 target_apply_patch(xkbcomp "${CMAKE_CURRENT_SOURCE_DIR}/xkbcomp" "${CMAKE_CURRENT_SOURCE_DIR}/patches/xkbcomp.patch")
 target_apply_patch(xkbfile "${CMAKE_CURRENT_SOURCE_DIR}/libxkbfile" "${CMAKE_CURRENT_SOURCE_DIR}/patches/xkbfile.patch")
 target_apply_patch(X11 "${CMAKE_CURRENT_SOURCE_DIR}/libx11" "${CMAKE_CURRENT_SOURCE_DIR}/patches/x11.patch")

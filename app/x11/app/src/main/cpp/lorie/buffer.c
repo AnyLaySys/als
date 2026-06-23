@@ -12,7 +12,6 @@
 #include <stdbool.h>
 #include <linux/memfd.h>
 #include <sys/mman.h>
-#include <sys/socket.h>
 #include <errno.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -21,6 +20,9 @@
 #include <android/sharedmem.h>
 #include "list.h"
 #include "buffer.h"
+
+extern int lorie_rs_ancil_send_fd(int sock, int fd);
+extern int lorie_rs_ancil_recv_fd(int sock);
 
 struct LorieBuffer {
     int16_t refcount;
@@ -177,7 +179,7 @@ __LIBC_HIDDEN__ LorieBuffer* LorieBuffer_allocate(int32_t width, int32_t height,
             return NULL;
     } else if (type == LORIEBUFFER_AHARDWAREBUFFER) {
         AHardwareBuffer_Desc desc = { .width = width, .height = height, .format = format, .layers = 1,
-                .usage = AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE };
+                .usage = AHARDWAREBUFFER_USAGE_CPU_READ_RARELY | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE };
         int err = AHardwareBuffer_allocate(&desc, &ahardwarebuffer);
         if (err != 0)
             return NULL;
@@ -228,14 +230,14 @@ __LIBC_HIDDEN__ void LorieBuffer_convert(LorieBuffer* buffer, int8_t type, int8_
     } else {
         AHardwareBuffer *b = NULL;
         AHardwareBuffer_Desc desc = { .width = buffer->desc.width, .height = buffer->desc.height, .format = format, .layers = 1,
-                .usage = AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE };
+                .usage = AHARDWAREBUFFER_USAGE_CPU_READ_RARELY | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE };
         int err = AHardwareBuffer_allocate(&desc, &b);
         if (err != 0)
             return;
 
         AHardwareBuffer_describe(b, &desc);
 
-        if (AHardwareBuffer_lock(b, AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN, -1, NULL, &data) == 0) {
+        if (AHardwareBuffer_lock(b, AHARDWAREBUFFER_USAGE_CPU_READ_RARELY | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN, -1, NULL, &data) == 0) {
             pixman_blt(buffer->desc.data, data, buffer->desc.stride, desc.stride, 32, 32, 0, 0, 0, 0, buffer->desc.width, buffer->desc.height);
             AHardwareBuffer_unlock(b, NULL);
         }
@@ -299,7 +301,7 @@ __LIBC_HIDDEN__ int LorieBuffer_lock(LorieBuffer* buffer, void** out) {
     if (buffer->desc.type == LORIEBUFFER_REGULAR || buffer->desc.type == LORIEBUFFER_FD)
         buffer->lockedData = buffer->desc.data;
     else if (buffer->desc.type == LORIEBUFFER_AHARDWAREBUFFER)
-        ret = AHardwareBuffer_lock(buffer->desc.buffer, AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN, -1, NULL, &buffer->lockedData);
+        ret = AHardwareBuffer_lock(buffer->desc.buffer, AHARDWAREBUFFER_USAGE_CPU_READ_RARELY | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN, -1, NULL, &buffer->lockedData);
 
     if (out)
         *out = buffer->lockedData;
@@ -392,7 +394,7 @@ __LIBC_HIDDEN__ void LorieBuffer_recvHandleFromUnixSocket(int socketFd, LorieBuf
 }
 
 __LIBC_HIDDEN__ void LorieBuffer_attachToGL(LorieBuffer* buffer) {
-    const EGLint imageAttributes[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE };
+    const EGLint imageAttributes[] = { EGL_IMAGE_PRESERVED_KHR, EGL_FALSE, EGL_NONE };
     if (!eglGetCurrentDisplay() || !buffer)
         return;
 
@@ -459,65 +461,9 @@ __LIBC_HIDDEN__ LorieBuffer* _Nullable LorieBufferList_findById(struct xorg_list
 }
 
 __LIBC_HIDDEN__ int ancil_send_fd(int sock, int fd) {
-    char nothing = '!';
-    struct iovec nothing_ptr = { .iov_base = &nothing, .iov_len = 1 };
-
-    struct {
-        struct cmsghdr align;
-        int fd[1];
-    } ancillary_data_buffer;
-
-    struct msghdr message_header = {
-            .msg_name = NULL,
-            .msg_namelen = 0,
-            .msg_iov = &nothing_ptr,
-            .msg_iovlen = 1,
-            .msg_flags = 0,
-            .msg_control = &ancillary_data_buffer,
-            .msg_controllen = sizeof(struct cmsghdr) + sizeof(int)
-    };
-
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "NullDereference"
-    struct cmsghdr* cmsg = CMSG_FIRSTHDR(&message_header);
-    cmsg->cmsg_len = message_header.msg_controllen; // sizeof(int);
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
-    ((int*) CMSG_DATA(cmsg))[0] = fd;
-#pragma clang diagnostic pop
-
-    return sendmsg(sock, &message_header, 0) >= 0 ? 0 : -1;
+    return lorie_rs_ancil_send_fd(sock, fd);
 }
 
 __LIBC_HIDDEN__ int ancil_recv_fd(int sock) {
-    char nothing = '!';
-    struct iovec nothing_ptr = { .iov_base = &nothing, .iov_len = 1 };
-
-    struct {
-        struct cmsghdr align;
-        int fd[1];
-    } ancillary_data_buffer;
-
-    struct msghdr message_header = {
-            .msg_name = NULL,
-            .msg_namelen = 0,
-            .msg_iov = &nothing_ptr,
-            .msg_iovlen = 1,
-            .msg_flags = 0,
-            .msg_control = &ancillary_data_buffer,
-            .msg_controllen = sizeof(struct cmsghdr) + sizeof(int)
-    };
-
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "NullDereference"
-    struct cmsghdr* cmsg = CMSG_FIRSTHDR(&message_header);
-    cmsg->cmsg_len = message_header.msg_controllen;
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
-    ((int*) CMSG_DATA(cmsg))[0] = -1;
-#pragma clang diagnostic pop
-
-    if (recvmsg(sock, &message_header, 0) < 0) return -1;
-
-    return ((int*) CMSG_DATA(cmsg))[0];
+    return lorie_rs_ancil_recv_fd(sock);
 }

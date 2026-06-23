@@ -23,12 +23,15 @@
 #endif
 
 #include <X11/Xatom.h>
+#include <stdbool.h>
 #include <windowstr.h>
 #include <selection.h>
 #include <propertyst.h>
 #include <xacestr.h>
 
 #include "lorie.h"
+
+extern bool lorie_rs_check_utf8(const char* data, size_t len);
 
 /* utility functions for text conversion */
 
@@ -48,32 +51,7 @@ static inline void lorieLatin1ToUTF8(unsigned char* out, const unsigned char* in
 }
 
 static inline int lorieCheckUTF8(const unsigned char *utf, size_t size) {
-    int ix;
-    unsigned char c;
-
-    for (ix = 0; (c = utf[ix]) && ix < size;) {
-        if (c & 0x80) {
-            if ((utf[ix + 1] & 0xc0) != 0x80)
-                return 0;
-            if ((c & 0xe0) == 0xe0) {
-                if ((utf[ix + 2] & 0xc0) != 0x80)
-                    return 0;
-                if ((c & 0xf0) == 0xf0) {
-                    if ((c & 0xf8) != 0xf0 || (utf[ix + 3] & 0xc0) != 0x80)
-                        return 0;
-                    ix += 4;
-                    /* 4-byte code */
-                } else
-                    /* 3-byte code */
-                    ix += 3;
-            } else
-                /* 2-byte code */
-                ix += 2;
-        } else
-            /* 1-byte code */
-            ix++;
-    }
-    return 1;
+    return lorie_rs_check_utf8((const char*) utf, size);
 }
 
 static size_t lorieUtf8ToUCS4(const char* src, size_t max, unsigned* dst) {

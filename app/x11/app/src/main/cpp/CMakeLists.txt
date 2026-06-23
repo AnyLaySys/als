@@ -20,7 +20,10 @@ find_package(Python3 REQUIRED)
 find_package(BISON REQUIRED)
 
 function(target_apply_patch patch_target d p)
-    execute_process(COMMAND "bash" "-c" "patch -p1 -d ${d} -i ${p} -R --dry-run > /dev/null 2>&1 || patch -p1 -N -d ${d} -i ${p} -r -")
+    execute_process(COMMAND "C:/Program Files/Git/usr/bin/patch.exe" "-p1" "-d" "${d}" "-i" "${p}" "-R" "--dry-run" RESULT_VARIABLE patch_reversed OUTPUT_QUIET ERROR_QUIET)
+    if (NOT patch_reversed EQUAL 0)
+        execute_process(COMMAND "C:/Program Files/Git/usr/bin/patch.exe" "-p1" "-N" "-d" "${d}" "-i" "${p}" "-r" "-")
+    endif ()
 endfunction()
 
 set(test_compile_options

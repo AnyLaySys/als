@@ -1,10 +1,15 @@
 [package]
 name = "lorie_renderer"
 version = "0.1.0"
-edition = "2021"
-
+edition = "2024"
 [lib]
 crate-type = ["staticlib"]
-
 [profile.release]
+codegen-units = 1
+debug = false
+incremental = false
+lto = "fat"
+opt-level = "z"
+overflow-checks = false
 panic = "abort"
+strip = true
