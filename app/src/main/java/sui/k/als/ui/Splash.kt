@@ -96,7 +96,7 @@ fun Splash(
             }
         } else if (showIcon) {
             Box(Modifier.fillMaxSize(), Alignment.Center) {
-                ALSButton(appIcon, iconSize = 27.dp)
+                ALSButton(appIcon, size = 64.dp, iconSize = 64.dp)
             }
         }
     }

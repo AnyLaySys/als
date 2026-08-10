@@ -225,16 +225,16 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
             onCreate = { create(shellQuote("$alsDir/app/ate"), true) }
         )
         else -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                ALSButton(R.drawable.arrow_forward) { showApp = true }
-                ALSButton(R.drawable.terminal) {
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                ALSButton(R.drawable.arrow_forward, size = 48.dp, iconSize = 48.dp) { showApp = true }
+                ALSButton(R.drawable.terminal, size = 48.dp, iconSize = 48.dp) {
                     if (sessions.isEmpty()) {
                         create(shellQuote("$alsDir/app/ate"), true)
                     } else {
                         showTTYHub = true
                     }
                 }
-                ALSButton(R.drawable.power) {
+                ALSButton(R.drawable.power, size = 48.dp, iconSize = 48.dp) {
                     close()
                     onFin()
                     (context as? Activity)?.finishAffinity()
