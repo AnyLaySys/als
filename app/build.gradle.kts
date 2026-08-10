@@ -7,10 +7,10 @@ android {
     compileSdk= 37
     defaultConfig {
         applicationId = "sui.k.als"
-        minSdk = 33
+        minSdk = 34
         targetSdk = 37
-        versionCode = 13
-        versionName = "26.6.21"
+        versionCode = 16
+        versionName = "26.8.9"
         ndk {
             abiFilters.add("arm64-v8a")
         }
@@ -81,6 +81,5 @@ dependencies {
     implementation(libs.termux.app) {
         exclude(group = "com.github.termux.termux-app", module = "termux-shared")
     }
-    implementation(project(":x11"))
     implementation(libs.guava.listenablefuture)
 }

@@ -38,7 +38,6 @@
     <string name="io_thread_optimization">线程优化</string>
     <string name="mem_lock">内存锁定</string>
     <string name="memory">内存</string>
-    <string name="memory_size">内存大小</string>
     <string name="mount_point">挂载点 %d</string>
     <string name="network">网络</string>
     <string name="network_backend">网络后端</string>
@@ -62,7 +61,6 @@
     <string name="static_ip">静态IP</string>
     <string name="swiotlb_buffer_size">SWIOTLB 缓冲区大小</string>
     <string name="system">系统</string>
-    <string name="termux_x11">Termux-X11</string>
     <string name="upstream_interface">上游接口</string>
     <string name="usb">USB</string>
     <string name="usb2_port">USB 2.0 端口数</string>
@@ -96,13 +94,14 @@
     <string name="compress">压缩镜像 (-c)</string>
     <string name="apply">应用</string>
     <string name="delete">删除</string>
-    <string name="qvm_gunyah">QEMU Gunyah</string>
+    <string name="qemu_gunyah">QEMU Gunyah</string>
+    <string name="qemu_start_failed">QEMU 启动失败</string>
+    <string name="qemu_gzvm">QEMU GZVM</string>
+    <string name="qemu_kvm">QEMU KVM</string>
     <string name="ssh_port">SSH 端口</string>
     <string name="extra_qemu_args">附加 QEMU 参数</string>
-    <string name="virtio_tablet">VirtIO 触摸板</string>
-    <string name="virtio_keyboard">VirtIO 键盘</string>
-    <string name="virtio_gpu">VirtIO 显卡</string>
-    <string name="ramfb">RAMFB 显卡</string>
+    <string name="virtio_tablet">鼠标</string>
+    <string name="virtio_keyboard">键盘</string>
     <string name="serial_console">串口控制台</string>
     <string name="sdl_display">SDL 显示</string>
     <string name="import_config">导入</string>

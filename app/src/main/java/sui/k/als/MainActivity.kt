@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.*
 import androidx.compose.ui.text.font.*
 import androidx.core.view.*
+import sui.k.als.log.ALSLog
 import sui.k.als.ui.*
 
 val localFont = staticCompositionLocalOf<FontFamily> { FontFamily.Default }
@@ -14,6 +15,7 @@ val localFont = staticCompositionLocalOf<FontFamily> { FontFamily.Default }
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ALSLog.info("ALS", "MainActivity created")
         enableEdgeToEdge()
         WindowInsetsControllerCompat(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())
@@ -34,5 +36,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        ALSLog.info("ALS", "MainActivity destroyed")
+        super.onDestroy()
     }
 }

@@ -1,115 +1,245 @@
 package sui.k.als.ui
 
-import android.app.*
-import android.content.*
-import android.view.*
-import android.view.inputmethod.*
-import androidx.activity.compose.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.platform.*
-import androidx.compose.ui.unit.*
-import com.termux.terminal.*
-import kotlinx.coroutines.*
+import android.app.Activity
+import android.view.MotionEvent
+import android.view.inputmethod.InputMethodManager
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.termux.terminal.TerminalSession
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import sui.k.als.R
-import sui.k.als.app.*
-import sui.k.als.qvm.gunyah.*
-import sui.k.als.tty.*
+import sui.k.als.agl.AglNativeBackend
+import sui.k.als.agl.AglRunState
+import sui.k.als.agl.AglRuntime
+import sui.k.als.agl.AglScreen
+import sui.k.als.app.App
+import sui.k.als.qemu.gunyah.QemuGunyah
+import sui.k.als.qemu.gunyah.QemuGunyahConfigStore
+import sui.k.als.qemu.gunyah.toAglLaunch as toGunyahAglLaunch
+import sui.k.als.qemu.gzvm.QemuGzvm
+import sui.k.als.qemu.gzvm.toAglLaunch as toGzvmAglLaunch
+import sui.k.als.qemu.kvm.QemuKvm
+import sui.k.als.qemu.kvm.toAglLaunch as toKvmAglLaunch
+import sui.k.als.tty.TTYHub
+import sui.k.als.tty.TTYIME
+import sui.k.als.tty.TTYInstance
+import sui.k.als.tty.TTYScreen
+import sui.k.als.tty.TTYSessionStub
+import sui.k.als.tty.TTYViewStub
+import sui.k.als.tty.cmd
+import sui.k.als.tty.createTTYInstance
+import sui.k.als.tty.shellQuote
 import kotlin.time.Duration.Companion.milliseconds
 
 const val alsDir = "/data/local/tmp/als"
-const val x11Dir = "$alsDir/x11"
 
 @Composable
 fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
     modifier
         .fillMaxSize()
-        .background(Color.Black), Alignment.Center
+        .background(Color.Black),
+    Alignment.Center
 ) {
-    val ctx = LocalContext.current
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val aglState = AglRuntime.state
     var sessions by remember { mutableStateOf(emptyList<TTYInstance>()) }
     var active by remember { mutableStateOf<TTYInstance?>(null) }
     var showTTY by remember { mutableStateOf(false) }
     var showTTYHub by remember { mutableStateOf(false) }
     var showApp by remember { mutableStateOf(false) }
-    var showQvmGunyah by remember { mutableStateOf(false) }
-    var qvmGunyahSession by remember { mutableStateOf<TerminalSession?>(null) }
-    val close = {
-        sessions.forEach { it.session.finishIfRunning() }; sessions = emptyList(); active =
-        null; qvmGunyahSession = null
+    var showQemuGunyah by remember { mutableStateOf(false) }
+    var showQemuGzvm by remember { mutableStateOf(false) }
+    var showQemuKvm by remember { mutableStateOf(false) }
+    var showAgl by remember { mutableStateOf(false) }
+    var aglLaunch by remember {
+        mutableStateOf(
+            AglRuntime.currentLaunch
+                ?: QemuGunyahConfigStore.load(context).toGunyahAglLaunch()
+        )
     }
-    val create: (String, Boolean, Boolean) -> Unit = { command, enterSu, gunyah ->
-        val instance = createTTYInstance(ctx, object : TTYSessionStub() {
+
+    val close = {
+        AglRuntime.stop()
+        sessions.forEach { it.session.finishIfRunning() }
+        sessions = emptyList()
+        active = null
+    }
+    val create: (String, Boolean) -> Unit = { command, enterSu ->
+        val instance = createTTYInstance(context, object : TTYSessionStub() {
             override fun onSessionFinished(session: TerminalSession) {
                 super.onSessionFinished(session)
-                val wasQvmGunyah = qvmGunyahSession == session
-                if (wasQvmGunyah) qvmGunyahSession = null
                 sessions = sessions.filter { it.session != session }
-                if (active?.session == session) active = sessions.lastOrNull()
+                if (active?.session == session) {
+                    active = sessions.lastOrNull()
+                }
                 if (active == null) {
-                    showTTY = false; showTTYHub = sessions.isNotEmpty(); showApp =
-                        false; showQvmGunyah = wasQvmGunyah
+                    showTTY = false
+                    showTTYHub = sessions.isNotEmpty()
                 }
             }
         }, object : TTYViewStub() {
             override fun onSingleTapUp(event: MotionEvent) {
                 active?.view?.run {
-                    requestFocus(); ctx.getSystemService(InputMethodManager::class.java)
-                    ?.showSoftInput(this, 0)
+                    requestFocus()
+                    context.getSystemService(InputMethodManager::class.java)
+                        ?.showSoftInput(this, 0)
                 }
             }
         }).also { instance ->
             scope.launch {
                 if (enterSu) {
-                    delay(90.milliseconds); cmd(instance.session, su); delay(90.milliseconds)
+                    delay(90.milliseconds)
+                    cmd(instance.session, su)
+                    delay(90.milliseconds)
                 }
                 cmd(instance.session, command)
             }
         }
-        if (gunyah) qvmGunyahSession = instance.session
-        sessions = sessions + instance; active = instance; showTTY = true; showTTYHub = false
+        sessions = sessions + instance
+        active = instance
+        showTTY = true
+        showTTYHub = false
     }
-    DisposableEffect(Unit) { onDispose(close) }
+
+    DisposableEffect(Unit) {
+        onDispose(close)
+    }
     BackHandler {
-        if (showTTY) {
-            val toQvmGunyah = active?.session == qvmGunyahSession
-            showTTY = false; showTTYHub = !toQvmGunyah; showApp = false; showQvmGunyah = toQvmGunyah
-        } else {
-            showTTYHub = false; showApp = false; showQvmGunyah = false
-        }
-    }
-    val qvmGunyahTTY = sessions.firstOrNull { it.session == qvmGunyahSession }
-    val switchToQvm: () -> Unit = {
-        qvmGunyahTTY?.let {
-            active = it; showTTY = true; showTTYHub = false; showQvmGunyah = false
-        }
-    }
-    if (showQvmGunyah) QvmGunyah(started = qvmGunyahTTY != null, onCreate = {
-        qvmGunyahTTY?.let { active = it; showTTY = true; showTTYHub = false; showQvmGunyah = false }
-            ?: run { showQvmGunyah = false; create(buildQvmGunyahStartCommand(it), true, true) }
-    }, onEnter = switchToQvm, onX11 = { switchToQvm(); ctx.openQvmGunyahX11() })
-    else if (showApp) App(onQemuGunyah = { showApp = false; showQvmGunyah = true }, onX11 = {
-        ctx.startActivity(Intent().setClassName(ctx.packageName, "com.termux.x11.MainActivity"))
-    })
-    else if (showTTY) active?.let { TTYScreen(it) { TTYIME() } }
-    else if (showTTYHub) TTYHub(
-        sessions,
-        onSelect = { active = it; showTTY = true; showTTYHub = false },
-        onDelete = { it.session.finishIfRunning() },
-        onCreate = { create(shellQuote("$alsDir/app/ate"), true, false) })
-    else Box(Modifier.fillMaxSize(), Alignment.Center) {
-        Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-            ALSButton(R.drawable.arrow_forward) { showApp = true }
-            ALSButton(R.drawable.terminal) {
-                if (sessions.isEmpty()) create(
-                    shellQuote("$alsDir/app/ate"), true, false
-                ) else showTTYHub = true
+        when {
+            showAgl -> {
+                showAgl = false
+                when (aglLaunch.backend) {
+                    AglNativeBackend.Gunyah -> showQemuGunyah = true
+                    AglNativeBackend.Gzvm -> showQemuGzvm = true
+                    AglNativeBackend.Kvm -> showQemuKvm = true
+                }
             }
-            ALSButton(R.drawable.power) { close(); onFin(); (ctx as? Activity)?.finishAffinity() }
+            showTTY -> {
+                showTTY = false
+                showTTYHub = sessions.isNotEmpty()
+            }
+            showQemuGunyah || showQemuGzvm || showQemuKvm || showApp || showTTYHub -> {
+                showTTYHub = false
+                showApp = false
+                showQemuGunyah = false
+                showQemuGzvm = false
+                showQemuKvm = false
+            }
+        }
+    }
+
+    when {
+        showAgl -> AglScreen(aglLaunch)
+        showQemuGunyah -> QemuGunyah(
+            started = aglState == AglRunState.Starting ||
+                aglState == AglRunState.Running ||
+                aglState == AglRunState.Stopping,
+            onCreate = {
+                val launch = it.toGunyahAglLaunch()
+                aglLaunch = launch
+                AglRuntime.prepare(launch)
+                showQemuGunyah = false
+                showAgl = true
+            },
+            onDisplay = {
+                showQemuGunyah = false
+                showAgl = true
+            },
+            onStop = AglRuntime::stop
+        )
+        showQemuGzvm -> QemuGzvm(
+            started = aglState == AglRunState.Starting ||
+                aglState == AglRunState.Running ||
+                aglState == AglRunState.Stopping,
+            onCreate = {
+                val launch = it.toGzvmAglLaunch()
+                aglLaunch = launch
+                AglRuntime.prepare(launch)
+                showQemuGzvm = false
+                showAgl = true
+            },
+            onDisplay = {
+                showQemuGzvm = false
+                showAgl = true
+            },
+            onStop = AglRuntime::stop
+        )
+        showQemuKvm -> QemuKvm(
+            started = aglState == AglRunState.Starting ||
+                aglState == AglRunState.Running ||
+                aglState == AglRunState.Stopping,
+            onCreate = {
+                val launch = it.toKvmAglLaunch()
+                aglLaunch = launch
+                AglRuntime.prepare(launch)
+                showQemuKvm = false
+                showAgl = true
+            },
+            onDisplay = {
+                showQemuKvm = false
+                showAgl = true
+            },
+            onStop = AglRuntime::stop
+        )
+        showApp -> App(
+            onQemuGunyah = {
+                showApp = false
+                showQemuGunyah = true
+            },
+            onQemuGzvm = {
+                showApp = false
+                showQemuGzvm = true
+            },
+            onQemuKvm = {
+                showApp = false
+                showQemuKvm = true
+            }
+        )
+        showTTY -> active?.let { TTYScreen(it) { TTYIME() } }
+        showTTYHub -> TTYHub(
+            sessions,
+            onSelect = {
+                active = it
+                showTTY = true
+                showTTYHub = false
+            },
+            onDelete = { it.session.finishIfRunning() },
+            onCreate = { create(shellQuote("$alsDir/app/ate"), true) }
+        )
+        else -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+            Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                ALSButton(R.drawable.arrow_forward) { showApp = true }
+                ALSButton(R.drawable.terminal) {
+                    if (sessions.isEmpty()) {
+                        create(shellQuote("$alsDir/app/ate"), true)
+                    } else {
+                        showTTYHub = true
+                    }
+                }
+                ALSButton(R.drawable.power) {
+                    close()
+                    onFin()
+                    (context as? Activity)?.finishAffinity()
+                }
+            }
         }
     }
 }

@@ -12,7 +12,11 @@ import androidx.compose.ui.graphics.Color
 import sui.k.als.ui.ALSList
 
 @Composable
-fun App(onQemuGunyah: () -> Unit, onX11: () -> Unit) = Box(
+fun App(
+    onQemuGunyah: () -> Unit,
+    onQemuGzvm: () -> Unit,
+    onQemuKvm: () -> Unit
+) = Box(
     Modifier
         .fillMaxSize()
         .background(Color.Black),
@@ -20,6 +24,7 @@ fun App(onQemuGunyah: () -> Unit, onX11: () -> Unit) = Box(
 ) {
     Column(Modifier.fillMaxWidth(0.86f)) {
         ALSList("qemu-gunyah", first = true) { onQemuGunyah() }
-        ALSList("x11", last = true) { onX11() }
+        ALSList("qemu-gzvm") { onQemuGzvm() }
+        ALSList("qemu-kvm", last = true) { onQemuKvm() }
     }
 }

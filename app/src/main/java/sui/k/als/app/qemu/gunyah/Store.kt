@@ -1,0 +1,23 @@
+package sui.k.als.qemu.gunyah
+
+import android.content.*
+import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
+import sui.k.als.app.qemu.gunyah.parseQemuGunyahConfigJson
+import sui.k.als.app.qemu.gunyah.toQemuGunyahJson
+import java.io.*
+
+object QemuGunyahConfigStore {
+    private fun file(context: Context): File = File(context.filesDir, "qemu/gunyah/config.json")
+    fun load(context: Context): QemuGunyahConfig {
+        val file: File = file(context)
+        return if (file.isFile) runCatching { parseQemuGunyahConfigJson(file.readText()) }.getOrDefault(
+            QemuGunyahConfig()
+        ) else QemuGunyahConfig()
+    }
+
+    fun save(context: Context, config: QemuGunyahConfig) {
+        val file: File = file(context)
+        file.parentFile?.mkdirs()
+        file.writeText(config.toQemuGunyahJson())
+    }
+}

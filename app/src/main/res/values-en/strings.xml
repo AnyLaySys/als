@@ -38,7 +38,6 @@
     <string name="io_thread_optimization">I/O Thread Optimization</string>
     <string name="mem_lock">Mem Lock</string>
     <string name="memory">Memory</string>
-    <string name="memory_size">Memory Size</string>
     <string name="mount_point">Mount Point %d</string>
     <string name="network">Network</string>
     <string name="network_backend">Network Backend</string>
@@ -62,7 +61,6 @@
     <string name="static_ip">Static IP</string>
     <string name="swiotlb_buffer_size">SWIOTLB Buffer Size</string>
     <string name="system">System</string>
-    <string name="termux_x11">Termux-X11</string>
     <string name="upstream_interface">Upstream Interface</string>
     <string name="usb">USB</string>
     <string name="usb2_port">USB 2.0 Ports</string>
@@ -71,13 +69,14 @@
     <string name="volatile_mode">Volatile Mode</string>
     <string name="xres">X Resolution</string>
     <string name="yres">Y Resolution</string>
-    <string name="qvm_gunyah">QEMU Gunyah</string>
+    <string name="qemu_gunyah">QEMU Gunyah</string>
+    <string name="qemu_start_failed">QEMU failed to start</string>
+    <string name="qemu_gzvm">QEMU GZVM</string>
+    <string name="qemu_kvm">QEMU KVM</string>
     <string name="ssh_port">SSH Port</string>
     <string name="extra_qemu_args">Extra QEMU Args</string>
-    <string name="virtio_tablet">VirtIO Tablet</string>
-    <string name="virtio_keyboard">VirtIO Keyboard</string>
-    <string name="virtio_gpu">VirtIO GPU</string>
-    <string name="ramfb">RAMFB GPU</string>
+    <string name="virtio_tablet">Mouse</string>
+    <string name="virtio_keyboard">Keyboard</string>
     <string name="serial_console">Serial Console</string>
     <string name="sdl_display">SDL Display</string>
     <string name="import_config">Import</string>
