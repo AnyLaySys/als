@@ -15,6 +15,11 @@ android {
             abiFilters.add("arm64-v8a")
         }
     }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = true

@@ -26,7 +26,7 @@ internal object ALSLog {
             }
             writeLocked(record("I", "ALS", "process started"))
         }
-        runCatching { System.loadLibrary("als-log") }.onFailure {
+        runCatching { System.loadLibrary("alslog") }.onFailure {
             error("ALS", "native log capture could not load", it)
         }
     }

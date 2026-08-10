@@ -12,7 +12,7 @@ fun QemuKvmConfig.qemuMemoryArgument(): String = "${memoryMb}M"
 fun QemuKvmConfig.qemuDisplayDeviceArgument(
     device: String = displayDevice
 ): String? = when (device.toQemuKvmDisplayDevice()) {
-    "virtio-gpu" -> "virtio-gpu-pci,romfile="
+    "virtio-gpu" -> "virtio-gpu-gl-pci"
     "ramfb" -> "ramfb"
     else -> null
 }
@@ -22,7 +22,7 @@ fun QemuKvmConfig.toQemuKvmArgs(): Array<String> {
         "./qemu-system-aarch64",
         "-L", "./fw",
         "-name", "ubuntu-disk8g8-kvm",
-        "-machine", "virt,gic-version=host",
+        "-machine", "virt",
         "-accel", "kvm",
         "-cpu", "host",
         "-smp", cpuCores.toString(),
@@ -49,7 +49,7 @@ fun QemuKvmConfig.toQemuKvmArgs(): Array<String> {
     }
     if (network) {
         args += listOf("-netdev", "tap,id=net,ifname=tap0,script=no,downscript=no")
-        args += listOf("-device", "virtio-net-pci,netdev=net,romfile=")
+        args += listOf("-device", "virtio-net-pci,netdev=net")
     }
     if (audio) {
         args += listOf("-audiodev", "aaudio,id=aa")
