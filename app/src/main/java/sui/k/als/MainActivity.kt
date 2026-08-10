@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val font = remember {
                 runCatching {
-                    FontFamily(Font("GoogleSansFlex.ttf", assets))
+                    FontFamily(Font( "google_sans_flex.ttf", assets))
                 }.getOrDefault(FontFamily.Default)
             }
             var showSplash by rememberSaveable { mutableStateOf(true) }

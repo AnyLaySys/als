@@ -135,11 +135,11 @@ fun QemuKvmScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (started) {
-                    ALSButton(R.drawable.preview, size = 30.dp) { onDisplay() }
-                    ALSButton(R.drawable.power, size = 30.dp) { onStop() }
+                    ALSButton(R.drawable.preview, size = 36.dp, iconSize = 36.dp) { onDisplay() }
+                    ALSButton(R.drawable.power, size = 36.dp, iconSize = 36.dp) { onStop() }
                 }
                 if (!started) {
-                    ALSButton(R.drawable.arrow_forward, size = 30.dp) {
+                    ALSButton(R.drawable.arrow_forward, size = 36.dp, iconSize = 36.dp) {
                         save()
                         onCreate(config)
                     }

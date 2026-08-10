@@ -33,7 +33,7 @@ fun ALSList(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(28.dp)
+            .height(48.dp)
             .clickable(remember { MutableInteractionSource() }, null) { onClick(text) },
         color = background?.copy(alpha = 0.22f) ?: Color(0xFF1B1B1F),
         shape = ALSListShape(first, last)
@@ -45,7 +45,8 @@ fun ALSList(
                 color = if (checked) Color(0xFFE3E2E6) else Color(0xFF8E8E93),
                 style = style,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 12.sp
             )
             value?.let { ALSListValue(it, onValueChange, style) }
             iconContent?.invoke(this)

@@ -57,7 +57,7 @@ fun createTTYInstance(
         setLayerType(View.LAYER_TYPE_HARDWARE, null)
         isFocusable = true
         isFocusableInTouchMode = true
-        setTextSize(12)
+        setTextSize(24)
         setTypeface(
             try {
                 Typeface.createFromAsset(context.assets, "GoogleSansCode.ttf")
@@ -154,7 +154,7 @@ private class TTYCoalescingHandler(private val original: Handler) :
 
 open class TTYViewStub : TerminalViewClient {
     private var view: TerminalView? = null
-    private var size = 12f
+    private var size = 24f
     fun bindView(targetView: TerminalView) {
         view = targetView
     }
