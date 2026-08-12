@@ -1,20 +1,41 @@
 package sui.k.als.tty
 
-import android.content.res.*
-import android.view.*
-import androidx.activity.compose.*
-import androidx.compose.foundation.gestures.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.input.pointer.*
-import androidx.compose.ui.platform.*
-import androidx.compose.ui.unit.*
-import com.termux.terminal.*
-import kotlinx.coroutines.*
-import kotlin.math.*
+import android.content.res.Configuration
+import android.view.HapticFeedbackConstants
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.termux.terminal.TerminalSession
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
 object IMEState {
@@ -73,8 +94,8 @@ fun TTYIME() {
     val full = IMEState.isFullKeyboardVisible
     val rows = if (full) fullRows else compactRows
     val portrait = orientation == Configuration.ORIENTATION_PORTRAIT
-    val h = if (full) if (portrait) 0.382f else 0.618f else 0f
-    val w = if (full && IMEState.isFloating && !portrait) 0.382f else 1f
+    val h = if (full) if (portrait) 0.36f else 0.54f else 0f
+    val w = if (full && IMEState.isFloating && !portrait) 0.36f else 1f
     LaunchedEffect(orientation) { resetIme() }
     BackHandler(full || IMEState.isFloating) { resetIme() }
     Box(Modifier.run {
@@ -84,11 +105,11 @@ fun TTYIME() {
                 .fillMaxHeight(h)
 
             IMEState.isFloating -> offset { IMEState.keyboardOffset }.size(
-                360.dp, 18.dp * rows.size
+                324.dp, 24.dp * rows.size
             )
 
             full -> fillMaxWidth().fillMaxHeight(h)
-            else -> fillMaxWidth().height(18.dp * rows.size)
+            else -> fillMaxWidth().height(24.dp * rows.size)
         }
     }) {
         Column(Modifier.fillMaxSize()) {
@@ -167,7 +188,7 @@ private fun RowScope.Key(session: TerminalSession?, label: String, full: Boolean
             IMEState.isCapsActive && label.first().isLetter() -> label.uppercase()
             else -> label
         }
-        Text(text = text, color = Color.Gray, fontSize = 9.sp, softWrap = false)
+        Text(text = text, color = Color.Gray, fontSize = 12.sp, softWrap = false)
     }
 }
 

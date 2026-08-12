@@ -5,16 +5,11 @@ import android.system.OsConstants
 import sui.k.als.agl.AglNative
 import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
 import sui.k.als.log.ALSLog
-import java.io.File
 import java.io.FileInputStream
 import java.io.RandomAccessFile
 
 object QemuGunyahPreflight {
     internal fun run(config: QemuGunyahConfig) {
-        validatePath(config.diskPath, "disk")
-        if (config.cdrom) {
-            validatePath(config.isoPath, "CD-ROM")
-        }
         val error = AglNative.grantRoot()
         check(error == 0) {
             "KernelSU direct root failed: ${Os.strerror(error)} ($error)"
@@ -28,13 +23,6 @@ object QemuGunyahPreflight {
             verifyDevice("/dev/tun")
             configureTapNetwork()
         }
-    }
-
-    private fun validatePath(path: String, name: String) {
-        if (path.isBlank()) {
-            return
-        }
-        check(File(path).isAbsolute) { "$name path must be absolute: $path" }
     }
 
     private fun verifyFiles(config: QemuGunyahConfig) {

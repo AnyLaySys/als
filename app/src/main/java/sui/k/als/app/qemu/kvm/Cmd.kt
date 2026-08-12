@@ -2,6 +2,7 @@ package sui.k.als.qemu.kvm
 
 import sui.k.als.agl.AglLaunch
 import sui.k.als.agl.AglNativeBackend
+import sui.k.als.agl.AglPreparedLaunch
 import sui.k.als.app.qemu.kvm.QemuKvmConfig
 import sui.k.als.app.qemu.kvm.toQemuKvmDisplayDevice
 
@@ -69,9 +70,13 @@ internal fun QemuKvmConfig.toAglLaunch() = AglLaunch(
     width = width,
     height = height,
     workDir = qemuKvmDir,
-    args = toQemuKvmArgs(),
     backend = AglNativeBackend.Kvm,
-    preflight = { QemuKvmPreflight.run(this) }
+    prepare = {
+        AglPreparedLaunch(
+            args = toQemuKvmArgs(),
+            preflight = { QemuKvmPreflight.run(this) }
+        )
+    }
 )
 
 private fun splitQemuArgs(value: String): List<String> {

@@ -9,7 +9,8 @@ fun QemuKvm(
     started: Boolean,
     onCreate: (QemuKvmConfig) -> Unit,
     onDisplay: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    onBack: () -> Unit
 ) {
-    QemuKvmScreen(started, onCreate, onDisplay, onStop)
+    QemuKvmScreen(started, onCreate, onDisplay, onStop, onBack)
 }

@@ -11,7 +11,6 @@ import java.io.RandomAccessFile
 
 object QemuKvmPreflight {
     internal fun run(config: QemuKvmConfig) {
-        validatePath(config.diskPath, "disk")
         val error = AglNative.grantRoot()
         check(error == 0) {
             "KernelSU direct root failed: ${Os.strerror(error)} ($error)"
@@ -25,13 +24,6 @@ object QemuKvmPreflight {
             verifyDevice("/dev/tun")
             configureTapNetwork()
         }
-    }
-
-    private fun validatePath(path: String, name: String) {
-        if (path.isBlank()) {
-            return
-        }
-        check(File(path).isAbsolute) { "$name path must be absolute: $path" }
     }
 
     private fun verifyFiles(config: QemuKvmConfig) {

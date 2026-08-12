@@ -8,7 +8,8 @@ fun QemuGunyah(
     started: Boolean,
     onCreate: (QemuGunyahConfig) -> Unit,
     onDisplay: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    onBack: () -> Unit
 ) {
-    QemuGunyahScreen(started, onCreate, onDisplay, onStop)
+    QemuGunyahScreen(started, onCreate, onDisplay, onStop, onBack)
 }

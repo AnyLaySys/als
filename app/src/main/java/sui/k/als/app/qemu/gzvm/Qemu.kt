@@ -8,7 +8,8 @@ fun QemuGzvm(
     started: Boolean,
     onCreate: (QemuGzvmConfig) -> Unit,
     onDisplay: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    onBack: () -> Unit
 ) {
-    QemuGzvmScreen(started, onCreate, onDisplay, onStop)
+    QemuGzvmScreen(started, onCreate, onDisplay, onStop, onBack)
 }

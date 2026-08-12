@@ -4,7 +4,7 @@ import org.json.JSONObject
 
 data class QemuKvmConfig(
     val name: String = "Ubuntu 26.10 S2 GNOME",
-    val diskPath: String = "/data/ubuntu/ubuntu-26.10-s2-gnome-arm64.img",
+    val diskPath: String = "",
     val cpuCores: Int = 8,
     val memoryMb: Int = 8192,
     val width: Int = 1400,

@@ -1,6 +1,8 @@
 package sui.k.als.agl
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -12,9 +14,16 @@ import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -321,7 +330,8 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
 
 @Composable
 internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
-    val activity = LocalContext.current as? Activity
+    val context = LocalContext.current
+    val activity = context as? Activity
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     DisposableEffect(activity) {
         val previousOrientation = activity?.requestedOrientation
@@ -336,16 +346,47 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
         }
     }
     if (!landscape) {
-        Box(modifier.fillMaxSize().background(Color.Black))
-    } else if (AglRuntime.state == AglRunState.Failed) {
         Box(
-            modifier.fillMaxSize().background(Color.Black).padding(24.dp),
+            modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             Alignment.Center
         ) {
-            Text(
-                "${stringResource(R.string.qemu_start_failed)}\n${AglRuntime.failureMessage.orEmpty()}",
-                color = Color.White
-            )
+            Card(
+                shape = RoundedCornerShape(27.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(
+                    Modifier.padding(27.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator()
+                    Text("正在切换到横屏", Modifier.padding(top = 18.dp))
+                }
+            }
+        }
+    } else if (AglRuntime.state == AglRunState.Failed) {
+        Box(
+            modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
+            Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(27.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+            ) {
+                Column(Modifier.padding(27.dp)) {
+                    Text(stringResource(R.string.qemu_start_failed), style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        AglRuntime.failureMessage.orEmpty(),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier
+                            .padding(top = 12.dp)
+                            .clickable {
+                                val message = AglRuntime.failureMessage.orEmpty()
+                                context.getSystemService(ClipboardManager::class.java)
+                                    ?.setPrimaryClip(ClipData.newPlainText("QEMU", message))
+                            }
+                    )
+                }
+            }
         }
     } else {
         AndroidView(

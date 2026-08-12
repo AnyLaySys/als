@@ -20,6 +20,7 @@ object AglRuntime {
         Thread(it, "qemu-agl")
     }
     private var launch: AglLaunch? = null
+    private var preparedLaunch: AglPreparedLaunch? = null
     private var launched = false
     var state by mutableStateOf(AglRunState.Idle)
         private set
@@ -30,28 +31,51 @@ object AglRuntime {
         get() = synchronized(lock) { launch }
 
     internal fun prepare(value: AglLaunch) {
-        ALSLog.info(
-            "AGL",
-            "prepare ${value.backend.libraryName} ${value.workDir} ${value.args.joinToString(" ")}"
-        )
-        var prepared = false
-        synchronized(lock) {
-            if (!launched || state == AglRunState.Stopped || state == AglRunState.Failed) {
-                launched = false
-                launch = value
-                failureMessage = null
-                state = AglRunState.Idle
-                prepared = true
-            }
+        val accepted = synchronized(lock) {
+            !launched || state == AglRunState.Stopped || state == AglRunState.Failed
         }
-        if (prepared) {
-            runCatching { AglNative.load(value.backend) }.onFailure { error ->
-                ALSLog.error("AGL", "native library load failed", error)
-                synchronized(lock) {
-                    if (launch === value) {
-                        state = AglRunState.Failed
-                        failureMessage = error.message ?: error.javaClass.simpleName
+        if (!accepted) {
+            return
+        }
+        synchronized(lock) {
+            launch = value
+            failureMessage = null
+            state = AglRunState.Starting
+        }
+        executor.execute {
+            val result = runCatching {
+                AglNative.load(value.backend)
+                value.prepare()
+            }
+            result.onSuccess { prepared ->
+                ALSLog.info(
+                    "AGL",
+                    "prepare ${value.backend.libraryName} ${value.workDir} ${prepared.args.joinToString(" ")}"
+                )
+                val retained = synchronized(lock) {
+                    if (!launched && launch === value) {
+                        preparedLaunch = prepared
+                        true
+                    } else {
+                        false
                     }
+                }
+                if (retained) {
+                    main.post {
+                        failureMessage = null
+                        state = AglRunState.Idle
+                    }
+                }
+            }.onFailure { error ->
+                ALSLog.error("AGL", "launch preparation failed", error)
+                synchronized(lock) {
+                    preparedLaunch = null
+                    launched = false
+                    launch = value
+                }
+                main.post {
+                    state = AglRunState.Failed
+                    failureMessage = error.message ?: error.javaClass.simpleName
                 }
             }
         }
@@ -59,17 +83,19 @@ object AglRuntime {
 
     fun attach(surface: Surface, refreshRate: Float) {
         val startLaunch: AglLaunch?
+        val startPrepared: AglPreparedLaunch?
         val updateSurface: Boolean
         synchronized(lock) {
-            startLaunch = if (!launched) launch else null
+            startLaunch = if (!launched && state != AglRunState.Failed) launch else null
+            startPrepared = if (startLaunch != null) preparedLaunch else null
             updateSurface = startLaunch == null && launched &&
                 state != AglRunState.Stopped && state != AglRunState.Failed
-            if (startLaunch != null) {
+            if (startLaunch != null && startPrepared != null) {
                 launched = true
                 state = AglRunState.Starting
             }
         }
-        if (startLaunch == null) {
+        if (startLaunch == null || startPrepared == null) {
             if (updateSurface) {
                 AglNative.setSurface(surface, refreshRate)
             }
@@ -77,25 +103,31 @@ object AglRuntime {
         }
         ALSLog.info("AGL", "starting ${startLaunch.backend.libraryName}")
         executor.execute {
-            runCatching {
+            val result = runCatching {
                 ALSLog.info("AGL", "preflight started")
-                startLaunch.preflight()
+                startPrepared.preflight()
                 ALSLog.info("AGL", "preflight passed")
                 main.post { state = AglRunState.Running }
                 AglNative.run(
                     startLaunch.workDir,
-                    startLaunch.args,
+                    startPrepared.args,
                     surface,
                     refreshRate
                 )
-            }.onSuccess { result ->
-                ALSLog.info("AGL", "QEMU returned $result")
+            }
+            synchronized(lock) {
+                if (preparedLaunch === startPrepared) {
+                    preparedLaunch = null
+                }
+            }
+            result.onSuccess { status ->
+                ALSLog.info("AGL", "QEMU returned $status")
                 main.post {
-                    state = if (result == 0) AglRunState.Stopped else AglRunState.Failed
-                    failureMessage = if (result == 0) {
+                    state = if (status == 0) AglRunState.Stopped else AglRunState.Failed
+                    failureMessage = if (status == 0) {
                         null
                     } else {
-                        "QEMU exited with status $result"
+                        "QEMU exited with status $status"
                     }
                 }
             }.onFailure { error ->

@@ -5,10 +5,14 @@ import android.view.MotionEvent
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -20,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.termux.terminal.TerminalSession
 import kotlinx.coroutines.delay
@@ -46,34 +51,23 @@ import sui.k.als.tty.TTYViewStub
 import sui.k.als.tty.cmd
 import sui.k.als.tty.createTTYInstance
 import sui.k.als.tty.shellQuote
-import kotlin.time.Duration.Companion.milliseconds
 
 const val alsDir = "/data/local/tmp/als"
 
+private enum class Destination {
+    Home, Backends, Gunyah, Gzvm, Kvm, Sessions, Terminal, Display
+}
+
 @Composable
-fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
-    modifier
-        .fillMaxSize()
-        .background(Color.Black),
-    Alignment.Center
-) {
+fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val aglState = AglRuntime.state
     var sessions by remember { mutableStateOf(emptyList<TTYInstance>()) }
     var active by remember { mutableStateOf<TTYInstance?>(null) }
-    var showTTY by remember { mutableStateOf(false) }
-    var showTTYHub by remember { mutableStateOf(false) }
-    var showApp by remember { mutableStateOf(false) }
-    var showQemuGunyah by remember { mutableStateOf(false) }
-    var showQemuGzvm by remember { mutableStateOf(false) }
-    var showQemuKvm by remember { mutableStateOf(false) }
-    var showAgl by remember { mutableStateOf(false) }
+    var destination by remember { mutableStateOf(Destination.Home) }
     var aglLaunch by remember {
-        mutableStateOf(
-            AglRuntime.currentLaunch
-                ?: QemuGunyahConfigStore.load(context).toGunyahAglLaunch()
-        )
+        mutableStateOf(AglRuntime.currentLaunch ?: QemuGunyahConfigStore.load(context).toGunyahAglLaunch())
     }
 
     val close = {
@@ -82,164 +76,147 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) = Box(
         sessions = emptyList()
         active = null
     }
-    val create: (String, Boolean) -> Unit = { command, enterSu ->
+    val create: () -> Unit = {
         val instance = createTTYInstance(context, object : TTYSessionStub() {
             override fun onSessionFinished(session: TerminalSession) {
                 super.onSessionFinished(session)
                 sessions = sessions.filter { it.session != session }
-                if (active?.session == session) {
-                    active = sessions.lastOrNull()
-                }
-                if (active == null) {
-                    showTTY = false
-                    showTTYHub = sessions.isNotEmpty()
-                }
+                if (active?.session == session) active = sessions.lastOrNull()
+                destination = if (active == null) Destination.Home else Destination.Sessions
             }
         }, object : TTYViewStub() {
             override fun onSingleTapUp(event: MotionEvent) {
                 active?.view?.run {
                     requestFocus()
-                    context.getSystemService(InputMethodManager::class.java)
-                        ?.showSoftInput(this, 0)
+                    context.getSystemService(InputMethodManager::class.java)?.showSoftInput(this, 0)
                 }
             }
-        }).also { instance ->
-            scope.launch {
-                if (enterSu) {
-                    delay(90.milliseconds)
-                    cmd(instance.session, su)
-                    delay(90.milliseconds)
-                }
-                cmd(instance.session, command)
-            }
+        })
+        scope.launch {
+            delay(90)
+            cmd(instance.session, su)
+            delay(90)
+            cmd(instance.session, shellQuote("$alsDir/app/ate"))
         }
         sessions = sessions + instance
         active = instance
-        showTTY = true
-        showTTYHub = false
+        destination = Destination.Terminal
     }
 
     DisposableEffect(Unit) {
         onDispose(close)
     }
-    BackHandler {
-        when {
-            showAgl -> {
-                showAgl = false
-                when (aglLaunch.backend) {
-                    AglNativeBackend.Gunyah -> showQemuGunyah = true
-                    AglNativeBackend.Gzvm -> showQemuGzvm = true
-                    AglNativeBackend.Kvm -> showQemuKvm = true
-                }
+    BackHandler(destination != Destination.Home) {
+        destination = when (destination) {
+            Destination.Backends, Destination.Sessions -> Destination.Home
+            Destination.Gunyah, Destination.Gzvm, Destination.Kvm -> Destination.Backends
+            Destination.Terminal -> if (sessions.isEmpty()) Destination.Home else Destination.Sessions
+            Destination.Display -> when (aglLaunch.backend) {
+                AglNativeBackend.Gunyah -> Destination.Gunyah
+                AglNativeBackend.Gzvm -> Destination.Gzvm
+                AglNativeBackend.Kvm -> Destination.Kvm
             }
-            showTTY -> {
-                showTTY = false
-                showTTYHub = sessions.isNotEmpty()
-            }
-            showQemuGunyah || showQemuGzvm || showQemuKvm || showApp || showTTYHub -> {
-                showTTYHub = false
-                showApp = false
-                showQemuGunyah = false
-                showQemuGzvm = false
-                showQemuKvm = false
-            }
+            Destination.Home -> Destination.Home
         }
     }
 
-    when {
-        showAgl -> AglScreen(aglLaunch)
-        showQemuGunyah -> QemuGunyah(
-            started = aglState == AglRunState.Starting ||
-                aglState == AglRunState.Running ||
-                aglState == AglRunState.Stopping,
-            onCreate = {
-                val launch = it.toGunyahAglLaunch()
-                aglLaunch = launch
-                AglRuntime.prepare(launch)
-                showQemuGunyah = false
-                showAgl = true
+    when (destination) {
+        Destination.Home -> HomeScreen(
+            modifier = modifier,
+            onBackends = { destination = Destination.Backends },
+            onTerminal = {
+                if (sessions.isEmpty()) create() else destination = Destination.Sessions
             },
-            onDisplay = {
-                showQemuGunyah = false
-                showAgl = true
-            },
-            onStop = AglRuntime::stop
-        )
-        showQemuGzvm -> QemuGzvm(
-            started = aglState == AglRunState.Starting ||
-                aglState == AglRunState.Running ||
-                aglState == AglRunState.Stopping,
-            onCreate = {
-                val launch = it.toGzvmAglLaunch()
-                aglLaunch = launch
-                AglRuntime.prepare(launch)
-                showQemuGzvm = false
-                showAgl = true
-            },
-            onDisplay = {
-                showQemuGzvm = false
-                showAgl = true
-            },
-            onStop = AglRuntime::stop
-        )
-        showQemuKvm -> QemuKvm(
-            started = aglState == AglRunState.Starting ||
-                aglState == AglRunState.Running ||
-                aglState == AglRunState.Stopping,
-            onCreate = {
-                val launch = it.toKvmAglLaunch()
-                aglLaunch = launch
-                AglRuntime.prepare(launch)
-                showQemuKvm = false
-                showAgl = true
-            },
-            onDisplay = {
-                showQemuKvm = false
-                showAgl = true
-            },
-            onStop = AglRuntime::stop
-        )
-        showApp -> App(
-            onQemuGunyah = {
-                showApp = false
-                showQemuGunyah = true
-            },
-            onQemuGzvm = {
-                showApp = false
-                showQemuGzvm = true
-            },
-            onQemuKvm = {
-                showApp = false
-                showQemuKvm = true
+            onExit = {
+                close()
+                onFin()
+                (context as? Activity)?.finishAffinity()
             }
         )
-        showTTY -> active?.let { TTYScreen(it) { TTYIME() } }
-        showTTYHub -> TTYHub(
-            sessions,
+        Destination.Backends -> App(
+            onBack = { destination = Destination.Home },
+            onQemuGunyah = { destination = Destination.Gunyah },
+            onQemuGzvm = { destination = Destination.Gzvm },
+            onQemuKvm = { destination = Destination.Kvm }
+        )
+        Destination.Gunyah -> QemuGunyah(
+            started = aglState.active,
+            onCreate = {
+                aglLaunch = it.toGunyahAglLaunch()
+                AglRuntime.prepare(aglLaunch)
+                destination = Destination.Display
+            },
+            onDisplay = { destination = Destination.Display },
+            onStop = AglRuntime::stop,
+            onBack = { destination = Destination.Backends }
+        )
+        Destination.Gzvm -> QemuGzvm(
+            started = aglState.active,
+            onCreate = {
+                aglLaunch = it.toGzvmAglLaunch()
+                AglRuntime.prepare(aglLaunch)
+                destination = Destination.Display
+            },
+            onDisplay = { destination = Destination.Display },
+            onStop = AglRuntime::stop,
+            onBack = { destination = Destination.Backends }
+        )
+        Destination.Kvm -> QemuKvm(
+            started = aglState.active,
+            onCreate = {
+                aglLaunch = it.toKvmAglLaunch()
+                AglRuntime.prepare(aglLaunch)
+                destination = Destination.Display
+            },
+            onDisplay = { destination = Destination.Display },
+            onStop = AglRuntime::stop,
+            onBack = { destination = Destination.Backends }
+        )
+        Destination.Sessions -> TTYHub(
+            sessions = sessions,
+            onBack = { destination = Destination.Home },
             onSelect = {
                 active = it
-                showTTY = true
-                showTTYHub = false
+                destination = Destination.Terminal
             },
             onDelete = { it.session.finishIfRunning() },
-            onCreate = { create(shellQuote("$alsDir/app/ate"), true) }
+            onCreate = create
         )
-        else -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                ALSButton(R.drawable.arrow_forward, size = 48.dp, iconSize = 48.dp) { showApp = true }
-                ALSButton(R.drawable.terminal, size = 48.dp, iconSize = 48.dp) {
-                    if (sessions.isEmpty()) {
-                        create(shellQuote("$alsDir/app/ate"), true)
-                    } else {
-                        showTTYHub = true
-                    }
-                }
-                ALSButton(R.drawable.power, size = 48.dp, iconSize = 48.dp) {
-                    close()
-                    onFin()
-                    (context as? Activity)?.finishAffinity()
-                }
-            }
+        Destination.Terminal -> active?.let { TTYScreen(it) { TTYIME() } }
+        Destination.Display -> AglScreen(aglLaunch)
+    }
+}
+
+private val AglRunState.active: Boolean
+    get() = this == AglRunState.Starting || this == AglRunState.Running || this == AglRunState.Stopping
+
+@Composable
+private fun HomeScreen(
+    modifier: Modifier,
+    onBackends: () -> Unit,
+    onTerminal: () -> Unit,
+    onExit: () -> Unit
+) {
+    Box(
+        modifier.fillMaxSize().background(Color.Black),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            HomeIcon(R.drawable.arrow_forward, "虚拟机", onBackends)
+            HomeIcon(R.drawable.terminal, "终端", onTerminal)
+            HomeIcon(R.drawable.power, "退出", onExit)
         }
     }
+}
+
+@Composable
+private fun HomeIcon(icon: Int, description: String, onClick: () -> Unit) {
+    Icon(
+        painterResource(icon),
+        description,
+        modifier = Modifier
+            .size(24.dp)
+            .clickable(onClick = onClick),
+        tint = Color.White
+    )
 }

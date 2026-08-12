@@ -4,6 +4,7 @@ import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
 import sui.k.als.app.qemu.gunyah.toQemuGunyahDisplayDevice
 import sui.k.als.agl.AglLaunch
 import sui.k.als.agl.AglNativeBackend
+import sui.k.als.agl.AglPreparedLaunch
 
 const val qemuGunyahDir = "/data/local/tmp/als/qemu-gunyah"
 
@@ -83,9 +84,13 @@ internal fun QemuGunyahConfig.toAglLaunch() = AglLaunch(
     width = width,
     height = height,
     workDir = qemuGunyahDir,
-    args = toQemuGunyahArgs(),
     backend = AglNativeBackend.Gunyah,
-    preflight = { QemuGunyahPreflight.run(this) }
+    prepare = {
+        AglPreparedLaunch(
+            args = toQemuGunyahArgs(),
+            preflight = { QemuGunyahPreflight.run(this) }
+        )
+    }
 )
 
 private fun splitQemuArgs(value: String): List<String> {

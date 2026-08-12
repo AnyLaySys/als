@@ -5,7 +5,6 @@ import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
 import android.util.SparseArray
@@ -111,15 +110,14 @@ internal class AglKeyboardView(
     }
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.GRAY
+        color = Color.rgb(226, 226, 233)
         textAlign = Paint.Align.CENTER
         textSize = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_SP,
-            9f,
+            12f,
             resources.displayMetrics
         )
     }
-    private val rect = RectF()
     private val handler = Handler(Looper.getMainLooper())
     private val touches = SparseArray<KeyTouch>()
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
@@ -129,9 +127,6 @@ internal class AglKeyboardView(
     private var altActive = false
     private var capsActive = false
     private var fullKeyboardVisible = false
-    private var floating = false
-    private var keyboardOffsetX = 0
-    private var keyboardOffsetY = 0
     private var touchpadPointerId = -1
     private var touchpadMaxPointers = 0
     private var touchpadDownX = 0f
@@ -173,20 +168,16 @@ internal class AglKeyboardView(
                 params.height = hostHeight * 2 / 3
             }
             else -> {
-                params.width = if (floating) min(floatingWidth(), hostWidth) else FrameLayout.LayoutParams.MATCH_PARENT
+                params.width = FrameLayout.LayoutParams.MATCH_PARENT
                 params.height = compactHeight()
             }
         }
-        params.gravity = Gravity.BOTTOM or if (
-            fullKeyboardVisible && !portrait && !floating
-        ) {
+        params.gravity = Gravity.BOTTOM or if (fullKeyboardVisible && !portrait) {
             Gravity.END
         } else {
             Gravity.START
         }
         layoutParams = params
-        translationX = if (floating) keyboardOffsetX.toFloat() else 0f
-        translationY = if (floating) keyboardOffsetY.toFloat() else 0f
         invalidate()
     }
 
@@ -198,10 +189,7 @@ internal class AglKeyboardView(
     }
 
     private fun compactHeight() =
-        (18f * resources.displayMetrics.density * compactRows.size).roundToInt()
-
-    private fun floatingWidth() =
-        (360f * resources.displayMetrics.density).roundToInt()
+        (36f * resources.displayMetrics.density * compactRows.size).roundToInt()
 
     private fun rows() = if (fullKeyboardVisible) fullRows else compactRows
 
@@ -234,14 +222,14 @@ internal class AglKeyboardView(
         var x = left
         row.forEach { label ->
             val keyWidth = width * keyWeight(label) / total
-            rect.set(x, top, x + keyWidth, top + rowHeight)
             val text = displayLabel(label)
             if (text.isNotEmpty()) {
                 val metrics = textPaint.fontMetrics
+                textPaint.color = if (modifierActive(label)) Color.rgb(168, 199, 250) else Color.rgb(195, 198, 208)
                 canvas.drawText(
                     text,
-                    rect.centerX(),
-                    rect.centerY() - (metrics.ascent + metrics.descent) / 2f,
+                    x + keyWidth / 2f,
+                    top + rowHeight / 2f - (metrics.ascent + metrics.descent) / 2f,
                     textPaint
                 )
             }
@@ -278,6 +266,14 @@ internal class AglKeyboardView(
         }
     }
 
+    private fun modifierActive(label: String) = when (label) {
+        "Ctrl" -> ctrlActive
+        "Shift" -> shiftActive
+        "Alt" -> altActive
+        "Caps" -> capsActive
+        else -> false
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
@@ -297,7 +293,7 @@ internal class AglKeyboardView(
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
-                return if (touchpadPointerId != -1) touchpad(event) else moveTouches(event)
+                return if (touchpadPointerId != -1) touchpad(event) else true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
                 return if (touchpadPointerId != -1) {
@@ -324,11 +320,7 @@ internal class AglKeyboardView(
             pointerId = pointerId,
             label = label,
             downRawX = rawX,
-            downRawY = rawY,
-            lastRawX = rawX,
-            lastRawY = rawY,
-            startOffsetX = if (floating) keyboardOffsetX else 0,
-            startOffsetY = if (floating) keyboardOffsetY else 0
+            downRawY = rawY
         )
         touches.put(pointerId, touch)
         parent?.requestDisallowInterceptTouchEvent(true)
@@ -343,43 +335,6 @@ internal class AglKeyboardView(
         invalidate()
     }
 
-    private fun moveTouches(event: MotionEvent): Boolean {
-        for (index in 0 until touches.size()) {
-            val touch = touches.valueAt(index)
-            if (!isControlKey(touch.label)) {
-                continue
-            }
-            val pointerIndex = event.findPointerIndex(touch.pointerId)
-            if (pointerIndex < 0) {
-                continue
-            }
-            val rawX = rawX(event, pointerIndex)
-            val rawY = rawY(event, pointerIndex)
-            val dx = rawX - touch.downRawX
-            val dy = rawY - touch.downRawY
-            if (!touch.dragging && dx * dx + dy * dy > touchSlop * touchSlop) {
-                touch.dragging = true
-                floating = true
-                performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                keyboardOffsetX = touch.startOffsetX + dx.roundToInt()
-                keyboardOffsetY = touch.startOffsetY + dy.roundToInt()
-                touch.lastRawX = rawX
-                touch.lastRawY = rawY
-                applyLayout()
-            }
-            if (touch.dragging) {
-                keyboardOffsetX += (rawX - touch.lastRawX).roundToInt()
-                keyboardOffsetY += (rawY - touch.lastRawY).roundToInt()
-                touch.lastRawX = rawX
-                touch.lastRawY = rawY
-                translationX = keyboardOffsetX.toFloat()
-                translationY = keyboardOffsetY.toFloat()
-            }
-        }
-        invalidate()
-        return true
-    }
-
     private fun finishTouch(pointerId: Int, event: MotionEvent): Boolean {
         val touch = touches[pointerId] ?: return true
         touch.repeat?.let(handler::removeCallbacks)
@@ -390,7 +345,7 @@ internal class AglKeyboardView(
             val index = event.findPointerIndex(pointerId)
             val dx = if (index >= 0) rawX(event, index) - touch.downRawX else 0f
             val dy = if (index >= 0) rawY(event, index) - touch.downRawY else 0f
-            if (!touch.dragging && dx * dx + dy * dy <= touchSlop * touchSlop) {
+            if (dx * dx + dy * dy <= touchSlop * touchSlop) {
                 tapControlKey()
             }
         }
@@ -430,11 +385,7 @@ internal class AglKeyboardView(
     }
 
     private fun tapControlKey() {
-        if (floating) {
-            floating = false
-        } else {
-            fullKeyboardVisible = !fullKeyboardVisible
-        }
+        fullKeyboardVisible = !fullKeyboardVisible
         applyLayout()
     }
 
@@ -702,11 +653,6 @@ internal class AglKeyboardView(
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         fullKeyboardVisible = false
-        floating = false
-        keyboardOffsetX = 0
-        keyboardOffsetY = 0
-        translationX = 0f
-        translationY = 0f
         release()
         applyLayout()
     }
@@ -716,11 +662,6 @@ internal class AglKeyboardView(
         val label: String,
         val downRawX: Float,
         val downRawY: Float,
-        var lastRawX: Float,
-        var lastRawY: Float,
-        val startOffsetX: Int,
-        val startOffsetY: Int,
-        var dragging: Boolean = false,
         var repeat: Runnable? = null
     )
 }

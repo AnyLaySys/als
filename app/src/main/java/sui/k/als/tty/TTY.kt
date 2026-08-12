@@ -1,18 +1,34 @@
 package sui.k.als.tty
 
-import android.content.*
-import android.graphics.*
-import android.os.*
-import android.view.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import android.content.ClipData
+import android.content.Context
+import android.graphics.Typeface
+import android.os.Handler
+import android.os.Looper
+import android.os.Message
+import android.util.TypedValue
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.View
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.viewinterop.*
-import com.termux.terminal.*
-import com.termux.view.*
-import java.util.concurrent.atomic.*
+import androidx.compose.ui.viewinterop.AndroidView
+import com.termux.terminal.TerminalSession
+import com.termux.terminal.TerminalSessionClient
+import com.termux.view.TerminalView
+import com.termux.view.TerminalViewClient
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.roundToInt
 import android.content.ClipboardManager as AndroidClipboardManager
 
 data class TTYInstance(val session: TerminalSession, val view: TerminalView)
@@ -29,6 +45,7 @@ fun TTYScreen(instance: TTYInstance, content: @Composable () -> Unit = {}) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .background(Color.Black)
         ) {
             AndroidView(
@@ -53,11 +70,16 @@ fun createTTYInstance(
 ): TTYInstance {
     val session = TerminalSession(TTYEnv, 9216, sessionClient)
     installTTYMessageCoalescing(session)
+    val textSize = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_SP,
+        12f,
+        context.resources.displayMetrics
+    ).roundToInt()
     val view = TerminalView(context, null).apply {
         setLayerType(View.LAYER_TYPE_HARDWARE, null)
         isFocusable = true
         isFocusableInTouchMode = true
-        setTextSize(24)
+        setTextSize(textSize)
         setTypeface(
             try {
                 Typeface.createFromAsset(context.assets, "GoogleSansCode.ttf")
@@ -70,7 +92,7 @@ fun createTTYInstance(
         attachSession(session)
     }
     sessionClient.bindView(view)
-    viewClient.bindView(view)
+    viewClient.bindView(view, textSize)
     return TTYInstance(session, view)
 }
 
@@ -154,9 +176,10 @@ private class TTYCoalescingHandler(private val original: Handler) :
 
 open class TTYViewStub : TerminalViewClient {
     private var view: TerminalView? = null
-    private var size = 24f
-    fun bindView(targetView: TerminalView) {
+    private var size = 12f
+    fun bindView(targetView: TerminalView, textSize: Int) {
         view = targetView
+        size = textSize.toFloat()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent, session: TerminalSession) = false

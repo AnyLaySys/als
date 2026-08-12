@@ -2,6 +2,7 @@ package sui.k.als.qemu.gzvm
 
 import sui.k.als.agl.AglLaunch
 import sui.k.als.agl.AglNativeBackend
+import sui.k.als.agl.AglPreparedLaunch
 import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
 import sui.k.als.app.qemu.gzvm.toQemuGzvmDisplayDevice
 
@@ -82,9 +83,13 @@ internal fun QemuGzvmConfig.toAglLaunch() = AglLaunch(
     width = width,
     height = height,
     workDir = qemuGzvmDir,
-    args = toQemuGzvmArgs(),
     backend = AglNativeBackend.Gzvm,
-    preflight = { QemuGzvmPreflight.run(this) }
+    prepare = {
+        AglPreparedLaunch(
+            args = toQemuGzvmArgs(),
+            preflight = { QemuGzvmPreflight.run(this) }
+        )
+    }
 )
 
 private fun splitQemuArgs(value: String): List<String> {

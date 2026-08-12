@@ -5,7 +5,7 @@ import org.json.*
 data class QemuGunyahConfig(
     val name: String = "Ubuntu 26.10 S2 GNOME",
     val isoPath: String = "",
-    val diskPath: String = "/data/local/tmp/als/qemu-gunyah/ubuntu-26.10-s2-gnome-arm64.img",
+    val diskPath: String = "",
     val cpuCores: Int = Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
     val memoryMb: Int = 4352,
     val width: Int = 2376,
