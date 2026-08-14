@@ -7,10 +7,10 @@ android {
     compileSdk= 37
     defaultConfig {
         applicationId = "sui.k.als"
-        minSdk = 34
+        minSdk = 36
         targetSdk = 37
-        versionCode = 16
-        versionName = "26.8.9"
+        versionCode = 17
+        versionName = "26.8.14"
         ndk {
             abiFilters.add("arm64-v8a")
         }
@@ -19,6 +19,9 @@ android {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
         }
+    }
+    packaging {
+        jniLibs.pickFirsts += "**/libtermux.so"
     }
     buildTypes {
         release {
