@@ -55,7 +55,7 @@ object AglRuntime {
             result.onSuccess { prepared ->
                 ALSLog.info(
                     "AGL",
-                    "prepare ${value.backend.libraryName} ${value.workDir} ${prepared.args.joinToString(" ")}"
+                    "Prepare ${value.backend.libraryName} ${value.workDir} ${prepared.args.joinToString(" ")}"
                 )
                 val retained = synchronized(lock) {
                     if (!launched && launch === value) {
@@ -72,7 +72,7 @@ object AglRuntime {
                     }
                 }
             }.onFailure { error ->
-                ALSLog.error("AGL", "launch preparation failed", error)
+                ALSLog.error("AGL", "Launch preparation failed", error)
                 writeConsole(value, "QEMU launch preparation failed: ${error.message ?: error.javaClass.simpleName}")
                 synchronized(lock) {
                     preparedLaunch = null
@@ -107,12 +107,12 @@ object AglRuntime {
             }
             return
         }
-        ALSLog.info("AGL", "starting ${startLaunch.backend.libraryName}")
+        ALSLog.info("AGL", "Starting ${startLaunch.backend.libraryName}")
         executor.execute {
             val result = runCatching {
-                ALSLog.info("AGL", "preflight started")
+                ALSLog.info("AGL", "Preflight started")
                 startPrepared.preflight()
-                ALSLog.info("AGL", "preflight passed")
+                ALSLog.info("AGL", "Preflight passed")
                 awaitConsole(startLaunch.consolePid)
                 val redirectError = AglNative.redirectStdio(startLaunch.consolePid)
                 check(redirectError == 0) {
@@ -147,6 +147,7 @@ object AglRuntime {
                 }
             }
             synchronized(lock) {
+                launched = false
                 if (preparedLaunch === startPrepared) {
                     preparedLaunch = null
                 }
@@ -197,7 +198,7 @@ object AglRuntime {
             true
         }
         if (stop) {
-            ALSLog.info("AGL", "stop requested")
+            ALSLog.info("AGL", "Stop requested")
             AglNative.stop()
         }
     }
@@ -244,7 +245,7 @@ object AglRuntime {
         val processName = File("/proc/$pid/comm")
         val deadline = SystemClock.uptimeMillis() + 3000
         while (SystemClock.uptimeMillis() < deadline) {
-            if (runCatching { processName.readText().trim() }.getOrNull() == "sleep") {
+            if (runCatching { processName.readText().trim() }.getOrNull() == "tail") {
                 return
             }
             Thread.sleep(9)

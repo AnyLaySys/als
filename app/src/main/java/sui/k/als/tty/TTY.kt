@@ -86,7 +86,7 @@ fun createQemuTTYInstance(
         viewClient,
         true
     )
-    cmd(instance.session, "exec /system/bin/sleep 2147483647")
+    cmd(instance.session, "exec /system/bin/tail -f /dev/null")
     return instance
 }
 
