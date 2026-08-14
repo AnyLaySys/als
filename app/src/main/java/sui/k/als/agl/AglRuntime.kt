@@ -2,12 +2,17 @@ package sui.k.als.agl
 
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.system.Os
 import android.view.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import sui.k.als.log.ALSLog
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 enum class AglRunState {
     Idle, Starting, Running, Stopping, Stopped, Failed
@@ -68,6 +73,7 @@ object AglRuntime {
                 }
             }.onFailure { error ->
                 ALSLog.error("AGL", "launch preparation failed", error)
+                writeConsole(value, "QEMU launch preparation failed: ${error.message ?: error.javaClass.simpleName}")
                 synchronized(lock) {
                     preparedLaunch = null
                     launched = false
@@ -107,13 +113,38 @@ object AglRuntime {
                 ALSLog.info("AGL", "preflight started")
                 startPrepared.preflight()
                 ALSLog.info("AGL", "preflight passed")
-                main.post { state = AglRunState.Running }
-                AglNative.run(
-                    startLaunch.workDir,
-                    startPrepared.args,
-                    surface,
-                    refreshRate
-                )
+                awaitConsole(startLaunch.consolePid)
+                val redirectError = AglNative.redirectStdio(startLaunch.consolePid)
+                check(redirectError == 0) {
+                    "QEMU console connection failed: ${Os.strerror(redirectError)}"
+                }
+                val binding = AtomicBoolean(true)
+                val binder = Thread({
+                    val deadline = SystemClock.uptimeMillis() + 270
+                    while (binding.get() && SystemClock.uptimeMillis() < deadline) {
+                        AglNative.rebindOutput(startLaunch.consolePid)
+                        try {
+                            Thread.sleep(3)
+                        } catch (_: InterruptedException) {
+                            return@Thread
+                        }
+                    }
+                }, "qemu-console")
+                try {
+                    binder.start()
+                    main.post { state = AglRunState.Running }
+                    AglNative.run(
+                        startLaunch.workDir,
+                        startPrepared.args,
+                        surface,
+                        refreshRate
+                    )
+                } finally {
+                    binding.set(false)
+                    binder.interrupt()
+                    binder.join()
+                    AglNative.restoreStdio()
+                }
             }
             synchronized(lock) {
                 if (preparedLaunch === startPrepared) {
@@ -122,6 +153,9 @@ object AglRuntime {
             }
             result.onSuccess { status ->
                 ALSLog.info("AGL", "QEMU returned $status")
+                if (status != 0) {
+                    writeConsole(startLaunch, "QEMU exited with status $status")
+                }
                 main.post {
                     state = if (status == 0) AglRunState.Stopped else AglRunState.Failed
                     failureMessage = if (status == 0) {
@@ -132,6 +166,7 @@ object AglRuntime {
                 }
             }.onFailure { error ->
                 ALSLog.error("AGL", "QEMU launch failed", error)
+                writeConsole(startLaunch, "QEMU launch failed: ${error.message ?: error.javaClass.simpleName}")
                 main.post {
                     state = AglRunState.Failed
                     failureMessage = error.message ?: error.javaClass.simpleName
@@ -191,5 +226,29 @@ object AglRuntime {
         } else {
             false
         }
+    }
+
+    private fun writeConsole(value: AglLaunch, message: String) {
+        if (value.consolePid <= 0) {
+            return
+        }
+        runCatching {
+            FileOutputStream("/proc/${value.consolePid}/fd/0").use {
+                it.write("\r\n$message\r\n".toByteArray())
+            }
+        }
+    }
+
+    private fun awaitConsole(pid: Int) {
+        check(pid > 0) { "QEMU console is unavailable" }
+        val processName = File("/proc/$pid/comm")
+        val deadline = SystemClock.uptimeMillis() + 3000
+        while (SystemClock.uptimeMillis() < deadline) {
+            if (runCatching { processName.readText().trim() }.getOrNull() == "sleep") {
+                return
+            }
+            Thread.sleep(9)
+        }
+        error("QEMU console did not become ready")
     }
 }

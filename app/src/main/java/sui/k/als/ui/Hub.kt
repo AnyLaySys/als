@@ -15,10 +15,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,13 +51,13 @@ import sui.k.als.tty.TTYScreen
 import sui.k.als.tty.TTYSessionStub
 import sui.k.als.tty.TTYViewStub
 import sui.k.als.tty.cmd
+import sui.k.als.tty.createQemuTTYInstance
 import sui.k.als.tty.createTTYInstance
-import sui.k.als.tty.shellQuote
 
 const val alsDir = "/data/local/tmp/als"
 
 private enum class Destination {
-    Home, Backends, Gunyah, Gzvm, Kvm, Sessions, Terminal, Display
+    Home, Backends, Gunyah, Gzvm, Kvm, Sessions, Terminal, Display, Console
 }
 
 @Composable
@@ -65,6 +67,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
     val aglState = AglRuntime.state
     var sessions by remember { mutableStateOf(emptyList<TTYInstance>()) }
     var active by remember { mutableStateOf<TTYInstance?>(null) }
+    var qemuConsole by remember { mutableStateOf<TTYInstance?>(null) }
     var destination by remember { mutableStateOf(Destination.Home) }
     var aglLaunch by remember {
         mutableStateOf(AglRuntime.currentLaunch ?: QemuGunyahConfigStore.load(context).toGunyahAglLaunch())
@@ -73,8 +76,10 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
     val close = {
         AglRuntime.stop()
         sessions.forEach { it.session.finishIfRunning() }
+        qemuConsole?.session?.finishIfRunning()
         sessions = emptyList()
         active = null
+        qemuConsole = null
     }
     val create: () -> Unit = {
         val instance = createTTYInstance(context, object : TTYSessionStub() {
@@ -96,15 +101,40 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             delay(90)
             cmd(instance.session, su)
             delay(90)
-            cmd(instance.session, shellQuote("$alsDir/app/ate"))
+            cmd(instance.session, "printf \"\\033[2J\\033[3J\\033[H\"")
         }
         sessions = sessions + instance
         active = instance
         destination = Destination.Terminal
     }
+    val createQemuConsole: () -> TTYInstance = {
+        qemuConsole?.session?.finishIfRunning()
+        val instance = createQemuTTYInstance(context, TTYSessionStub(), object : TTYViewStub() {
+            override fun onSingleTapUp(event: MotionEvent) {
+                qemuConsole?.view?.run {
+                    requestFocus()
+                    context.getSystemService(InputMethodManager::class.java)?.showSoftInput(this, 0)
+                }
+            }
+        })
+        qemuConsole = instance
+        instance
+    }
+
+    val currentSessions by rememberUpdatedState(sessions)
+    val currentConsole by rememberUpdatedState(qemuConsole)
 
     DisposableEffect(Unit) {
-        onDispose(close)
+        onDispose {
+            AglRuntime.stop()
+            currentSessions.forEach { it.session.finishIfRunning() }
+            currentConsole?.session?.finishIfRunning()
+        }
+    }
+    LaunchedEffect(aglState) {
+        if (aglState == AglRunState.Failed && destination == Destination.Display && qemuConsole != null) {
+            destination = Destination.Console
+        }
     }
     BackHandler(destination != Destination.Home) {
         destination = when (destination) {
@@ -112,6 +142,11 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             Destination.Gunyah, Destination.Gzvm, Destination.Kvm -> Destination.Backends
             Destination.Terminal -> if (sessions.isEmpty()) Destination.Home else Destination.Sessions
             Destination.Display -> when (aglLaunch.backend) {
+                AglNativeBackend.Gunyah -> Destination.Gunyah
+                AglNativeBackend.Gzvm -> Destination.Gzvm
+                AglNativeBackend.Kvm -> Destination.Kvm
+            }
+            Destination.Console -> when (aglLaunch.backend) {
                 AglNativeBackend.Gunyah -> Destination.Gunyah
                 AglNativeBackend.Gzvm -> Destination.Gzvm
                 AglNativeBackend.Kvm -> Destination.Kvm
@@ -141,34 +176,43 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
         )
         Destination.Gunyah -> QemuGunyah(
             started = aglState.active,
+            consoleAvailable = qemuConsole != null,
             onCreate = {
-                aglLaunch = it.toGunyahAglLaunch()
+                val console = createQemuConsole()
+                aglLaunch = it.toGunyahAglLaunch().copy(consolePid = console.session.pid)
                 AglRuntime.prepare(aglLaunch)
                 destination = Destination.Display
             },
             onDisplay = { destination = Destination.Display },
+            onConsole = { destination = Destination.Console },
             onStop = AglRuntime::stop,
             onBack = { destination = Destination.Backends }
         )
         Destination.Gzvm -> QemuGzvm(
             started = aglState.active,
+            consoleAvailable = qemuConsole != null,
             onCreate = {
-                aglLaunch = it.toGzvmAglLaunch()
+                val console = createQemuConsole()
+                aglLaunch = it.toGzvmAglLaunch().copy(consolePid = console.session.pid)
                 AglRuntime.prepare(aglLaunch)
                 destination = Destination.Display
             },
             onDisplay = { destination = Destination.Display },
+            onConsole = { destination = Destination.Console },
             onStop = AglRuntime::stop,
             onBack = { destination = Destination.Backends }
         )
         Destination.Kvm -> QemuKvm(
             started = aglState.active,
+            consoleAvailable = qemuConsole != null,
             onCreate = {
-                aglLaunch = it.toKvmAglLaunch()
+                val console = createQemuConsole()
+                aglLaunch = it.toKvmAglLaunch().copy(consolePid = console.session.pid)
                 AglRuntime.prepare(aglLaunch)
                 destination = Destination.Display
             },
             onDisplay = { destination = Destination.Display },
+            onConsole = { destination = Destination.Console },
             onStop = AglRuntime::stop,
             onBack = { destination = Destination.Backends }
         )
@@ -184,6 +228,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
         )
         Destination.Terminal -> active?.let { TTYScreen(it) { TTYIME() } }
         Destination.Display -> AglScreen(aglLaunch)
+        Destination.Console -> qemuConsole?.let { TTYScreen(it) { TTYIME() } }
     }
 }
 

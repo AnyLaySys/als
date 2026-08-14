@@ -185,7 +185,7 @@ fun ALSChoiceField(
     OutlinedButton(
         onClick = { open = true },
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(27.dp),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp)
     ) {
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
@@ -249,7 +249,7 @@ fun ALSActionButton(
     Button(
         onClick = onClick,
         modifier = modifier.height(54.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(27.dp),
         colors = if (destructive) {
             ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error,

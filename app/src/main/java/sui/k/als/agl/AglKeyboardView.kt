@@ -5,6 +5,7 @@ import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
 import android.util.SparseArray
@@ -20,12 +21,16 @@ import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import sui.k.als.R
+import sui.k.als.UI_FONT_ASSET
+import sui.k.als.ui.KEY_LABEL_COLOR
 
 internal class AglKeyboardView(
     context: Context,
     private val display: AglView
 ) : View(context) {
     private companion object {
+        const val COLLAPSE_DELAY = 300L
         const val UP = "↑"
         const val DOWN = "↓"
         const val LEFT = "←"
@@ -117,8 +122,13 @@ internal class AglKeyboardView(
             12f,
             resources.displayMetrics
         )
+        typeface = runCatching {
+            Typeface.createFromAsset(context.assets, UI_FONT_ASSET)
+        }.getOrDefault(Typeface.DEFAULT)
     }
-    private val handler = Handler(Looper.getMainLooper())
+    private val density = resources.displayMetrics.density
+    private val keyboardIcon = context.getDrawable(R.drawable.keyboard)
+    private val handler = Handler.createAsync(Looper.getMainLooper())
     private val touches = SparseArray<KeyTouch>()
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val tapTimeout = ViewConfiguration.getTapTimeout()
@@ -137,6 +147,16 @@ internal class AglKeyboardView(
     private var touchpadMoved = false
     private var touchpadLongPress: Runnable? = null
     private var touchpadDragging = false
+    private var iconMode = false
+    private var iconX = 0f
+    private var iconY = 0f
+    private var iconPointerId = -1
+    private var iconDownRawX = 0f
+    private var iconDownRawY = 0f
+    private var iconStartX = 0f
+    private var iconStartY = 0f
+    private var iconDragged = false
+    private var iconAwaitingRelease = false
 
     init {
         layoutParams = FrameLayout.LayoutParams(
@@ -158,26 +178,40 @@ internal class AglKeyboardView(
         val portrait = hostHeight >= hostWidth
         val params = (layoutParams as? FrameLayout.LayoutParams)
             ?: FrameLayout.LayoutParams(0, 0)
+        params.setMargins(0, 0, 0, 0)
         when {
+            iconMode -> {
+                val size = iconSize()
+                params.width = size
+                params.height = size
+                params.gravity = Gravity.TOP or Gravity.START
+                iconX = iconX.coerceIn(0f, (hostWidth - size).coerceAtLeast(0).toFloat())
+                iconY = iconY.coerceIn(0f, (hostHeight - size).coerceAtLeast(0).toFloat())
+            }
             fullKeyboardVisible && !portrait -> {
                 params.width = hostWidth * 2 / 3
                 params.height = FrameLayout.LayoutParams.MATCH_PARENT
+                params.gravity = Gravity.BOTTOM or Gravity.END
             }
             fullKeyboardVisible -> {
                 params.width = FrameLayout.LayoutParams.MATCH_PARENT
                 params.height = hostHeight * 2 / 3
+                params.gravity = Gravity.BOTTOM or Gravity.START
             }
             else -> {
                 params.width = FrameLayout.LayoutParams.MATCH_PARENT
                 params.height = compactHeight()
+                params.gravity = Gravity.BOTTOM or Gravity.START
             }
         }
-        params.gravity = Gravity.BOTTOM or if (fullKeyboardVisible && !portrait) {
-            Gravity.END
-        } else {
-            Gravity.START
-        }
         layoutParams = params
+        if (iconMode) {
+            translationX = iconX
+            translationY = iconY
+        } else {
+            translationX = 0f
+            translationY = 0f
+        }
         invalidate()
     }
 
@@ -186,10 +220,14 @@ internal class AglKeyboardView(
         finishTouchpad()
         releaseModifiers()
         handler.removeCallbacksAndMessages(null)
+        iconPointerId = -1
+        iconAwaitingRelease = false
     }
 
     private fun compactHeight() =
-        (36f * resources.displayMetrics.density * compactRows.size).roundToInt()
+        (24f * density * compactRows.size).roundToInt()
+
+    private fun iconSize() = (48f * density).roundToInt()
 
     private fun rows() = if (fullKeyboardVisible) fullRows else compactRows
 
@@ -200,6 +238,10 @@ internal class AglKeyboardView(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        if (iconMode) {
+            drawIcon(canvas)
+            return
+        }
         val rows = rows()
         val left = areaLeft()
         val top = areaTop()
@@ -208,6 +250,19 @@ internal class AglKeyboardView(
         rows.forEachIndexed { index, row ->
             drawRow(canvas, row, left, top + index * rowHeight, width, rowHeight)
         }
+    }
+
+    private fun drawIcon(canvas: Canvas) {
+        val centerX = width / 2f
+        val centerY = height / 2f
+        val half = (12f * density).roundToInt()
+        keyboardIcon?.setBounds(
+            centerX.roundToInt() - half,
+            centerY.roundToInt() - half,
+            centerX.roundToInt() + half,
+            centerY.roundToInt() + half
+        )
+        keyboardIcon?.draw(canvas)
     }
 
     private fun drawRow(
@@ -225,7 +280,11 @@ internal class AglKeyboardView(
             val text = displayLabel(label)
             if (text.isNotEmpty()) {
                 val metrics = textPaint.fontMetrics
-                textPaint.color = if (modifierActive(label)) Color.rgb(168, 199, 250) else Color.rgb(195, 198, 208)
+                textPaint.color = if (modifierActive(label)) {
+                    Color.rgb(168, 199, 250)
+                } else {
+                    KEY_LABEL_COLOR
+                }
                 canvas.drawText(
                     text,
                     x + keyWidth / 2f,
@@ -275,6 +334,9 @@ internal class AglKeyboardView(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (iconMode) {
+            return iconTouch(event)
+        }
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
                 val index = event.actionIndex
@@ -293,7 +355,11 @@ internal class AglKeyboardView(
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
-                return if (touchpadPointerId != -1) touchpad(event) else true
+                if (touchpadPointerId != -1) {
+                    return touchpad(event)
+                }
+                updateTouches(event)
+                return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
                 return if (touchpadPointerId != -1) {
@@ -320,7 +386,8 @@ internal class AglKeyboardView(
             pointerId = pointerId,
             label = label,
             downRawX = rawX,
-            downRawY = rawY
+            downRawY = rawY,
+            downTime = event.eventTime
         )
         touches.put(pointerId, touch)
         parent?.requestDisallowInterceptTouchEvent(true)
@@ -331,6 +398,8 @@ internal class AglKeyboardView(
         } else if (!isControlKey(touch.label)) {
             sendKey(touch.label)
             startRepeat(touch)
+        } else {
+            startCollapse(touch)
         }
         invalidate()
     }
@@ -338,6 +407,7 @@ internal class AglKeyboardView(
     private fun finishTouch(pointerId: Int, event: MotionEvent): Boolean {
         val touch = touches[pointerId] ?: return true
         touch.repeat?.let(handler::removeCallbacks)
+        touch.collapse?.let(handler::removeCallbacks)
         if (isModifier(touch.label)) {
             setModifier(touch.label, false)
         }
@@ -345,7 +415,7 @@ internal class AglKeyboardView(
             val index = event.findPointerIndex(pointerId)
             val dx = if (index >= 0) rawX(event, index) - touch.downRawX else 0f
             val dy = if (index >= 0) rawY(event, index) - touch.downRawY else 0f
-            if (dx * dx + dy * dy <= touchSlop * touchSlop) {
+            if (!touch.moved && dx * dx + dy * dy <= touchSlop * touchSlop) {
                 tapControlKey()
             }
         }
@@ -361,6 +431,7 @@ internal class AglKeyboardView(
         for (index in touches.size() - 1 downTo 0) {
             val touch = touches.valueAt(index)
             touch.repeat?.let(handler::removeCallbacks)
+            touch.collapse?.let(handler::removeCallbacks)
             if (isModifier(touch.label)) {
                 setModifier(touch.label, false)
             }
@@ -368,6 +439,17 @@ internal class AglKeyboardView(
         touches.clear()
         parent?.requestDisallowInterceptTouchEvent(false)
         invalidate()
+    }
+
+    private fun updateTouches(event: MotionEvent) {
+        for (index in 0 until event.pointerCount) {
+            val touch = touches[event.getPointerId(index)] ?: continue
+            val dx = rawX(event, index) - touch.downRawX
+            val dy = rawY(event, index) - touch.downRawY
+            if (dx * dx + dy * dy > touchSlop * touchSlop) {
+                touch.moved = true
+            }
+        }
     }
 
     private fun startRepeat(touch: KeyTouch) {
@@ -381,7 +463,96 @@ internal class AglKeyboardView(
             }
         }
         touch.repeat = repeat
-        handler.postDelayed(repeat, 270)
+        handler.postDelayed(repeat, 90)
+    }
+
+    private fun startCollapse(touch: KeyTouch) {
+        val collapse = Runnable {
+            if (touches[touch.pointerId] === touch) {
+                collapseToIcon(touch)
+            }
+        }
+        touch.collapse = collapse
+        handler.postAtTime(collapse, touch.downTime + COLLAPSE_DELAY)
+    }
+
+    private fun collapseToIcon(touch: KeyTouch) {
+        val host = parent as? View ?: return
+        val location = IntArray(2)
+        host.getLocationOnScreen(location)
+        val size = iconSize()
+        iconX = (touch.downRawX - location[0] - size / 2f)
+            .coerceIn(0f, (host.width - size).coerceAtLeast(0).toFloat())
+        iconY = (touch.downRawY - location[1] - size / 2f)
+            .coerceIn(0f, (host.height - size).coerceAtLeast(0).toFloat())
+        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        iconMode = true
+        iconAwaitingRelease = true
+        finishAll()
+        finishTouchpad()
+        releaseModifiers()
+        applyLayout()
+    }
+
+    private fun iconTouch(event: MotionEvent): Boolean {
+        if (iconAwaitingRelease) {
+            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                iconAwaitingRelease = false
+            }
+            return true
+        }
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                val index = event.actionIndex
+                iconPointerId = event.getPointerId(index)
+                iconDownRawX = rawX(event, index)
+                iconDownRawY = rawY(event, index)
+                iconStartX = iconX
+                iconStartY = iconY
+                iconDragged = false
+                parent?.requestDisallowInterceptTouchEvent(true)
+                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val index = event.findPointerIndex(iconPointerId)
+                if (index >= 0) {
+                    val dx = rawX(event, index) - iconDownRawX
+                    val dy = rawY(event, index) - iconDownRawY
+                    if (!iconDragged && dx * dx + dy * dy > touchSlop * touchSlop) {
+                        iconDragged = true
+                    }
+                    if (iconDragged) {
+                        val host = parent as? View
+                        if (host != null) {
+                            val size = iconSize()
+                            iconX = (iconStartX + dx)
+                                .coerceIn(0f, (host.width - size).coerceAtLeast(0).toFloat())
+                            iconY = (iconStartY + dy)
+                                .coerceIn(0f, (host.height - size).coerceAtLeast(0).toFloat())
+                            translationX = iconX
+                            translationY = iconY
+                        }
+                    }
+                }
+            }
+            MotionEvent.ACTION_UP -> {
+                if (event.getPointerId(event.actionIndex) == iconPointerId) {
+                    if (!iconDragged) {
+                        iconMode = false
+                        applyLayout()
+                        display.requestFocus()
+                    }
+                    iconPointerId = -1
+                    parent?.requestDisallowInterceptTouchEvent(false)
+                    performClick()
+                }
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                iconPointerId = -1
+                parent?.requestDisallowInterceptTouchEvent(false)
+            }
+        }
+        return true
     }
 
     private fun tapControlKey() {
@@ -662,6 +833,9 @@ internal class AglKeyboardView(
         val label: String,
         val downRawX: Float,
         val downRawY: Float,
-        var repeat: Runnable? = null
+        val downTime: Long,
+        var repeat: Runnable? = null,
+        var collapse: Runnable? = null,
+        var moved: Boolean = false
     )
 }

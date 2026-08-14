@@ -138,7 +138,7 @@ fun Splash(onTimeout: () -> Unit) {
                                 checkCount++
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp)
+                            shape = RoundedCornerShape(27.dp)
                         ) {
                             Text("验证并继续", modifier = Modifier.padding(vertical = 6.dp))
                         }

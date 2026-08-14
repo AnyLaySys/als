@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">ALS</string>
     <string name="qemu_start_failed">QEMU failed to start</string>
+    <string name="qemu_console">Console</string>
 </resources>

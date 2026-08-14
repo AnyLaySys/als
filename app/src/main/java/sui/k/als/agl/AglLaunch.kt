@@ -5,6 +5,7 @@ internal data class AglLaunch(
     val height: Int,
     val workDir: String,
     val backend: AglNativeBackend,
+    val consolePid: Int = -1,
     val prepare: () -> AglPreparedLaunch
 )
 

@@ -27,6 +27,7 @@ import com.termux.terminal.TerminalSession
 import com.termux.terminal.TerminalSessionClient
 import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
+import sui.k.als.CODE_FONT_ASSET
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 import android.content.ClipboardManager as AndroidClipboardManager
@@ -67,12 +68,44 @@ fun TTYScreen(instance: TTYInstance, content: @Composable () -> Unit = {}) {
 
 fun createTTYInstance(
     context: Context, sessionClient: TTYSessionStub, viewClient: TTYViewStub
+): TTYInstance = createTTYInstance(
+    context,
+    TerminalSession(TTYEnv, 9216, sessionClient),
+    sessionClient,
+    viewClient,
+    false
+)
+
+fun createQemuTTYInstance(
+    context: Context, sessionClient: TTYSessionStub, viewClient: TTYViewStub
 ): TTYInstance {
-    val session = TerminalSession(TTYEnv, 9216, sessionClient)
+    val instance = createTTYInstance(
+        context,
+        TerminalSession(TTYEnv, 9216, sessionClient),
+        sessionClient,
+        viewClient,
+        true
+    )
+    cmd(instance.session, "exec /system/bin/sleep 2147483647")
+    return instance
+}
+
+private fun createTTYInstance(
+    context: Context,
+    session: TerminalSession,
+    sessionClient: TTYSessionStub,
+    viewClient: TTYViewStub,
+    initialize: Boolean
+): TTYInstance {
     installTTYMessageCoalescing(session)
     val textSize = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_SP,
-        12f,
+        9f,
+        context.resources.displayMetrics
+    ).roundToInt()
+    val minimumTextSize = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_SP,
+        3f,
         context.resources.displayMetrics
     ).roundToInt()
     val view = TerminalView(context, null).apply {
@@ -82,7 +115,7 @@ fun createTTYInstance(
         setTextSize(textSize)
         setTypeface(
             try {
-                Typeface.createFromAsset(context.assets, "GoogleSansCode.ttf")
+                Typeface.createFromAsset(context.assets, CODE_FONT_ASSET)
             } catch (_: Exception) {
                 Typeface.MONOSPACE
             }
@@ -92,7 +125,10 @@ fun createTTYInstance(
         attachSession(session)
     }
     sessionClient.bindView(view)
-    viewClient.bindView(view, textSize)
+    viewClient.bindView(view, textSize, minimumTextSize)
+    if (initialize) {
+        session.updateSize(120, 36, 0, 0)
+    }
     return TTYInstance(session, view)
 }
 
@@ -139,8 +175,6 @@ open class TTYSessionStub : TerminalSessionClient {
     override fun logStackTrace(tag: String?, error: Exception?) {}
 }
 
-fun shellQuote(value: String) = "'${value.replace("'", "'\\''")}'"
-
 fun cmd(session: TerminalSession, command: String) {
     session.write("$command\n")
 }
@@ -176,10 +210,12 @@ private class TTYCoalescingHandler(private val original: Handler) :
 
 open class TTYViewStub : TerminalViewClient {
     private var view: TerminalView? = null
-    private var size = 12f
-    fun bindView(targetView: TerminalView, textSize: Int) {
+    private var size = 9f
+    private var minimumSize = 3f
+    fun bindView(targetView: TerminalView, textSize: Int, minimumTextSize: Int) {
         view = targetView
         size = textSize.toFloat()
+        minimumSize = minimumTextSize.toFloat()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent, session: TerminalSession) = false
@@ -187,7 +223,7 @@ open class TTYViewStub : TerminalViewClient {
     override fun onSingleTapUp(event: MotionEvent) {}
     override fun onLongPress(event: MotionEvent) = false
     override fun onScale(factor: Float): Float {
-        val next = (size * factor).coerceIn(12f, 270f)
+        val next = (size * factor).coerceIn(minimumSize, 270f)
         if (next != size) {
             size = next
             view?.post { view?.setTextSize(size.toInt()) }

@@ -10,6 +10,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import sui.k.als.localFont
 
+val KEY_LABEL_COLOR = 0x9977767B.toInt()
+
 private val Colors = darkColorScheme(
     primary = Color(0xFFA8C7FA),
     onPrimary = Color(0xFF062E6F),

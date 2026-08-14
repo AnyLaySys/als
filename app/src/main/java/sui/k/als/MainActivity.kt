@@ -9,6 +9,9 @@ import androidx.compose.ui.text.font.*
 import sui.k.als.log.ALSLog
 import sui.k.als.ui.*
 
+const val UI_FONT_ASSET = "GoogleSansFlex.ttf"
+const val CODE_FONT_ASSET = "GoogleSansCode.ttf"
+
 val localFont = staticCompositionLocalOf<FontFamily> { FontFamily.Default }
 
 class MainActivity : ComponentActivity() {
@@ -18,7 +21,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val font = remember {
                 runCatching {
-                    FontFamily(Font("GoogleSansFlex.ttf", assets))
+                    FontFamily(Font(UI_FONT_ASSET, assets))
                 }.getOrDefault(FontFamily.Default)
             }
             var showSplash by rememberSaveable { mutableStateOf(true) }

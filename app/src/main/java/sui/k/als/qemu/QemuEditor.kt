@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -14,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import sui.k.als.R
 import sui.k.als.ui.ALSActionButton
@@ -67,10 +70,12 @@ internal fun QemuEditor(
     title: String,
     state: QemuEditorState,
     started: Boolean,
+    consoleAvailable: Boolean,
     onChange: (QemuEditorChange) -> Unit,
     deviceCommands: QemuDeviceCommands,
     onRun: () -> Unit,
     onDisplay: () -> Unit,
+    onConsole: () -> Unit,
     onStop: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -180,9 +185,25 @@ internal fun QemuEditor(
                             .padding(bottom = 9.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        FilledTonalButton(onClick = onDisplay, modifier = Modifier.weight(1f)) {
+                        FilledTonalButton(
+                            onClick = onDisplay,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(54.dp),
+                            shape = RoundedCornerShape(27.dp)
+                        ) {
                             Icon(painterResource(R.drawable.preview), null, Modifier.size(24.dp))
                             Text("显示", Modifier.padding(start = 6.dp))
+                        }
+                        FilledTonalButton(
+                            onClick = onConsole,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(54.dp),
+                            shape = RoundedCornerShape(27.dp)
+                        ) {
+                            Icon(painterResource(R.drawable.terminal), null, Modifier.size(24.dp))
+                            Text(stringResource(R.string.qemu_console), Modifier.padding(start = 6.dp))
                         }
                         ALSActionButton(
                             "停止",
@@ -191,6 +212,30 @@ internal fun QemuEditor(
                             destructive = true,
                             onClick = onStop
                         )
+                    }
+                } else if (consoleAvailable) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 9.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ALSActionButton(
+                            "保存并启动",
+                            painterResource(R.drawable.arrow_forward),
+                            Modifier.weight(1f),
+                            onClick = onRun
+                        )
+                        FilledTonalButton(
+                            onClick = onConsole,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(54.dp),
+                            shape = RoundedCornerShape(27.dp)
+                        ) {
+                            Icon(painterResource(R.drawable.terminal), null, Modifier.size(24.dp))
+                            Text(stringResource(R.string.qemu_console), Modifier.padding(start = 6.dp))
+                        }
                     }
                 } else {
                     ALSActionButton(

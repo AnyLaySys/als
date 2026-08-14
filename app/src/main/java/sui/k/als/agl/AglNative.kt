@@ -28,6 +28,9 @@ internal object AglNative {
         refreshRate: Float
     ): Int
 
+    external fun redirectStdio(consolePid: Int): Int
+    external fun rebindOutput(consolePid: Int): Int
+    external fun restoreStdio()
     external fun setSurface(surface: Surface?, refreshRate: Float)
     external fun pointer(x: Float, y: Float, buttons: Int)
     external fun scroll(x: Float, y: Float)

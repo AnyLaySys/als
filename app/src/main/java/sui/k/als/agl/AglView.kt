@@ -13,6 +13,8 @@ import android.view.PointerIcon
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.ViewTreeObserver
+import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -35,6 +37,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import sui.k.als.R
 
 class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
@@ -335,11 +340,44 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     DisposableEffect(activity) {
         val previousOrientation = activity?.requestedOrientation
+        val window = activity?.window
+        val previousCutoutMode = window?.attributes?.layoutInDisplayCutoutMode
+        val hideSystemBars = {
+            if (window != null) {
+                WindowCompat.setDecorFitsSystemWindows(window, false)
+                window.attributes = window.attributes.apply {
+                    layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                }
+                WindowInsetsControllerCompat(window, window.decorView).apply {
+                    systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    hide(WindowInsetsCompat.Type.systemBars())
+                }
+            }
+        }
+        val focusListener = ViewTreeObserver.OnWindowFocusChangeListener {
+            if (it) {
+                hideSystemBars()
+            }
+        }
         if (activity != null) {
             activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            hideSystemBars()
+            window?.decorView?.viewTreeObserver?.addOnWindowFocusChangeListener(focusListener)
         }
         onDispose {
             AglRuntime.detach()
+            window?.decorView?.viewTreeObserver?.takeIf { it.isAlive }
+                ?.removeOnWindowFocusChangeListener(focusListener)
+            if (window != null) {
+                WindowInsetsControllerCompat(window, window.decorView)
+                    .show(WindowInsetsCompat.Type.systemBars())
+                WindowCompat.setDecorFitsSystemWindows(window, true)
+                if (previousCutoutMode != null) {
+                    window.attributes = window.attributes.apply {
+                        layoutInDisplayCutoutMode = previousCutoutMode
+                    }
+                }
+            }
             if (activity != null && previousOrientation != null) {
                 activity.requestedOrientation = previousOrientation
             }

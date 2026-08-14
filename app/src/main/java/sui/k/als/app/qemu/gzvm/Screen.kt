@@ -18,8 +18,10 @@ import sui.k.als.qemu.QemuDeviceCommands
 @Composable
 fun QemuGzvmScreen(
     started: Boolean,
+    consoleAvailable: Boolean,
     onCreate: (QemuGzvmConfig) -> Unit,
     onDisplay: () -> Unit,
+    onConsole: () -> Unit,
     onStop: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -30,6 +32,7 @@ fun QemuGzvmScreen(
         title = "QEMU GZVM",
         state = config.editorState,
         started = started,
+        consoleAvailable = consoleAvailable,
         onChange = { config = config.apply(it) },
         deviceCommands = QemuDeviceCommands(
             cdrom = "-drive file=<光盘镜像>,format=raw,if=none,id=cd0,media=cdrom,readonly=on,cache=unsafe,aio=threads",
@@ -44,6 +47,7 @@ fun QemuGzvmScreen(
             scope.launch(Dispatchers.IO) { QemuGzvmConfigStore.save(context, config) }
         },
         onDisplay = onDisplay,
+        onConsole = onConsole,
         onStop = onStop,
         onBack = onBack
     )

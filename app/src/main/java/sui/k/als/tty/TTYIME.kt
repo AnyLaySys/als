@@ -35,6 +35,7 @@ import com.termux.terminal.TerminalSession
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import sui.k.als.ui.KEY_LABEL_COLOR
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -188,7 +189,7 @@ private fun RowScope.Key(session: TerminalSession?, label: String, full: Boolean
             IMEState.isCapsActive && label.first().isLetter() -> label.uppercase()
             else -> label
         }
-        Text(text = text, color = Color.Gray, fontSize = 12.sp, softWrap = false)
+        Text(text = text, color = Color(KEY_LABEL_COLOR), fontSize = 12.sp, softWrap = false)
     }
 }
 

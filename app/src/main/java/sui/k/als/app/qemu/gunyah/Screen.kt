@@ -18,8 +18,10 @@ import sui.k.als.qemu.QemuDeviceCommands
 @Composable
 fun QemuGunyahScreen(
     started: Boolean,
+    consoleAvailable: Boolean,
     onCreate: (QemuGunyahConfig) -> Unit,
     onDisplay: () -> Unit,
+    onConsole: () -> Unit,
     onStop: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -30,6 +32,7 @@ fun QemuGunyahScreen(
         title = "QEMU Gunyah",
         state = config.editorState,
         started = started,
+        consoleAvailable = consoleAvailable,
         onChange = { config = config.apply(it) },
         deviceCommands = QemuDeviceCommands(
             cdrom = "-drive file=<光盘镜像>,format=raw,if=none,id=cd0,media=cdrom,readonly=on,cache=unsafe,aio=threads",
@@ -44,6 +47,7 @@ fun QemuGunyahScreen(
             scope.launch(Dispatchers.IO) { QemuGunyahConfigStore.save(context, config) }
         },
         onDisplay = onDisplay,
+        onConsole = onConsole,
         onStop = onStop,
         onBack = onBack
     )

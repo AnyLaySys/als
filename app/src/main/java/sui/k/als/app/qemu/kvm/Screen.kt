@@ -17,8 +17,10 @@ import sui.k.als.qemu.QemuDeviceCommands
 @Composable
 fun QemuKvmScreen(
     started: Boolean,
+    consoleAvailable: Boolean,
     onCreate: (QemuKvmConfig) -> Unit,
     onDisplay: () -> Unit,
+    onConsole: () -> Unit,
     onStop: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -29,6 +31,7 @@ fun QemuKvmScreen(
         title = "QEMU KVM",
         state = config.editorState,
         started = started,
+        consoleAvailable = consoleAvailable,
         onChange = { config = config.apply(it) },
         deviceCommands = QemuDeviceCommands(
             cdrom = "",
@@ -43,6 +46,7 @@ fun QemuKvmScreen(
             scope.launch(Dispatchers.IO) { QemuKvmConfigStore.save(context, config) }
         },
         onDisplay = onDisplay,
+        onConsole = onConsole,
         onStop = onStop,
         onBack = onBack
     )
