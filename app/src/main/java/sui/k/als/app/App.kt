@@ -55,7 +55,7 @@ private fun BackendCard(title: String, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(9.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(painterResource(R.drawable.arrow_forward), null, Modifier.size(24.dp))
+            Icon(painterResource(R.drawable.arrow_forward), null, Modifier.size(34.dp))
             Text(title, style = MaterialTheme.typography.titleMedium)
         }
     }

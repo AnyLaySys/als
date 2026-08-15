@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -146,9 +147,7 @@ fun Splash(onTimeout: () -> Unit) {
                 }
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Image(appIcon, null, Modifier.scale(scale).size(24.dp))
-                    Spacer(Modifier.height(18.dp))
-                    Text("ALS", style = MaterialTheme.typography.headlineLarge)
+                    Image(appIcon, null, Modifier.scale(scale).size(96.dp))
                     if (checking) {
                         Spacer(Modifier.height(27.dp))
                         CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 3.dp)
