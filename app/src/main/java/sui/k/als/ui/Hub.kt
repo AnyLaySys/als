@@ -267,7 +267,7 @@ private fun HomeIcon(icon: Int, description: String, onClick: () -> Unit) {
         painterResource(icon),
         description,
         modifier = Modifier
-            .size(24.dp)
+            .size(42.dp)
             .clickable(onClick = onClick),
         tint = Color.White
     )
