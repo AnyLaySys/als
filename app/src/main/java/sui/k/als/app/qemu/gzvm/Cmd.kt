@@ -5,6 +5,7 @@ import sui.k.als.agl.AglNativeBackend
 import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
 import sui.k.als.app.qemu.gzvm.toQemuGzvmDisplayDevice
 import sui.k.als.app.qemu.gzvm.toQemuGzvmJson
+import java.io.File
 
 const val qemuGzvmDir = "/data/local/tmp/als/qemu-gzvm"
 
@@ -13,7 +14,7 @@ fun QemuGzvmConfig.qemuMemoryArgument(): String = memoryMb.toString() + "M"
 fun QemuGzvmConfig.qemuDisplayDeviceArgument(
     device: String = displayDevice
 ): String? = when (device.toQemuGzvmDisplayDevice()) {
-    "virtio-gpu" -> "virtio-gpu-gl-pci,xres=$width,yres=$height,venus=on,blob=on,hostmem=256M"
+    "virtio-gpu" -> "virtio-gpu-gl-pci,xres=$width,yres=$height"
     "ramfb" -> "ramfb"
     else -> null
 }
@@ -22,14 +23,16 @@ fun QemuGzvmConfig.toQemuGzvmArgs(): Array<String> {
     val queueCount = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
     val args = mutableListOf(
         "./qemu-system-aarch64",
-        "-L", "./fw",
-        "-bios", "edk2-aarch64-gzvm.fd",
         "-M", "virt",
         "-accel", "gzvm",
         "-cpu", "host",
         "-smp", cpuCores.toString(),
         "-m", qemuMemoryArgument()
     )
+    uefiPath.takeIf(String::isNotBlank)?.let { args += listOf("-bios", it) }
+    efiVirtioRomPath.takeIf(String::isNotBlank)?.let { rom ->
+        File(rom).parent?.let { args += listOf("-L", it) }
+    }
     if (iothread) {
         args += listOf("-object", "iothread,id=io0")
     }

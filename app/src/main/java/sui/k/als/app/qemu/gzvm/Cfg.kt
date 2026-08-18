@@ -4,9 +4,12 @@ import org.json.JSONObject
 import sui.k.als.app.qemu.QemuResolution
 import sui.k.als.app.qemu.readPaths
 import sui.k.als.app.qemu.toJsonArray
+import sui.k.als.qemu.gzvm.qemuGzvmDir
 
 data class QemuGzvmConfig(
     val name: String = "Ubuntu 26.10 S2 GNOME",
+    val uefiPath: String = "$qemuGzvmDir/fw/edk2-aarch64-gzvm.fd",
+    val efiVirtioRomPath: String = "$qemuGzvmDir/fw/efi-virtio.rom",
     val isoPaths: List<String> = emptyList(),
     val diskPaths: List<String> = listOf(""),
     val cpuCores: Int = Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
@@ -26,7 +29,8 @@ data class QemuGzvmConfig(
 )
 
 fun QemuGzvmConfig.toQemuGzvmJson(): String =
-    JSONObject().put("schemaVersion", 4).put("name", name)
+    JSONObject().put("schemaVersion", 6).put("name", name).put("uefiPath", uefiPath)
+        .put("efiVirtioRomPath", efiVirtioRomPath)
         .put("isoPaths", isoPaths.toJsonArray()).put("diskPaths", diskPaths.toJsonArray()).put("cpuCores", cpuCores)
         .put("memoryMb", memoryMb).put("width", width).put("height", height)
         .put("cdrom", cdrom).put("iothread", iothread).put("network", network).put("tablet", tablet)
@@ -44,6 +48,8 @@ fun parseQemuGzvmConfigJson(text: String): QemuGzvmConfig {
     }
     return QemuGzvmConfig(
         name = json.optString("name", base.name),
+        uefiPath = json.optString("uefiPath", base.uefiPath),
+        efiVirtioRomPath = json.optString("efiVirtioRomPath", base.efiVirtioRomPath),
         isoPaths = json.readPaths("isoPaths", "isoPath", base.isoPaths),
         diskPaths = json.readPaths("diskPaths", "diskPath", base.diskPaths),
         cpuCores = json.optInt("cpuCores", base.cpuCores).coerceAtLeast(1),

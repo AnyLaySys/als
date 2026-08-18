@@ -3,7 +3,6 @@ agp = "9.3.1"
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
 kotlin = "2.4.10"
-guavaListenableFuture = "9999.0-empty-to-avoid-conflict-with-guava"
 material = "1.14.0"
 preference = "1.2.1"
 termuxApp = "v0.119.0-beta.3"
@@ -15,7 +14,6 @@ androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-preference = { module = "androidx.preference:preference", version.ref = "preference" }
-guava-listenablefuture = { group = "com.google.guava", name = "listenablefuture", version.ref = "guavaListenableFuture" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 termux-app = { module = "com.github.termux:termux-app", version.ref = "termuxApp" }
 termux-emulator = { module = "com.github.termux.termux-app:terminal-emulator", version.ref = "termuxApp" }

@@ -1,37 +1,20 @@
-package sui.k.als.qemu
+package sui.k.als.app.qemu
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.res.*
+import androidx.compose.ui.unit.*
 import sui.k.als.R
-import sui.k.als.ui.ALSChoiceField
-import sui.k.als.ui.ALSIconAction
-import sui.k.als.ui.ALSPathField
-import sui.k.als.ui.ALSScaffold
-import sui.k.als.ui.ALSSection
-import sui.k.als.ui.ALSSwitchRow
-import sui.k.als.ui.ALSTextField
+import sui.k.als.ui.*
 
 internal data class QemuEditorState(
     val name: String,
+    val uefiPath: String,
+    val efiVirtioRomPath: String,
     val isoPaths: List<String>,
     val diskPaths: List<String>,
     val cpuCores: Int,
@@ -53,6 +36,8 @@ internal data class QemuEditorState(
 
 internal sealed interface QemuEditorChange {
     data class Name(val value: String) : QemuEditorChange
+    data class UefiPath(val value: String) : QemuEditorChange
+    data class EfiVirtioRomPath(val value: String) : QemuEditorChange
     data class IsoPath(val index: Int, val value: String) : QemuEditorChange
     data class DiskPath(val index: Int, val value: String) : QemuEditorChange
     data object AddIsoPath : QemuEditorChange
@@ -99,20 +84,39 @@ internal fun QemuEditor(
         ) {
             item {
                 ALSSection(stringResource(R.string.qemu_basic_config)) {
-                    ALSTextField(stringResource(R.string.qemu_config_name), state.name) { onChange(QemuEditorChange.Name(it)) }
+                    ALSTextField(stringResource(R.string.qemu_config_name), state.name) {
+                        onChange(
+                            QemuEditorChange.Name(it)
+                        )
+                    }
+                    ALSPathField(stringResource(R.string.qemu_uefi_path), state.uefiPath) {
+                        onChange(QemuEditorChange.UefiPath(it))
+                    }
+                    ALSPathField(
+                        stringResource(R.string.qemu_efi_virtio_rom_path),
+                        state.efiVirtioRomPath
+                    ) {
+                        onChange(QemuEditorChange.EfiVirtioRomPath(it))
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         ALSTextField(
                             stringResource(R.string.qemu_cpu_cores),
                             state.cpuCores.toString(),
                             Modifier.weight(1f),
                             numeric = true
-                        ) { value -> value.toIntOrNull()?.let { onChange(QemuEditorChange.CpuCores(it.coerceAtLeast(1))) } }
+                        ) { value ->
+                            value.toIntOrNull()
+                                ?.let { onChange(QemuEditorChange.CpuCores(it.coerceAtLeast(1))) }
+                        }
                         ALSTextField(
                             stringResource(R.string.qemu_memory_mib),
                             state.memoryMb.toString(),
                             Modifier.weight(1f),
                             numeric = true
-                        ) { value -> value.toIntOrNull()?.let { onChange(QemuEditorChange.MemoryMb(it.coerceAtLeast(256))) } }
+                        ) { value ->
+                            value.toIntOrNull()
+                                ?.let { onChange(QemuEditorChange.MemoryMb(it.coerceAtLeast(256))) }
+                        }
                     }
                 }
             }
@@ -130,7 +134,10 @@ internal fun QemuEditor(
                                     Modifier.weight(1f)
                                 ) { onChange(QemuEditorChange.IsoPath(index, it)) }
                                 if (state.isoPaths.size > 1) {
-                                    ALSIconAction(R.drawable.delete, stringResource(R.string.qemu_remove_cdrom)) {
+                                    ALSIconAction(
+                                        R.drawable.delete,
+                                        stringResource(R.string.qemu_remove_cdrom)
+                                    ) {
                                         onChange(QemuEditorChange.RemoveIsoPath(index))
                                     }
                                 }
@@ -148,7 +155,9 @@ internal fun QemuEditor(
                                 Modifier.weight(1f)
                             ) { onChange(QemuEditorChange.DiskPath(index, it)) }
                             if (state.diskPaths.size > 1) {
-                                ALSIconAction(R.drawable.delete, stringResource(R.string.qemu_remove_disk)) {
+                                ALSIconAction(
+                                    R.drawable.delete, stringResource(R.string.qemu_remove_disk)
+                                ) {
                                     onChange(QemuEditorChange.RemoveDiskPath(index))
                                 }
                             }
@@ -158,7 +167,9 @@ internal fun QemuEditor(
                         onChange(QemuEditorChange.AddDiskPath)
                     }
                     state.iothread?.let { enabled ->
-                        ALSSwitchRow(stringResource(R.string.qemu_iothread), deviceCommands.iothread, enabled) {
+                        ALSSwitchRow(
+                            stringResource(R.string.qemu_iothread), deviceCommands.iothread, enabled
+                        ) {
                             onChange(QemuEditorChange.Iothread(it))
                         }
                     }
@@ -177,31 +188,49 @@ internal fun QemuEditor(
                             state.width.toString(),
                             Modifier.weight(1f),
                             numeric = true
-                        ) { value -> value.toIntOrNull()?.let { onChange(QemuEditorChange.Width(it.coerceAtLeast(320))) } }
+                        ) { value ->
+                            value.toIntOrNull()
+                                ?.let { onChange(QemuEditorChange.Width(it.coerceAtLeast(320))) }
+                        }
                         ALSTextField(
                             stringResource(R.string.qemu_height),
                             state.height.toString(),
                             Modifier.weight(1f),
                             numeric = true
-                        ) { value -> value.toIntOrNull()?.let { onChange(QemuEditorChange.Height(it.coerceAtLeast(200))) } }
+                        ) { value ->
+                            value.toIntOrNull()
+                                ?.let { onChange(QemuEditorChange.Height(it.coerceAtLeast(200))) }
+                        }
                     }
                 }
             }
             item {
                 ALSSection(stringResource(R.string.qemu_devices)) {
-                    ALSSwitchRow(stringResource(R.string.qemu_mouse), deviceCommands.tablet, state.tablet) {
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_mouse), deviceCommands.tablet, state.tablet
+                    ) {
                         onChange(QemuEditorChange.Tablet(it))
                     }
-                    ALSSwitchRow(stringResource(R.string.qemu_keyboard), deviceCommands.keyboard, state.keyboard) {
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_keyboard),
+                        deviceCommands.keyboard,
+                        state.keyboard
+                    ) {
                         onChange(QemuEditorChange.Keyboard(it))
                     }
-                    ALSSwitchRow(stringResource(R.string.qemu_network), deviceCommands.network, state.network) {
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_network), deviceCommands.network, state.network
+                    ) {
                         onChange(QemuEditorChange.Network(it))
                     }
-                    ALSSwitchRow(stringResource(R.string.qemu_audio), deviceCommands.audio, state.audio) {
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_audio), deviceCommands.audio, state.audio
+                    ) {
                         onChange(QemuEditorChange.Audio(it))
                     }
-                    ALSSwitchRow(stringResource(R.string.qemu_serial), deviceCommands.serial, state.serial) {
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_serial), deviceCommands.serial, state.serial
+                    ) {
                         onChange(QemuEditorChange.Serial(it))
                     }
                 }
@@ -300,7 +329,11 @@ internal fun QemuEditor(
                             shape = RoundedCornerShape(27.dp),
                             contentPadding = PaddingValues(horizontal = 6.dp)
                         ) {
-                            Icon(painterResource(R.drawable.arrow_forward), null, Modifier.size(24.dp))
+                            Icon(
+                                painterResource(R.drawable.arrow_forward),
+                                null,
+                                Modifier.size(24.dp)
+                            )
                             Spacer(Modifier.size(9.dp))
                             Text(stringResource(R.string.qemu_start), maxLines = 1)
                         }

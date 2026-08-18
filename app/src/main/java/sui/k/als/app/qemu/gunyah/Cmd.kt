@@ -2,6 +2,7 @@ package sui.k.als.app.qemu.gunyah
 
 import sui.k.als.agl.AglLaunch
 import sui.k.als.agl.AglNativeBackend
+import java.io.File
 
 const val qemuGunyahDir = "/data/local/tmp/als/qemu-gunyah"
 
@@ -19,8 +20,6 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
     val queueCount = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
     val args = mutableListOf(
         "./qemu-system-aarch64",
-        "-L", "./fw",
-        "-bios", "edk2-aarch64-gunyah.fd",
         "-M", "virt,confidential-guest-support=prot0",
         "-accel", "gunyah",
         "-cpu", "host",
@@ -28,6 +27,10 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
         "-m", qemuMemoryArgument(),
         "-object", "arm-confidential-guest,id=prot0,swiotlb-size=256M"
     )
+    uefiPath.takeIf(String::isNotBlank)?.let { args += listOf("-bios", it) }
+    efiVirtioRomPath.takeIf(String::isNotBlank)?.let { rom ->
+        File(rom).parent?.let { args += listOf("-L", it) }
+    }
     if (iothread) {
         args += listOf("-object", "iothread,id=io0")
     }

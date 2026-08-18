@@ -27,7 +27,8 @@ object QemuGunyahPreflight {
     }
 
     private fun verifyFiles(config: QemuGunyahConfig) {
-        FileInputStream("$qemuGunyahDir/fw/edk2-aarch64-gunyah.fd").use { }
+        config.uefiPath.takeIf(String::isNotBlank)?.let { FileInputStream(it).use { } }
+        config.efiVirtioRomPath.takeIf(String::isNotBlank)?.let { FileInputStream(it).use { } }
         config.diskPaths.filter(String::isNotBlank).forEach { RandomAccessFile(it, "rw").use { } }
         if (config.cdrom) {
             config.isoPaths.filter(String::isNotBlank).forEach { FileInputStream(it).use { } }

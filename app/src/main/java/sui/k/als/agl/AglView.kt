@@ -1,47 +1,23 @@
 package sui.k.als.agl
 
-import android.app.Activity
-import android.content.ClipData
+import android.app.*
+import android.content.*
 import android.content.ClipboardManager
-import android.content.Context
-import android.content.res.Configuration
-import android.graphics.PixelFormat
-import android.view.KeyEvent
-import android.view.MotionEvent
-import android.view.PointerIcon
-import android.view.Surface
-import android.view.SurfaceHolder
-import android.view.SurfaceView
-import android.view.ViewTreeObserver
-import android.view.WindowManager
-import android.view.inputmethod.BaseInputConnection
-import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputConnection
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
+import android.content.res.*
+import android.graphics.*
+import android.view.*
+import android.view.inputmethod.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.platform.*
+import androidx.compose.ui.res.*
+import androidx.compose.ui.unit.*
+import androidx.compose.ui.viewinterop.*
+import androidx.core.view.*
 import sui.k.als.R
 
 class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
@@ -92,13 +68,9 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
     private fun preferredRefreshRate(): Float {
         val target = display
         val current = target.mode
-        return target.supportedModes.asSequence()
-            .filter {
-                it.physicalWidth == current.physicalWidth &&
-                    it.physicalHeight == current.physicalHeight
-            }
-            .maxOfOrNull { it.refreshRate }
-            ?: current.refreshRate
+        return target.supportedModes.asSequence().filter {
+            it.physicalWidth == current.physicalWidth && it.physicalHeight == current.physicalHeight
+        }.maxOfOrNull { it.refreshRate } ?: current.refreshRate
     }
 
     private fun applyFrameRate(surface: Surface) {
@@ -116,9 +88,7 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
             return
         }
         setPointer(
-            event.x * bufferWidth / width,
-            event.y * bufferHeight / height,
-            buttons
+            event.x * bufferWidth / width, event.y * bufferHeight / height, buttons
         )
     }
 
@@ -127,15 +97,13 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
         pointerY = y.coerceIn(0f, bufferHeight.toFloat())
         pointerButtons = buttons
         AglRuntime.pointer(
-            pointerX,
-            pointerY,
-            buttons
+            pointerX, pointerY, buttons
         )
     }
 
     internal fun movePointer(dx: Float, dy: Float) {
-        val x = pointerX.takeUnless { it.isNaN() } ?: bufferWidth / 2f
-        val y = pointerY.takeUnless { it.isNaN() } ?: bufferHeight / 2f
+        val x = pointerX.takeUnless { it.isNaN() } ?: (bufferWidth / 2f)
+        val y = pointerY.takeUnless { it.isNaN() } ?: (bufferHeight / 2f)
         val scaleX = bufferWidth.toFloat() / width.coerceAtLeast(1)
         val scaleY = bufferHeight.toFloat() / height.coerceAtLeast(1)
         setPointer(x + dx * scaleX, y + dy * scaleY, pointerButtons)
@@ -147,8 +115,8 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
         } else {
             pointerButtons and button.inv()
         }
-        val x = pointerX.takeUnless { it.isNaN() } ?: bufferWidth / 2f
-        val y = pointerY.takeUnless { it.isNaN() } ?: bufferHeight / 2f
+        val x = pointerX.takeUnless { it.isNaN() } ?: (bufferWidth / 2f)
+        val y = pointerY.takeUnless { it.isNaN() } ?: (bufferHeight / 2f)
         setPointer(x, y, buttons)
     }
 
@@ -168,12 +136,14 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
                 requestFocus()
                 pointer(event, 1)
             }
+
             MotionEvent.ACTION_MOVE -> pointer(event, if (touchDown) 1 else 0)
             MotionEvent.ACTION_UP -> {
                 touchDown = false
                 pointer(event, 0)
                 performClick()
             }
+
             MotionEvent.ACTION_CANCEL -> {
                 touchDown = false
                 pointer(event, 0)
@@ -193,6 +163,7 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
                 pointer(event, event.buttonState)
                 return true
             }
+
             MotionEvent.ACTION_SCROLL -> {
                 AglRuntime.scroll(
                     event.getAxisValue(MotionEvent.AXIS_HSCROLL),
@@ -247,8 +218,7 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
         }
     }
 
-    internal fun isKeyCodeDown(keyCode: Int): Boolean =
-        linuxScanCode(keyCode) in pressedKeys
+    internal fun isKeyCodeDown(keyCode: Int): Boolean = linuxScanCode(keyCode) in pressedKeys
 
     private fun setScanCode(scanCode: Int, down: Boolean): Boolean {
         if (scanCode <= 0) {
@@ -364,10 +334,12 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
             if (window != null) {
                 WindowCompat.setDecorFitsSystemWindows(window, false)
                 window.attributes = window.attributes.apply {
-                    layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                    layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
                 }
                 WindowInsetsControllerCompat(window, window.decorView).apply {
-                    systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    systemBarsBehavior =
+                        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                     hide(WindowInsetsCompat.Type.systemBars())
                 }
             }
@@ -386,8 +358,9 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
             window?.decorView?.viewTreeObserver?.takeIf { it.isAlive }
                 ?.removeOnWindowFocusChangeListener(focusListener)
             if (window != null) {
-                WindowInsetsControllerCompat(window, window.decorView)
-                    .show(WindowInsetsCompat.Type.systemBars())
+                WindowInsetsControllerCompat(
+                    window, window.decorView
+                ).show(WindowInsetsCompat.Type.systemBars())
                 WindowCompat.setDecorFitsSystemWindows(window, true)
                 if (previousCutoutMode != null) {
                     window.attributes = window.attributes.apply {
@@ -399,7 +372,10 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
     }
     if (AglRuntime.state == AglRunState.Failed) {
         Box(
-            modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
+            modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(24.dp),
             Alignment.Center
         ) {
             Card(
@@ -407,7 +383,10 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
             ) {
                 Column(Modifier.padding(27.dp)) {
-                    Text(stringResource(R.string.qemu_start_failed), style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        stringResource(R.string.qemu_start_failed),
+                        style = MaterialTheme.typography.headlineSmall
+                    )
                     Text(
                         AglRuntime.failureMessage.orEmpty(),
                         color = MaterialTheme.colorScheme.onErrorContainer,
@@ -417,22 +396,17 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
                                 val message = AglRuntime.failureMessage.orEmpty()
                                 context.getSystemService(ClipboardManager::class.java)
                                     ?.setPrimaryClip(ClipData.newPlainText("QEMU", message))
-                            }
-                    )
+                            })
                 }
             }
         }
     } else {
-        AndroidView(
-            factory = {
-                AglDisplayView(it).apply {
-                    configure(displayWidth, displayHeight, launch.hideKeyboard, launch.softKeyboard)
-                }
-            },
-            modifier = modifier.fillMaxSize(),
-            update = {
-                it.configure(displayWidth, displayHeight, launch.hideKeyboard, launch.softKeyboard)
+        AndroidView(factory = {
+            AglDisplayView(it).apply {
+                configure(displayWidth, displayHeight, launch.hideKeyboard, launch.softKeyboard)
             }
-        )
+        }, modifier = modifier.fillMaxSize(), update = {
+            it.configure(displayWidth, displayHeight, launch.hideKeyboard, launch.softKeyboard)
+        })
     }
 }

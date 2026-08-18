@@ -1,14 +1,12 @@
 package sui.k.als.ui
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import sui.k.als.localFont
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.text.*
+import androidx.compose.ui.text.font.*
+import androidx.compose.ui.unit.*
+import sui.k.als.*
 
 val KEY_LABEL_COLOR = 0x9977767B.toInt()
 
@@ -50,8 +48,7 @@ fun ALSTheme(content: @Composable () -> Unit) {
         lineHeight = lineHeight.sp
     )
     MaterialTheme(
-        colorScheme = Colors,
-        typography = Typography(
+        colorScheme = Colors, typography = Typography(
             displayLarge = style(57, 63),
             displayMedium = style(48, 54),
             displaySmall = style(45, 51),
@@ -67,7 +64,6 @@ fun ALSTheme(content: @Composable () -> Unit) {
             labelLarge = style(15, 21),
             labelMedium = style(12, 18),
             labelSmall = style(12, 15)
-        ),
-        content = content
+        ), content = content
     )
 }

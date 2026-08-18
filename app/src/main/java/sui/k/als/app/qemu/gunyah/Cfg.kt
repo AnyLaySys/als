@@ -7,6 +7,8 @@ import sui.k.als.app.qemu.toJsonArray
 
 data class QemuGunyahConfig(
     val name: String = "Ubuntu 26.10 S2 GNOME",
+    val uefiPath: String = "$qemuGunyahDir/fw/edk2-aarch64-gunyah.fd",
+    val efiVirtioRomPath: String = "$qemuGunyahDir/fw/efi-virtio.rom",
     val isoPaths: List<String> = emptyList(),
     val diskPaths: List<String> = listOf(""),
     val cpuCores: Int = Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
@@ -26,7 +28,8 @@ data class QemuGunyahConfig(
 )
 
 fun QemuGunyahConfig.toQemuGunyahJson(): String =
-    JSONObject().put("schemaVersion", 4).put("name", name)
+    JSONObject().put("schemaVersion", 6).put("name", name).put("uefiPath", uefiPath)
+        .put("efiVirtioRomPath", efiVirtioRomPath)
         .put("isoPaths", isoPaths.toJsonArray()).put("diskPaths", diskPaths.toJsonArray()).put("cpuCores", cpuCores)
         .put("memoryMb", memoryMb).put("width", width).put("height", height)
         .put("cdrom", cdrom).put("iothread", iothread).put("network", network).put("tablet", tablet)
@@ -44,6 +47,8 @@ fun parseQemuGunyahConfigJson(text: String): QemuGunyahConfig {
     }
     return QemuGunyahConfig(
         name = json.optString("name", base.name),
+        uefiPath = json.optString("uefiPath", base.uefiPath),
+        efiVirtioRomPath = json.optString("efiVirtioRomPath", base.efiVirtioRomPath),
         isoPaths = json.readPaths("isoPaths", "isoPath", base.isoPaths),
         diskPaths = json.readPaths("diskPaths", "diskPath", base.diskPaths),
         cpuCores = json.optInt("cpuCores", base.cpuCores).coerceAtLeast(1),

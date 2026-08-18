@@ -1,31 +1,16 @@
 package sui.k.als.tty
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.res.*
+import androidx.compose.ui.unit.*
 import sui.k.als.R
-import sui.k.als.ui.ALSScaffold
+import sui.k.als.ui.*
 
 @Composable
 fun TTYHub(
@@ -61,9 +46,18 @@ fun TTYHub(
                             Modifier.padding(horizontal = 9.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("${stringResource(R.string.terminal_session)} ${index + 1}", color = Color.White, modifier = Modifier.weight(1f))
+                            Text(
+                                "${stringResource(R.string.terminal_session)} ${index + 1}",
+                                color = Color.White,
+                                modifier = Modifier.weight(1f)
+                            )
                             IconButton(onClick = { onDelete(tty) }) {
-                                Icon(painterResource(R.drawable.delete), stringResource(R.string.terminal_delete), Modifier.size(24.dp), tint = Color.White)
+                                Icon(
+                                    painterResource(R.drawable.delete),
+                                    stringResource(R.string.terminal_delete),
+                                    Modifier.size(24.dp),
+                                    tint = Color.White
+                                )
                             }
                         }
                     }
@@ -72,11 +66,15 @@ fun TTYHub(
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 9.dp),
-                Alignment.Center
+                    .padding(vertical = 9.dp), Alignment.Center
             ) {
                 IconButton(onClick = onCreate) {
-                    Icon(painterResource(R.drawable.add), stringResource(R.string.terminal_new), Modifier.size(24.dp), tint = Color.White)
+                    Icon(
+                        painterResource(R.drawable.add),
+                        stringResource(R.string.terminal_new),
+                        Modifier.size(24.dp),
+                        tint = Color.White
+                    )
                 }
             }
         }

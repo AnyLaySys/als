@@ -1,42 +1,27 @@
 package sui.k.als.agl
 
-import android.content.Context
-import android.content.res.Configuration
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Typeface
-import android.os.Handler
-import android.os.Looper
-import android.util.SparseArray
-import android.util.AttributeSet
-import android.util.TypedValue
-import android.view.Gravity
-import android.view.HapticFeedbackConstants
-import android.view.KeyEvent
-import android.view.MotionEvent
-import android.view.View
-import android.view.ViewConfiguration
-import android.widget.FrameLayout
-import androidx.core.util.isEmpty
-import androidx.core.util.size
-import java.util.Locale
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.roundToInt
-import sui.k.als.UI_FONT_ASSET
-import sui.k.als.ui.KEY_LABEL_COLOR
+import android.content.*
+import android.content.res.*
+import android.graphics.*
+import android.os.*
+import android.util.*
+import android.view.*
+import android.widget.*
+import androidx.core.util.*
+import sui.k.als.*
+import sui.k.als.ui.*
+import java.util.*
+import kotlin.math.*
 
 internal class AglKeyboardView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
+    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
     private lateinit var display: AglView
 
     internal constructor(context: Context, display: AglView) : this(context) {
         this.display = display
     }
+
     private companion object {
         const val UP = "↑"
         const val DOWN = "↓"
@@ -59,7 +44,23 @@ internal class AglKeyboardView @JvmOverloads constructor(
             arrayOf("Tab", "Ctrl", "Alt", LEFT, DOWN, RIGHT, "Home", "End", "Enter")
         )
         val fullRows = arrayOf(
-            arrayOf("Esc", "F1", "F2", "F3", "F4", "F5", "F6", "", "F7", "F8", "F9", "F10", "F11", "F12", "Del"),
+            arrayOf(
+                "Esc",
+                "F1",
+                "F2",
+                "F3",
+                "F4",
+                "F5",
+                "F6",
+                "",
+                "F7",
+                "F8",
+                "F9",
+                "F10",
+                "F11",
+                "F12",
+                "Del"
+            ),
             arrayOf("`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Back"),
             arrayOf("Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\"),
             arrayOf("Caps", "A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'", "Enter"),
@@ -131,9 +132,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
         color = Color.rgb(226, 226, 233)
         textAlign = Paint.Align.CENTER
         textSize = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_SP,
-            12f,
-            resources.displayMetrics
+            TypedValue.COMPLEX_UNIT_SP, 12f, resources.displayMetrics
         )
         typeface = runCatching {
             Typeface.createFromAsset(context.assets, UI_FONT_ASSET)
@@ -165,8 +164,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
 
     init {
         layoutParams = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            compactHeight()
+            FrameLayout.LayoutParams.MATCH_PARENT, compactHeight()
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.START
         }
@@ -181,8 +179,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
         val hostWidth = host.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
         val hostHeight = host.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
         val portrait = hostHeight >= hostWidth
-        val params = (layoutParams as? FrameLayout.LayoutParams)
-            ?: FrameLayout.LayoutParams(0, 0)
+        val params = (layoutParams as? FrameLayout.LayoutParams) ?: FrameLayout.LayoutParams(0, 0)
         params.setMargins(0, 0, 0, 0)
         when {
             floating -> {
@@ -204,16 +201,19 @@ internal class AglKeyboardView @JvmOverloads constructor(
                 }
                 params.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             }
+
             fullKeyboardVisible && !portrait -> {
                 params.width = FrameLayout.LayoutParams.MATCH_PARENT
                 params.height = FrameLayout.LayoutParams.MATCH_PARENT
                 params.gravity = Gravity.BOTTOM or Gravity.START
             }
+
             fullKeyboardVisible -> {
                 params.width = FrameLayout.LayoutParams.MATCH_PARENT
                 params.height = hostHeight * 2 / 3
                 params.gravity = Gravity.BOTTOM or Gravity.START
             }
+
             else -> {
                 params.width = FrameLayout.LayoutParams.MATCH_PARENT
                 params.height = compactHeight()
@@ -239,11 +239,9 @@ internal class AglKeyboardView @JvmOverloads constructor(
         floatingOffsetY = 0f
     }
 
-    private fun compactHeight() =
-        (24f * density * compactRows.size).roundToInt()
+    private fun compactHeight() = (24f * density * compactRows.size).roundToInt()
 
-    private fun floatingCompactWidth() =
-        (FLOATING_COMPACT_WIDTH_DP * density).roundToInt()
+    private fun floatingCompactWidth() = (FLOATING_COMPACT_WIDTH_DP * density).roundToInt()
 
     private fun rows() = if (fullKeyboardVisible) fullRows else compactRows
 
@@ -265,12 +263,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
     }
 
     private fun drawRow(
-        canvas: Canvas,
-        row: Array<String>,
-        left: Float,
-        top: Float,
-        width: Float,
-        rowHeight: Float
+        canvas: Canvas, row: Array<String>, left: Float, top: Float, width: Float, rowHeight: Float
     ) {
         val total = row.sumOf { keyWeight(it).toDouble() }.toFloat()
         var x = left
@@ -343,10 +336,9 @@ internal class AglKeyboardView @JvmOverloads constructor(
                     touchpad(event)
                     return true
                 }
-                if (
-                    touches.isEmpty() &&
-                    fullKeyboardVisible &&
-                    areaAt(event.getX(index), event.getY(index)) == TOUCHPAD
+                if (touches.isEmpty() && fullKeyboardVisible && areaAt(
+                        event.getX(index), event.getY(index)
+                    ) == TOUCHPAD
                 ) {
                     touchpad(event)
                     return true
@@ -355,6 +347,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
                 performClick()
                 return true
             }
+
             MotionEvent.ACTION_MOVE -> {
                 if (touchpadPointerId != -1) {
                     touchpad(event)
@@ -363,6 +356,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
                 updateTouches(event)
                 return true
             }
+
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
                 if (touchpadPointerId != -1) {
                     touchpad(event)
@@ -371,6 +365,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
                 }
                 return true
             }
+
             MotionEvent.ACTION_CANCEL -> {
                 finishTouchpad()
                 finishAll()
@@ -386,10 +381,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
         val rawX = rawX(event, index)
         val rawY = rawY(event, index)
         val touch = KeyTouch(
-            pointerId = pointerId,
-            label = label,
-            downRawX = rawX,
-            downRawY = rawY
+            pointerId = pointerId, label = label, downRawX = rawX, downRawY = rawY
         )
         touches.put(pointerId, touch)
         parent?.requestDisallowInterceptTouchEvent(true)
@@ -496,11 +488,9 @@ internal class AglKeyboardView @JvmOverloads constructor(
         applyLayout()
     }
 
-    private fun rawX(event: MotionEvent, index: Int) =
-        event.rawX + event.getX(index) - event.x
+    private fun rawX(event: MotionEvent, index: Int) = event.rawX + event.getX(index) - event.x
 
-    private fun rawY(event: MotionEvent, index: Int) =
-        event.rawY + event.getY(index) - event.y
+    private fun rawY(event: MotionEvent, index: Int) = event.rawY + event.getY(index) - event.y
 
     private fun findKey(x: Float, y: Float): String? {
         if (areaAt(x, y) != KEYBOARD) {
@@ -550,8 +540,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
     private fun areaLeft() =
         if (floating || !fullKeyboardVisible || portrait()) 0f else width * SIDE_TOUCHPAD_RATIO
 
-    private fun areaTop() =
-        if (floating || !fullKeyboardVisible || !portrait()) 0f else height / 2f
+    private fun areaTop() = if (floating || !fullKeyboardVisible || !portrait()) 0f else height / 2f
 
     private fun areaWidth() =
         if (floating || !fullKeyboardVisible || portrait()) width.toFloat() else width * KEYBOARD_RATIO
@@ -574,11 +563,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
                 touchpadDragging = false
                 touchpadLongPress?.let(handler::removeCallbacks)
                 touchpadLongPress = Runnable {
-                    if (
-                        touchpadPointerId != -1 &&
-                        !touchpadMoved &&
-                        touchpadMaxPointers == 1
-                    ) {
+                    if (touchpadPointerId != -1 && !touchpadMoved && touchpadMaxPointers == 1) {
                         touchpadDragging = true
                         display.setPointerButton(BUTTON_LEFT, true)
                         performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
@@ -588,6 +573,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
                 }
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
+
             MotionEvent.ACTION_POINTER_DOWN -> {
                 touchpadLongPress?.let(handler::removeCallbacks)
                 touchpadLongPress = null
@@ -598,6 +584,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
                 touchpadLastY = touchpadDownY
                 touchpadMoved = false
             }
+
             MotionEvent.ACTION_POINTER_UP -> {
                 val next = (0 until event.pointerCount).firstOrNull { it != event.actionIndex }
                 if (next != null) {
@@ -606,6 +593,7 @@ internal class AglKeyboardView @JvmOverloads constructor(
                     touchpadLastY = event.getY(next)
                 }
             }
+
             MotionEvent.ACTION_MOVE -> {
                 val index = event.findPointerIndex(touchpadPointerId)
                 if (index < 0) {
@@ -634,18 +622,16 @@ internal class AglKeyboardView @JvmOverloads constructor(
                     touchpadLastY = y
                 }
             }
+
             MotionEvent.ACTION_UP -> {
                 touchpadLongPress?.let(handler::removeCallbacks)
                 touchpadLongPress = null
-                if (
-                    !touchpadDragging &&
-                    !touchpadMoved &&
-                    event.eventTime - touchpadDownTime <= tapTimeout
-                ) {
+                if (!touchpadDragging && !touchpadMoved && event.eventTime - touchpadDownTime <= tapTimeout) {
                     clickTouchpad(touchpadMaxPointers)
                 }
                 finishTouchpad()
             }
+
             MotionEvent.ACTION_CANCEL -> finishTouchpad()
         }
     }
@@ -698,18 +684,21 @@ internal class AglKeyboardView @JvmOverloads constructor(
                 }
                 ctrlActive = active
             }
+
             "Shift" -> {
                 if (shiftActive != active) {
                     display.setKeyCode(KeyEvent.KEYCODE_SHIFT_LEFT, active)
                 }
                 shiftActive = active
             }
+
             "Alt" -> {
                 if (altActive != active) {
                     display.setKeyCode(KeyEvent.KEYCODE_ALT_LEFT, active)
                 }
                 altActive = active
             }
+
             "Caps" -> capsActive = active
         }
         invalidate()
@@ -739,8 +728,9 @@ internal class AglKeyboardView @JvmOverloads constructor(
         }
         val keyCode = printableKeyCodes[label.lowercase(Locale.US)] ?: return
         val temporaryShift =
-            capsActive && label.length == 1 && label[0].isLetter() &&
-                !display.isKeyCodeDown(KeyEvent.KEYCODE_SHIFT_LEFT)
+            capsActive && label.length == 1 && label[0].isLetter() && !display.isKeyCodeDown(
+                KeyEvent.KEYCODE_SHIFT_LEFT
+            )
         if (temporaryShift) {
             display.setKeyCode(KeyEvent.KEYCODE_SHIFT_LEFT, true)
         }

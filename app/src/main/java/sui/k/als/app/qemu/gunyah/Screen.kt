@@ -11,10 +11,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
 import sui.k.als.app.qemu.gunyah.toQemuGunyahArgs
-import sui.k.als.qemu.QemuEditor
-import sui.k.als.qemu.QemuEditorChange
-import sui.k.als.qemu.QemuEditorState
-import sui.k.als.qemu.QemuDeviceCommands
+import sui.k.als.app.qemu.QemuDeviceCommands
+import sui.k.als.app.qemu.QemuEditor
+import sui.k.als.app.qemu.QemuEditorChange
+import sui.k.als.app.qemu.QemuEditorState
 
 @Composable
 fun QemuGunyahScreen(
@@ -62,13 +62,15 @@ fun QemuGunyahScreen(
 
 private val QemuGunyahConfig.editorState: QemuEditorState
     get() = QemuEditorState(
-        name, isoPaths, diskPaths, cpuCores, memoryMb, width, height, cdrom, iothread,
+        name, uefiPath, efiVirtioRomPath, isoPaths, diskPaths, cpuCores, memoryMb, width, height, cdrom, iothread,
         network, tablet, keyboard, hideKeyboard, softKeyboard, displayDevice, audio, serial,
         toQemuGunyahArgs().joinToString(" ")
     )
 
 private fun QemuGunyahConfig.apply(change: QemuEditorChange) = when (change) {
     is QemuEditorChange.Name -> copy(name = change.value)
+    is QemuEditorChange.UefiPath -> copy(uefiPath = change.value)
+    is QemuEditorChange.EfiVirtioRomPath -> copy(efiVirtioRomPath = change.value)
     is QemuEditorChange.IsoPath -> copy(isoPaths = isoPaths.mapIndexed { index, path -> if (index == change.index) change.value else path })
     is QemuEditorChange.DiskPath -> copy(diskPaths = diskPaths.mapIndexed { index, path -> if (index == change.index) change.value else path })
     QemuEditorChange.AddIsoPath -> copy(isoPaths = isoPaths + "")

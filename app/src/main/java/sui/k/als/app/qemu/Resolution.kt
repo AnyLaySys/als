@@ -1,9 +1,9 @@
 package sui.k.als.app.qemu
 
-import android.hardware.display.DisplayManager
-import android.content.res.Configuration
-import android.view.Display
-import sui.k.als.ALSApplication
+import android.content.res.*
+import android.hardware.display.*
+import android.view.*
+import sui.k.als.*
 
 internal object QemuResolution {
     private val size by lazy {
@@ -13,7 +13,8 @@ internal object QemuResolution {
         val metrics = context.resources.displayMetrics
         val width = mode?.physicalWidth ?: metrics.widthPixels
         val height = mode?.physicalHeight ?: metrics.heightPixels
-        val portrait = context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+        val portrait =
+            context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
         val shortSide = minOf(width, height) / 2
         val longSide = maxOf(width, height) / 2
         if (portrait) shortSide to longSide else longSide to shortSide

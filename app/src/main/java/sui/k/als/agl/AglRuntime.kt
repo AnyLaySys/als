@@ -1,18 +1,13 @@
 package sui.k.als.agl
 
-import android.os.Handler
-import android.os.Looper
-import android.os.SystemClock
-import android.system.Os
-import android.view.Surface
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import sui.k.als.log.ALSLog
-import java.io.File
-import java.io.FileOutputStream
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
+import android.os.*
+import android.system.*
+import android.view.*
+import androidx.compose.runtime.*
+import sui.k.als.log.*
+import java.io.*
+import java.util.concurrent.*
+import java.util.concurrent.atomic.*
 
 enum class AglRunState {
     Idle, Starting, Running, Stopping, Stopped, Failed
@@ -54,8 +49,9 @@ object AglRuntime {
             }
             result.onSuccess { prepared ->
                 ALSLog.info(
-                    "AGL",
-                    "Prepare ${value.backend.libraryName} ${value.workDir} ${prepared.args.joinToString(" ")}"
+                    "AGL", "Prepare ${value.backend.libraryName} ${value.workDir} ${
+                        prepared.args.joinToString(" ")
+                    }"
                 )
                 val retained = synchronized(lock) {
                     if (!launched && launch === value) {
@@ -73,7 +69,10 @@ object AglRuntime {
                 }
             }.onFailure { error ->
                 ALSLog.error("AGL", "Launch preparation failed", error)
-                writeConsole(value, "QEMU launch preparation failed: ${error.message ?: error.javaClass.simpleName}")
+                writeConsole(
+                    value,
+                    "QEMU launch preparation failed: ${error.message ?: error.javaClass.simpleName}"
+                )
                 synchronized(lock) {
                     preparedLaunch = null
                     launched = false
@@ -94,8 +93,8 @@ object AglRuntime {
         synchronized(lock) {
             startLaunch = if (!launched && state != AglRunState.Failed) launch else null
             startPrepared = if (startLaunch != null) preparedLaunch else null
-            updateSurface = startLaunch == null && launched &&
-                state != AglRunState.Stopped && state != AglRunState.Failed
+            updateSurface =
+                startLaunch == null && launched && state != AglRunState.Stopped && state != AglRunState.Failed
             if (startLaunch != null && startPrepared != null) {
                 launched = true
                 state = AglRunState.Starting
@@ -134,10 +133,7 @@ object AglRuntime {
                     binder.start()
                     main.post { state = AglRunState.Running }
                     AglNative.run(
-                        startLaunch.workDir,
-                        startPrepared.args,
-                        surface,
-                        refreshRate
+                        startLaunch.workDir, startPrepared.args, surface, refreshRate
                     )
                 } finally {
                     binding.set(false)
@@ -167,7 +163,10 @@ object AglRuntime {
                 }
             }.onFailure { error ->
                 ALSLog.error("AGL", "QEMU launch failed", error)
-                writeConsole(startLaunch, "QEMU launch failed: ${error.message ?: error.javaClass.simpleName}")
+                writeConsole(
+                    startLaunch,
+                    "QEMU launch failed: ${error.message ?: error.javaClass.simpleName}"
+                )
                 main.post {
                     state = AglRunState.Failed
                     failureMessage = error.message ?: error.javaClass.simpleName
@@ -178,11 +177,7 @@ object AglRuntime {
 
     fun detach(refreshRate: Float = 0f) {
         val detach = synchronized(lock) {
-            if (launched && state != AglRunState.Stopped && state != AglRunState.Failed) {
-                true
-            } else {
-                false
-            }
+            launched && state != AglRunState.Stopped && state != AglRunState.Failed
         }
         if (detach) {
             AglNative.setSurface(null, refreshRate)
@@ -222,11 +217,7 @@ object AglRuntime {
     }
 
     private fun active(): Boolean = synchronized(lock) {
-        if (launched && state != AglRunState.Stopped && state != AglRunState.Failed) {
-            true
-        } else {
-            false
-        }
+        launched && state != AglRunState.Stopped && state != AglRunState.Failed
     }
 
     private fun writeConsole(value: AglLaunch, message: String) {

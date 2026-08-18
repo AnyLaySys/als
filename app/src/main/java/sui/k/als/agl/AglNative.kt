@@ -1,7 +1,7 @@
 package sui.k.als.agl
 
-import android.view.Surface
-import sui.k.als.log.ALSLog
+import android.view.*
+import sui.k.als.log.*
 
 internal object AglNative {
     private var loadedLibrary: String? = null
@@ -22,10 +22,7 @@ internal object AglNative {
 
     external fun grantRoot(): Int
     external fun run(
-        workDir: String,
-        args: Array<String>,
-        surface: Surface?,
-        refreshRate: Float
+        workDir: String, args: Array<String>, surface: Surface?, refreshRate: Float
     ): Int
 
     external fun redirectStdio(consolePid: Int): Int
@@ -39,7 +36,5 @@ internal object AglNative {
 }
 
 internal enum class AglNativeBackend(internal val libraryName: String) {
-    Gunyah("qemu-gunyah"),
-    Gzvm("qemu-gzvm"),
-    Kvm("qemu-kvm")
+    Gunyah("qemu-gunyah"), Gzvm("qemu-gzvm")
 }

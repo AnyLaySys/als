@@ -1,10 +1,7 @@
 package sui.k.als.log
 
-import android.content.Context
-import java.io.File
-import java.io.FileOutputStream
-import java.io.PrintWriter
-import java.io.StringWriter
+import android.content.*
+import java.io.*
 
 internal object ALSLog {
     private const val path = "/data/local/tmp/als/als.log"
@@ -18,6 +15,8 @@ internal object ALSLog {
                 return
             }
             pending = File(context.filesDir, "als.log.pending")
+            runCatching { File(path).delete() }
+            pending.delete()
             installed = true
             val previous = Thread.getDefaultUncaughtExceptionHandler()
             Thread.setDefaultUncaughtExceptionHandler { thread, error ->

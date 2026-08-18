@@ -1,10 +1,4 @@
-import org.gradle.api.DefaultTask
-import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.RegularFileProperty
-import org.gradle.api.tasks.InputFiles
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.TaskAction
-import java.util.zip.ZipFile
+import java.util.zip.*
 
 plugins {
     alias(libs.plugins.android.application)
@@ -38,12 +32,14 @@ val terminalEmulatorAar = configurations.create("terminalEmulatorAar") {
 }
 
 val terminalEmulatorClassesDirectory = layout.buildDirectory.dir("generated/termux")
-val terminalEmulatorClasses = terminalEmulatorClassesDirectory.map { it.file("terminal-emulator.jar") }
+val terminalEmulatorClasses =
+    terminalEmulatorClassesDirectory.map { it.file("terminal-emulator.jar") }
 
-val extractTerminalEmulatorClasses = tasks.register<ExtractTermuxClasses>("extractTerminalEmulatorClasses") {
-    sourceAar.from(terminalEmulatorAar)
-    outputJar.set(terminalEmulatorClasses)
-}
+val extractTerminalEmulatorClasses =
+    tasks.register<ExtractTermuxClasses>("extractTerminalEmulatorClasses") {
+        sourceAar.from(terminalEmulatorAar)
+        outputJar.set(terminalEmulatorClasses)
+    }
 
 android {
     namespace = "sui.k.als"
@@ -58,8 +54,8 @@ android {
         applicationId = "sui.k.als"
         minSdk = 36
         targetSdk = 37
-        versionCode = 17
-        versionName = "26.8.14"
+        versionCode = 18
+        versionName = "26.8.19"
         ndk {
             abiFilters.add("arm64-v8a")
         }
@@ -74,10 +70,11 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            setProguardFiles(listOf(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            ))
+            setProguardFiles(
+                listOf(
+                    getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+                )
+            )
             ndk {
                 debugSymbolLevel = "none"
             }
@@ -108,19 +105,13 @@ android {
         compose = true
         buildConfig = false
         resValues = false
-        aidl = true
     }
     bundle {
-        @Suppress("UnstableApiUsage")
-        language { enableSplit = true }
-        @Suppress("UnstableApiUsage")
-        density { enableSplit = true }
-        @Suppress("UnstableApiUsage")
-        abi { enableSplit = true }
+        @Suppress("UnstableApiUsage") language { enableSplit = true }
+        @Suppress("UnstableApiUsage") density { enableSplit = true }
+        @Suppress("UnstableApiUsage") abi { enableSplit = true }
     }
-    @Suppress("UnstableApiUsage")
     experimentalProperties["android.experimental.art-profile-r8-rewriting"] = true
-    @Suppress("UnstableApiUsage")
     experimentalProperties["android.experimental.r8.fullMode"] = true
 }
 dependencies {
@@ -141,5 +132,4 @@ dependencies {
     implementation(files(terminalEmulatorClasses) {
         builtBy(extractTerminalEmulatorClasses)
     })
-    implementation(libs.guava.listenablefuture)
 }

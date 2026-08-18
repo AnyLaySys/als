@@ -22,10 +22,5 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".agl.AglService"
-            android:exported="false"
-            android:process=":qemu"
-            android:stopWithTask="true" />
     </application>
 </manifest>
