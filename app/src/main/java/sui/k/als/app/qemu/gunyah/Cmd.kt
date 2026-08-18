@@ -1,19 +1,16 @@
-package sui.k.als.qemu.gunyah
+package sui.k.als.app.qemu.gunyah
 
-import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
-import sui.k.als.app.qemu.gunyah.toQemuGunyahDisplayDevice
 import sui.k.als.agl.AglLaunch
 import sui.k.als.agl.AglNativeBackend
-import sui.k.als.agl.AglPreparedLaunch
 
 const val qemuGunyahDir = "/data/local/tmp/als/qemu-gunyah"
 
-fun QemuGunyahConfig.qemuMemoryArgument(): String = "${memoryMb}M"
+fun QemuGunyahConfig.qemuMemoryArgument(): String = memoryMb.toString() + "M"
 
 fun QemuGunyahConfig.qemuDisplayDeviceArgument(
     device: String = displayDevice
 ): String? = when (device.toQemuGunyahDisplayDevice()) {
-    "virtio-gpu" -> "virtio-gpu-gl-pci,xres=$width,yres=$height"
+    "virtio-gpu" -> "virtio-gpu-gl-pci,xres=$width,yres=$height,venus=on,blob=on,hostmem=256M"
     "ramfb" -> "ramfb"
     else -> null
 }
@@ -34,24 +31,26 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
     if (iothread) {
         args += listOf("-object", "iothread,id=io0")
     }
-    if (diskPath.isNotBlank()) {
+    diskPaths.filter(String::isNotBlank).forEachIndexed { index, path ->
+        val id = "dr$index"
         args += listOf(
             "-drive",
-            "file=$diskPath,format=raw,if=none,id=dr0,media=disk,cache=unsafe,aio=io_uring,discard=unmap"
+            "file=$path,format=raw,if=none,id=$id,media=disk,cache=unsafe,aio=io_uring,discard=unmap"
         )
         args += listOf(
             "-device",
-            "virtio-blk-pci,drive=dr0,num-queues=$queueCount${if (iothread) ",iothread=io0" else ""},disable-legacy=on,disable-modern=off,bootindex=1"
+            "virtio-blk-pci,drive=$id,num-queues=$queueCount${if (iothread) ",iothread=io0" else ""},disable-legacy=on,disable-modern=off${if (index == 0) ",bootindex=1" else ""}"
         )
     }
-    if (cdrom && isoPath.isNotBlank()) {
+    if (cdrom) isoPaths.filter(String::isNotBlank).forEachIndexed { index, path ->
+        val id = "cd$index"
         args += listOf(
             "-drive",
-            "file=$isoPath,format=raw,if=none,id=cd0,media=cdrom,readonly=on,cache=unsafe,aio=threads"
+            "file=$path,format=raw,if=none,id=$id,media=cdrom,readonly=on,cache=unsafe,aio=threads"
         )
         args += listOf(
             "-device",
-            "virtio-blk-pci,drive=cd0,num-queues=1${if (iothread) ",iothread=io0" else ""},disable-legacy=on,disable-modern=off"
+            "virtio-blk-pci,drive=$id,num-queues=1${if (iothread) ",iothread=io0" else ""},disable-legacy=on,disable-modern=off"
         )
     }
     if (network) {
@@ -76,7 +75,6 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
     if (serial) {
         args += listOf("-serial", "mon:stdio")
     }
-    args += splitQemuArgs(extraQemuArgs)
     return args.toTypedArray()
 }
 
@@ -85,42 +83,7 @@ internal fun QemuGunyahConfig.toAglLaunch() = AglLaunch(
     height = height,
     workDir = qemuGunyahDir,
     backend = AglNativeBackend.Gunyah,
-    prepare = {
-        AglPreparedLaunch(
-            args = toQemuGunyahArgs(),
-            preflight = { QemuGunyahPreflight.run(this) }
-        )
-    }
+    configuration = toQemuGunyahJson(),
+    hideKeyboard = hideKeyboard,
+    softKeyboard = softKeyboard
 )
-
-private fun splitQemuArgs(value: String): List<String> {
-    val result = ArrayList<String>()
-    val current = StringBuilder()
-    var quote = '\u0000'
-    var escaped = false
-    value.forEach { char ->
-        when {
-            escaped -> {
-                current.append(char)
-                escaped = false
-            }
-            char == '\\' && quote != '\'' -> escaped = true
-            quote != '\u0000' && char == quote -> quote = '\u0000'
-            quote == '\u0000' && (char == '\'' || char == '"') -> quote = char
-            quote == '\u0000' && char.isWhitespace() -> {
-                if (current.isNotEmpty()) {
-                    result += current.toString()
-                    current.clear()
-                }
-            }
-            else -> current.append(char)
-        }
-    }
-    if (escaped) {
-        current.append('\\')
-    }
-    if (current.isNotEmpty()) {
-        result += current.toString()
-    }
-    return result
-}

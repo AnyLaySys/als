@@ -1,10 +1,59 @@
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.TaskAction
+import java.util.zip.ZipFile
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+abstract class ExtractTermuxClasses : DefaultTask() {
+    @get:InputFiles
+    abstract val sourceAar: ConfigurableFileCollection
+
+    @get:OutputFile
+    abstract val outputJar: RegularFileProperty
+
+    @TaskAction
+    fun extract() {
+        ZipFile(sourceAar.singleFile).use { archive ->
+            val entry = checkNotNull(archive.getEntry("classes.jar"))
+            val output = outputJar.get().asFile
+            output.parentFile.mkdirs()
+            archive.getInputStream(entry).use { input ->
+                output.outputStream().use(input::copyTo)
+            }
+        }
+    }
+}
+
+val terminalEmulatorAar = configurations.create("terminalEmulatorAar") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = false
+}
+
+val terminalEmulatorClassesDirectory = layout.buildDirectory.dir("generated/termux")
+val terminalEmulatorClasses = terminalEmulatorClassesDirectory.map { it.file("terminal-emulator.jar") }
+
+val extractTerminalEmulatorClasses = tasks.register<ExtractTermuxClasses>("extractTerminalEmulatorClasses") {
+    sourceAar.from(terminalEmulatorAar)
+    outputJar.set(terminalEmulatorClasses)
+}
+
 android {
     namespace = "sui.k.als"
-    compileSdk= 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
+    buildToolsVersion = "37.0.0"
+    ndkVersion = "30.0.15729638"
     defaultConfig {
         applicationId = "sui.k.als"
         minSdk = 36
@@ -18,10 +67,8 @@ android {
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
+            version = "4.1.2"
         }
-    }
-    packaging {
-        jniLibs.pickFirsts += "**/libtermux.so"
     }
     buildTypes {
         release {
@@ -61,7 +108,7 @@ android {
         compose = true
         buildConfig = false
         resValues = false
-        aidl = false
+        aidl = true
     }
     bundle {
         @Suppress("UnstableApiUsage")
@@ -88,6 +135,11 @@ dependencies {
     implementation(libs.androidx.preference)
     implementation(libs.termux.app) {
         exclude(group = "com.github.termux.termux-app", module = "termux-shared")
+        exclude(group = "com.github.termux.termux-app", module = "terminal-emulator")
     }
+    terminalEmulatorAar(libs.termux.emulator)
+    implementation(files(terminalEmulatorClasses) {
+        builtBy(extractTerminalEmulatorClasses)
+    })
     implementation(libs.guava.listenablefuture)
 }

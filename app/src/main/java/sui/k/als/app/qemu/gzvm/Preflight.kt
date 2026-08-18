@@ -27,11 +27,9 @@ object QemuGzvmPreflight {
 
     private fun verifyFiles(config: QemuGzvmConfig) {
         FileInputStream("$qemuGzvmDir/fw/edk2-aarch64-gzvm.fd").use { }
-        config.diskPath.takeIf { it.isNotBlank() }?.let {
-            RandomAccessFile(it, "rw").use { }
-        }
-        config.isoPath.takeIf { config.cdrom && it.isNotBlank() }?.let {
-            FileInputStream(it).use { }
+        config.diskPaths.filter(String::isNotBlank).forEach { RandomAccessFile(it, "rw").use { } }
+        if (config.cdrom) {
+            config.isoPaths.filter(String::isNotBlank).forEach { FileInputStream(it).use { } }
         }
     }
 

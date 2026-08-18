@@ -6,12 +6,20 @@ import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
 @Composable
 fun QemuGzvm(
     started: Boolean,
-    consoleAvailable: Boolean,
     onCreate: (QemuGzvmConfig) -> Unit,
     onDisplay: () -> Unit,
     onConsole: () -> Unit,
     onStop: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onKeyboardSettingsChange: (Boolean, Boolean) -> Unit
 ) {
-    QemuGzvmScreen(started, consoleAvailable, onCreate, onDisplay, onConsole, onStop, onBack)
+    QemuGzvmScreen(
+        started,
+        onCreate,
+        onDisplay,
+        onConsole,
+        onStop,
+        onBack,
+        onKeyboardSettingsChange
+    )
 }

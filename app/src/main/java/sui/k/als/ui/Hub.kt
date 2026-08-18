@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.termux.terminal.TerminalSession
 import kotlinx.coroutines.delay
@@ -39,7 +40,7 @@ import sui.k.als.agl.AglScreen
 import sui.k.als.app.App
 import sui.k.als.qemu.gunyah.QemuGunyah
 import sui.k.als.qemu.gunyah.QemuGunyahConfigStore
-import sui.k.als.qemu.gunyah.toAglLaunch as toGunyahAglLaunch
+import sui.k.als.app.qemu.gunyah.toAglLaunch as toGunyahAglLaunch
 import sui.k.als.qemu.gzvm.QemuGzvm
 import sui.k.als.qemu.gzvm.toAglLaunch as toGzvmAglLaunch
 import sui.k.als.qemu.kvm.QemuKvm
@@ -176,7 +177,6 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
         )
         Destination.Gunyah -> QemuGunyah(
             started = aglState.active,
-            consoleAvailable = qemuConsole != null,
             onCreate = {
                 val console = createQemuConsole()
                 aglLaunch = it.toGunyahAglLaunch().copy(consolePid = console.session.pid)
@@ -184,13 +184,15 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
                 destination = Destination.Display
             },
             onDisplay = { destination = Destination.Display },
-            onConsole = { destination = Destination.Console },
+            onConsole = { if (qemuConsole == null) createQemuConsole(); destination = Destination.Console },
             onStop = AglRuntime::stop,
-            onBack = { destination = Destination.Backends }
+            onBack = { destination = Destination.Backends },
+            onKeyboardSettingsChange = { hide, soft ->
+                aglLaunch = aglLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
+            }
         )
         Destination.Gzvm -> QemuGzvm(
             started = aglState.active,
-            consoleAvailable = qemuConsole != null,
             onCreate = {
                 val console = createQemuConsole()
                 aglLaunch = it.toGzvmAglLaunch().copy(consolePid = console.session.pid)
@@ -198,13 +200,15 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
                 destination = Destination.Display
             },
             onDisplay = { destination = Destination.Display },
-            onConsole = { destination = Destination.Console },
+            onConsole = { if (qemuConsole == null) createQemuConsole(); destination = Destination.Console },
             onStop = AglRuntime::stop,
-            onBack = { destination = Destination.Backends }
+            onBack = { destination = Destination.Backends },
+            onKeyboardSettingsChange = { hide, soft ->
+                aglLaunch = aglLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
+            }
         )
         Destination.Kvm -> QemuKvm(
             started = aglState.active,
-            consoleAvailable = qemuConsole != null,
             onCreate = {
                 val console = createQemuConsole()
                 aglLaunch = it.toKvmAglLaunch().copy(consolePid = console.session.pid)
@@ -212,9 +216,12 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
                 destination = Destination.Display
             },
             onDisplay = { destination = Destination.Display },
-            onConsole = { destination = Destination.Console },
+            onConsole = { if (qemuConsole == null) createQemuConsole(); destination = Destination.Console },
             onStop = AglRuntime::stop,
-            onBack = { destination = Destination.Backends }
+            onBack = { destination = Destination.Backends },
+            onKeyboardSettingsChange = { hide, soft ->
+                aglLaunch = aglLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
+            }
         )
         Destination.Sessions -> TTYHub(
             sessions = sessions,
@@ -247,9 +254,9 @@ private fun HomeScreen(
         contentAlignment = Alignment.Center
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-            HomeIcon(R.drawable.arrow_forward, "虚拟机", onBackends)
-            HomeIcon(R.drawable.terminal, "终端", onTerminal)
-            HomeIcon(R.drawable.power, "退出", onExit)
+            HomeIcon(R.drawable.arrow_forward, stringResource(R.string.home_virtual_machines), onBackends)
+            HomeIcon(R.drawable.terminal, stringResource(R.string.home_terminal), onTerminal)
+            HomeIcon(R.drawable.power, stringResource(R.string.home_exit), onExit)
         }
     }
 }

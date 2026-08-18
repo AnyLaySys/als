@@ -1,7 +1,9 @@
 package sui.k.als.qemu
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -19,8 +22,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import sui.k.als.R
-import sui.k.als.ui.ALSActionButton
 import sui.k.als.ui.ALSChoiceField
+import sui.k.als.ui.ALSIconAction
 import sui.k.als.ui.ALSPathField
 import sui.k.als.ui.ALSScaffold
 import sui.k.als.ui.ALSSection
@@ -29,27 +32,33 @@ import sui.k.als.ui.ALSTextField
 
 internal data class QemuEditorState(
     val name: String,
-    val isoPath: String?,
-    val diskPath: String,
+    val isoPaths: List<String>,
+    val diskPaths: List<String>,
     val cpuCores: Int,
     val memoryMb: Int,
     val width: Int,
     val height: Int,
-    val cdrom: Boolean?,
+    val cdrom: Boolean,
     val iothread: Boolean?,
     val network: Boolean,
     val tablet: Boolean,
     val keyboard: Boolean,
+    val hideKeyboard: Boolean,
+    val softKeyboard: Boolean,
     val displayDevice: String,
     val audio: Boolean,
     val serial: Boolean,
-    val extraQemuArgs: String
+    val qemuArguments: String
 )
 
 internal sealed interface QemuEditorChange {
     data class Name(val value: String) : QemuEditorChange
-    data class IsoPath(val value: String) : QemuEditorChange
-    data class DiskPath(val value: String) : QemuEditorChange
+    data class IsoPath(val index: Int, val value: String) : QemuEditorChange
+    data class DiskPath(val index: Int, val value: String) : QemuEditorChange
+    data object AddIsoPath : QemuEditorChange
+    data class RemoveIsoPath(val index: Int) : QemuEditorChange
+    data object AddDiskPath : QemuEditorChange
+    data class RemoveDiskPath(val index: Int) : QemuEditorChange
     data class CpuCores(val value: Int) : QemuEditorChange
     data class MemoryMb(val value: Int) : QemuEditorChange
     data class Width(val value: Int) : QemuEditorChange
@@ -59,10 +68,11 @@ internal sealed interface QemuEditorChange {
     data class Network(val value: Boolean) : QemuEditorChange
     data class Tablet(val value: Boolean) : QemuEditorChange
     data class Keyboard(val value: Boolean) : QemuEditorChange
+    data class HideKeyboard(val value: Boolean) : QemuEditorChange
+    data class SoftKeyboard(val value: Boolean) : QemuEditorChange
     data class DisplayDevice(val value: String) : QemuEditorChange
     data class Audio(val value: Boolean) : QemuEditorChange
     data class Serial(val value: Boolean) : QemuEditorChange
-    data class ExtraArgs(val value: String) : QemuEditorChange
 }
 
 @Composable
@@ -70,9 +80,9 @@ internal fun QemuEditor(
     title: String,
     state: QemuEditorState,
     started: Boolean,
-    consoleAvailable: Boolean,
     onChange: (QemuEditorChange) -> Unit,
     deviceCommands: QemuDeviceCommands,
+    onSave: () -> Unit,
     onRun: () -> Unit,
     onDisplay: () -> Unit,
     onConsole: () -> Unit,
@@ -88,17 +98,17 @@ internal fun QemuEditor(
             verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
             item {
-                ALSSection("基本配置") {
-                    ALSTextField("配置名称", state.name) { onChange(QemuEditorChange.Name(it)) }
+                ALSSection(stringResource(R.string.qemu_basic_config)) {
+                    ALSTextField(stringResource(R.string.qemu_config_name), state.name) { onChange(QemuEditorChange.Name(it)) }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         ALSTextField(
-                            "CPU 核心",
+                            stringResource(R.string.qemu_cpu_cores),
                             state.cpuCores.toString(),
                             Modifier.weight(1f),
                             numeric = true
                         ) { value -> value.toIntOrNull()?.let { onChange(QemuEditorChange.CpuCores(it.coerceAtLeast(1))) } }
                         ALSTextField(
-                            "内存 MiB",
+                            stringResource(R.string.qemu_memory_mib),
                             state.memoryMb.toString(),
                             Modifier.weight(1f),
                             numeric = true
@@ -107,39 +117,69 @@ internal fun QemuEditor(
                 }
             }
             item {
-                ALSSection("存储") {
-                    state.cdrom?.let { enabled ->
-                        ALSSwitchRow("启用光盘", deviceCommands.cdrom, enabled) {
-                            onChange(QemuEditorChange.Cdrom(it))
+                ALSSection(stringResource(R.string.qemu_storage)) {
+                    ALSSwitchRow(stringResource(R.string.qemu_cdrom), checked = state.cdrom) {
+                        onChange(QemuEditorChange.Cdrom(it))
+                    }
+                    if (state.cdrom) {
+                        state.isoPaths.forEachIndexed { index, path ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                ALSPathField(
+                                    "${stringResource(R.string.qemu_iso_image)} ${index + 1}",
+                                    path,
+                                    Modifier.weight(1f)
+                                ) { onChange(QemuEditorChange.IsoPath(index, it)) }
+                                if (state.isoPaths.size > 1) {
+                                    ALSIconAction(R.drawable.delete, stringResource(R.string.qemu_remove_cdrom)) {
+                                        onChange(QemuEditorChange.RemoveIsoPath(index))
+                                    }
+                                }
+                            }
+                        }
+                        ALSIconAction(R.drawable.add, stringResource(R.string.qemu_add_cdrom)) {
+                            onChange(QemuEditorChange.AddIsoPath)
                         }
                     }
-                    state.isoPath?.let { path ->
-                        ALSPathField("光盘镜像", path) { onChange(QemuEditorChange.IsoPath(it)) }
+                    state.diskPaths.forEachIndexed { index, path ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ALSPathField(
+                                "${stringResource(R.string.qemu_virtual_disk)} ${index + 1}",
+                                path,
+                                Modifier.weight(1f)
+                            ) { onChange(QemuEditorChange.DiskPath(index, it)) }
+                            if (state.diskPaths.size > 1) {
+                                ALSIconAction(R.drawable.delete, stringResource(R.string.qemu_remove_disk)) {
+                                    onChange(QemuEditorChange.RemoveDiskPath(index))
+                                }
+                            }
+                        }
                     }
-                    ALSPathField("虚拟磁盘", state.diskPath) { onChange(QemuEditorChange.DiskPath(it)) }
+                    ALSIconAction(R.drawable.add, stringResource(R.string.qemu_add_disk)) {
+                        onChange(QemuEditorChange.AddDiskPath)
+                    }
                     state.iothread?.let { enabled ->
-                        ALSSwitchRow("I/O 线程", deviceCommands.iothread, enabled) {
+                        ALSSwitchRow(stringResource(R.string.qemu_iothread), deviceCommands.iothread, enabled) {
                             onChange(QemuEditorChange.Iothread(it))
                         }
                     }
                 }
             }
             item {
-                ALSSection("显示") {
+                ALSSection(stringResource(R.string.qemu_display_section)) {
                     ALSChoiceField(
-                        "显示设备",
+                        stringResource(R.string.qemu_display_device),
                         state.displayDevice,
                         listOf("virtio-gpu", "ramfb", "off")
                     ) { onChange(QemuEditorChange.DisplayDevice(it)) }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         ALSTextField(
-                            "宽度",
+                            stringResource(R.string.qemu_width),
                             state.width.toString(),
                             Modifier.weight(1f),
                             numeric = true
                         ) { value -> value.toIntOrNull()?.let { onChange(QemuEditorChange.Width(it.coerceAtLeast(320))) } }
                         ALSTextField(
-                            "高度",
+                            stringResource(R.string.qemu_height),
                             state.height.toString(),
                             Modifier.weight(1f),
                             numeric = true
@@ -148,33 +188,40 @@ internal fun QemuEditor(
                 }
             }
             item {
-                ALSSection("设备") {
-                    ALSSwitchRow("指针设备", deviceCommands.tablet, state.tablet) {
+                ALSSection(stringResource(R.string.qemu_devices)) {
+                    ALSSwitchRow(stringResource(R.string.qemu_mouse), deviceCommands.tablet, state.tablet) {
                         onChange(QemuEditorChange.Tablet(it))
                     }
-                    ALSSwitchRow("键盘", deviceCommands.keyboard, state.keyboard) {
+                    ALSSwitchRow(stringResource(R.string.qemu_keyboard), deviceCommands.keyboard, state.keyboard) {
                         onChange(QemuEditorChange.Keyboard(it))
                     }
-                    ALSSwitchRow("网络", deviceCommands.network, state.network) {
+                    ALSSwitchRow(stringResource(R.string.qemu_network), deviceCommands.network, state.network) {
                         onChange(QemuEditorChange.Network(it))
                     }
-                    ALSSwitchRow("音频", deviceCommands.audio, state.audio) {
+                    ALSSwitchRow(stringResource(R.string.qemu_audio), deviceCommands.audio, state.audio) {
                         onChange(QemuEditorChange.Audio(it))
                     }
-                    ALSSwitchRow("串口控制台", deviceCommands.serial, state.serial) {
+                    ALSSwitchRow(stringResource(R.string.qemu_serial), deviceCommands.serial, state.serial) {
                         onChange(QemuEditorChange.Serial(it))
                     }
                 }
             }
             item {
-                ALSSection("高级") {
-                    ALSTextField(
-                        label = "附加 QEMU 参数",
-                        value = state.extraQemuArgs,
-                        singleLine = false,
-                        supporting = "参数会追加到自动生成的启动命令末尾",
-                        onValueChange = { onChange(QemuEditorChange.ExtraArgs(it)) }
-                    )
+                ALSSection(stringResource(R.string.qemu_keyboard_settings)) {
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_hide_keyboard),
+                        stringResource(R.string.qemu_hide_keyboard_summary),
+                        state.hideKeyboard
+                    ) {
+                        onChange(QemuEditorChange.HideKeyboard(it))
+                    }
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_soft_keyboard),
+                        stringResource(R.string.qemu_soft_keyboard_summary),
+                        state.softKeyboard
+                    ) {
+                        onChange(QemuEditorChange.SoftKeyboard(it))
+                    }
                 }
             }
             item {
@@ -183,69 +230,98 @@ internal fun QemuEditor(
                         Modifier
                             .fillMaxWidth()
                             .padding(bottom = 9.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
+                        FilledTonalButton(
+                            onClick = onConsole,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(54.dp),
+                            shape = RoundedCornerShape(27.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp)
+                        ) {
+                            Icon(painterResource(R.drawable.terminal), null, Modifier.size(24.dp))
+                            Spacer(Modifier.size(9.dp))
+                            Text(stringResource(R.string.qemu_terminal), maxLines = 1)
+                        }
                         FilledTonalButton(
                             onClick = onDisplay,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(54.dp),
-                            shape = RoundedCornerShape(27.dp)
+                            shape = RoundedCornerShape(27.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp)
                         ) {
                             Icon(painterResource(R.drawable.preview), null, Modifier.size(24.dp))
-                            Text("显示", Modifier.padding(start = 6.dp))
+                            Spacer(Modifier.size(9.dp))
+                            Text(stringResource(R.string.qemu_display), maxLines = 1)
                         }
                         FilledTonalButton(
-                            onClick = onConsole,
+                            onClick = onStop,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(54.dp),
-                            shape = RoundedCornerShape(27.dp)
+                            shape = RoundedCornerShape(27.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            )
                         ) {
-                            Icon(painterResource(R.drawable.terminal), null, Modifier.size(24.dp))
-                            Text(stringResource(R.string.qemu_console), Modifier.padding(start = 6.dp))
+                            Icon(painterResource(R.drawable.power), null, Modifier.size(24.dp))
+                            Spacer(Modifier.size(9.dp))
+                            Text(stringResource(R.string.qemu_power), maxLines = 1)
                         }
-                        ALSActionButton(
-                            "停止",
-                            painterResource(R.drawable.power),
-                            Modifier.weight(1f),
-                            destructive = true,
-                            onClick = onStop
-                        )
                     }
-                } else if (consoleAvailable) {
+                } else {
                     Row(
                         Modifier
                             .fillMaxWidth()
                             .padding(bottom = 9.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        ALSActionButton(
-                            "保存并启动",
-                            painterResource(R.drawable.arrow_forward),
-                            Modifier.weight(1f),
-                            onClick = onRun
-                        )
+                        FilledTonalButton(
+                            onClick = onSave,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(54.dp),
+                            shape = RoundedCornerShape(27.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp)
+                        ) {
+                            Icon(painterResource(R.drawable.save), null, Modifier.size(24.dp))
+                            Spacer(Modifier.size(9.dp))
+                            Text(stringResource(R.string.qemu_save), maxLines = 1)
+                        }
+                        FilledTonalButton(
+                            onClick = onRun,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(54.dp),
+                            shape = RoundedCornerShape(27.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp)
+                        ) {
+                            Icon(painterResource(R.drawable.arrow_forward), null, Modifier.size(24.dp))
+                            Spacer(Modifier.size(9.dp))
+                            Text(stringResource(R.string.qemu_start), maxLines = 1)
+                        }
                         FilledTonalButton(
                             onClick = onConsole,
                             modifier = Modifier
                                 .weight(1f)
                                 .height(54.dp),
-                            shape = RoundedCornerShape(27.dp)
+                            shape = RoundedCornerShape(27.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp)
                         ) {
                             Icon(painterResource(R.drawable.terminal), null, Modifier.size(24.dp))
-                            Text(stringResource(R.string.qemu_console), Modifier.padding(start = 6.dp))
+                            Spacer(Modifier.size(9.dp))
+                            Text(stringResource(R.string.qemu_terminal), maxLines = 1)
                         }
                     }
-                } else {
-                    ALSActionButton(
-                        "保存并启动",
-                        painterResource(R.drawable.arrow_forward),
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 9.dp),
-                        onClick = onRun
-                    )
+                }
+            }
+            item {
+                ALSSection(stringResource(R.string.qemu_arguments)) {
+                    Text(state.qemuArguments, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -253,7 +329,6 @@ internal fun QemuEditor(
 }
 
 internal data class QemuDeviceCommands(
-    val cdrom: String,
     val iothread: String,
     val tablet: String,
     val keyboard: String,

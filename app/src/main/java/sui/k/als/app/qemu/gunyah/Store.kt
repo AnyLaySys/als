@@ -1,10 +1,10 @@
 package sui.k.als.qemu.gunyah
 
-import android.content.*
+import android.content.Context
 import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
 import sui.k.als.app.qemu.gunyah.parseQemuGunyahConfigJson
 import sui.k.als.app.qemu.gunyah.toQemuGunyahJson
-import java.io.*
+import java.io.File
 
 object QemuGunyahConfigStore {
     private var cached: QemuGunyahConfig? = null

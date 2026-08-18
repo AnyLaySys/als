@@ -7,12 +7,20 @@ import sui.k.als.app.qemu.kvm.QemuKvmScreen
 @Composable
 fun QemuKvm(
     started: Boolean,
-    consoleAvailable: Boolean,
     onCreate: (QemuKvmConfig) -> Unit,
     onDisplay: () -> Unit,
     onConsole: () -> Unit,
     onStop: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onKeyboardSettingsChange: (Boolean, Boolean) -> Unit
 ) {
-    QemuKvmScreen(started, consoleAvailable, onCreate, onDisplay, onConsole, onStop, onBack)
+    QemuKvmScreen(
+        started,
+        onCreate,
+        onDisplay,
+        onConsole,
+        onStop,
+        onBack,
+        onKeyboardSettingsChange
+    )
 }

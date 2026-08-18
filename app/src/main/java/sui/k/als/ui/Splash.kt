@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
@@ -45,6 +46,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import sui.k.als.app.qemu.kvm.QemuKvmConfigStore
+import sui.k.als.R
 import sui.k.als.qemu.gunyah.QemuGunyahConfigStore
 import sui.k.als.qemu.gzvm.QemuGzvmConfigStore
 
@@ -117,18 +119,18 @@ fun Splash(onTimeout: () -> Unit) {
                     ) {
                         Image(appIcon, null, Modifier.size(24.dp))
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("设置超级用户命令", style = MaterialTheme.typography.headlineSmall)
+                            Text(stringResource(R.string.su_command_title), style = MaterialTheme.typography.headlineSmall)
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                "未能执行当前 su 命令。请输入设备上可用的命令或完整路径。",
+                                stringResource(R.string.su_command_failed),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
                         }
                         ALSTextField(
-                            label = "su 命令或路径",
+                            label = stringResource(R.string.su_command_path_label),
                             value = inputPath,
-                            supporting = "例如 su、/system/xbin/su 或厂商提供的入口",
+                            supporting = stringResource(R.string.su_command_path_hint),
                             onValueChange = { inputPath = it }
                         )
                         Button(
@@ -140,7 +142,7 @@ fun Splash(onTimeout: () -> Unit) {
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(27.dp)
                         ) {
-                            Text("验证并继续", modifier = Modifier.padding(vertical = 6.dp))
+                            Text(stringResource(R.string.su_command_verify), modifier = Modifier.padding(vertical = 6.dp))
                         }
                     }
                 }

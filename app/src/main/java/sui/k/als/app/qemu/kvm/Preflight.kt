@@ -30,8 +30,9 @@ object QemuKvmPreflight {
         check(File(qemuKvmDir).isDirectory) { "QEMU directory is missing: $qemuKvmDir" }
         check(File("$qemuKvmDir/fw").isDirectory) { "QEMU firmware directory is missing: $qemuKvmDir/fw" }
         FileInputStream("/data/local/tmp/QEMU_EFI.fd").use { }
-        config.diskPath.takeIf { it.isNotBlank() }?.let {
-            RandomAccessFile(it, "rw").use { }
+        config.diskPaths.filter(String::isNotBlank).forEach { RandomAccessFile(it, "rw").use { } }
+        if (config.cdrom) {
+            config.isoPaths.filter(String::isNotBlank).forEach { FileInputStream(it).use { } }
         }
     }
 

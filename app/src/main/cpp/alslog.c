@@ -6,14 +6,17 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 #include <time.h>
 #include <unistd.h>
 
 #define ALSLOG_PATH "/data/local/tmp/als/als.log"
 
 static pthread_mutex_t stdio_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t alslog_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int saved_stdio[3] = {-2, -2, -2};
 static int stdio_redirected;
+static int alslog_fd = -1;
 
 static int duplicate_fd(int fd)
 {
@@ -76,17 +79,40 @@ static void restore_stdio_locked(void)
     stdio_redirected = 0;
 }
 
-static void alslog_write_all(int fd, const char *buffer, size_t length)
+static int alslog_open_locked(void)
 {
-    while (length) {
-        ssize_t written = write(fd, buffer, length);
-
-        if (written <= 0) {
-            return;
-        }
-        buffer += written;
-        length -= written;
+    if (alslog_fd >= 0) {
+        return 0;
     }
+    mkdir("/data/local/tmp/als", 0755);
+    do {
+        alslog_fd = open(ALSLOG_PATH, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
+    } while (alslog_fd < 0 && errno == EINTR);
+    return alslog_fd < 0 ? -1 : 0;
+}
+
+static int alslog_writev_all(int fd, struct iovec *buffers, int count)
+{
+    while (count > 0) {
+        ssize_t written;
+
+        do {
+            written = writev(fd, buffers, count);
+        } while (written < 0 && errno == EINTR);
+        if (written <= 0) {
+            return -1;
+        }
+        while (count > 0 && (size_t) written >= buffers[0].iov_len) {
+            written -= (ssize_t) buffers[0].iov_len;
+            buffers++;
+            count--;
+        }
+        if (count > 0 && written > 0) {
+            buffers[0].iov_base = (char *) buffers[0].iov_base + written;
+            buffers[0].iov_len -= written;
+        }
+    }
+    return 0;
 }
 
 static char alslog_priority(int priority)
@@ -114,24 +140,32 @@ static void alslog_file_logger(const struct __android_log_message *log_message)
     const char *tag = log_message->tag ? log_message->tag : "ALS";
     const char *message = log_message->message ? log_message->message : "";
     struct timespec now;
+    struct iovec buffers[3];
     char prefix[160];
-    int fd;
     int length;
+    size_t prefix_length;
 
-    mkdir("/data/local/tmp/als", 0755);
-    fd = open(ALSLOG_PATH, O_WRONLY | O_CREAT | O_APPEND | O_CLOEXEC, 0644);
-    if (fd >= 0) {
-        clock_gettime(CLOCK_REALTIME, &now);
-        length = snprintf(prefix, sizeof(prefix), "%lld.%03ld %c/%s: ",
-                          (long long) now.tv_sec, now.tv_nsec / 1000000,
-                          alslog_priority(log_message->priority), tag);
-        if (length > 0) {
-            alslog_write_all(fd, prefix, length < sizeof(prefix) ? length : sizeof(prefix) - 1);
+    clock_gettime(CLOCK_REALTIME, &now);
+    length = snprintf(prefix, sizeof(prefix), "%lld.%03ld %c/%s: ",
+                      (long long) now.tv_sec, now.tv_nsec / 1000000,
+                      alslog_priority(log_message->priority), tag);
+    prefix_length = length > 0
+        ? ((size_t) length < sizeof(prefix) ? (size_t) length : sizeof(prefix) - 1)
+        : 0;
+    buffers[0].iov_base = prefix;
+    buffers[0].iov_len = prefix_length;
+    buffers[1].iov_base = (void *) message;
+    buffers[1].iov_len = strlen(message);
+    buffers[2].iov_base = "\n";
+    buffers[2].iov_len = 1;
+    pthread_mutex_lock(&alslog_mutex);
+    if (alslog_open_locked() == 0) {
+        if (alslog_writev_all(alslog_fd, buffers, 3) < 0) {
+            close(alslog_fd);
+            alslog_fd = -1;
         }
-        alslog_write_all(fd, message, strlen(message));
-        alslog_write_all(fd, "\n", 1);
-        close(fd);
     }
+    pthread_mutex_unlock(&alslog_mutex);
     __android_log_logd_logger(log_message);
 }
 

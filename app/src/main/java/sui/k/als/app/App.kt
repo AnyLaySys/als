@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import sui.k.als.R
 import sui.k.als.ui.ALSScaffold
@@ -27,7 +28,7 @@ fun App(
     onQemuGzvm: () -> Unit,
     onQemuKvm: () -> Unit
 ) {
-    ALSScaffold(title = "虚拟机", onBack = onBack) { padding ->
+    ALSScaffold(title = stringResource(R.string.home_virtual_machines), onBack = onBack) { padding ->
         Column(
             Modifier
                 .fillMaxSize()

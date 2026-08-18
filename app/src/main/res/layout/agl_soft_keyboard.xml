@@ -1,0 +1,9 @@
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:layout_gravity="top|end"
+    android:clickable="true"
+    android:contentDescription="@string/agl_soft_keyboard"
+    android:focusable="true"
+    android:padding="12dp"
+    android:src="@drawable/keyboard_alt_24" />

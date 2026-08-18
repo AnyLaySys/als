@@ -50,7 +50,7 @@ object AglRuntime {
         executor.execute {
             val result = runCatching {
                 AglNative.load(value.backend)
-                value.prepare()
+                value.backend.prepare(value.configuration)
             }
             result.onSuccess { prepared ->
                 ALSLog.info(

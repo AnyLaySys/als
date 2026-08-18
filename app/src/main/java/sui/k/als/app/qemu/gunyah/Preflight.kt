@@ -4,6 +4,7 @@ import android.system.Os
 import android.system.OsConstants
 import sui.k.als.agl.AglNative
 import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
+import sui.k.als.app.qemu.gunyah.qemuGunyahDir
 import sui.k.als.log.ALSLog
 import java.io.FileInputStream
 import java.io.RandomAccessFile
@@ -27,11 +28,9 @@ object QemuGunyahPreflight {
 
     private fun verifyFiles(config: QemuGunyahConfig) {
         FileInputStream("$qemuGunyahDir/fw/edk2-aarch64-gunyah.fd").use { }
-        config.diskPath.takeIf { it.isNotBlank() }?.let {
-            RandomAccessFile(it, "rw").use { }
-        }
-        config.isoPath.takeIf { config.cdrom && it.isNotBlank() }?.let {
-            FileInputStream(it).use { }
+        config.diskPaths.filter(String::isNotBlank).forEach { RandomAccessFile(it, "rw").use { } }
+        if (config.cdrom) {
+            config.isoPaths.filter(String::isNotBlank).forEach { FileInputStream(it).use { } }
         }
     }
 

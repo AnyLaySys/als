@@ -1,17 +1,25 @@
 package sui.k.als.qemu.gunyah
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
 
 @Composable
 fun QemuGunyah(
     started: Boolean,
-    consoleAvailable: Boolean,
     onCreate: (QemuGunyahConfig) -> Unit,
     onDisplay: () -> Unit,
     onConsole: () -> Unit,
     onStop: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onKeyboardSettingsChange: (Boolean, Boolean) -> Unit
 ) {
-    QemuGunyahScreen(started, consoleAvailable, onCreate, onDisplay, onConsole, onStop, onBack)
+    QemuGunyahScreen(
+        started,
+        onCreate,
+        onDisplay,
+        onConsole,
+        onStop,
+        onBack,
+        onKeyboardSettingsChange
+    )
 }

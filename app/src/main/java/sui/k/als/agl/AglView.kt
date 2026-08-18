@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.view.KeyEvent
@@ -15,6 +14,9 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.ViewTreeObserver
 import android.view.WindowManager
+import android.view.inputmethod.BaseInputConnection
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -180,6 +182,11 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
         return true
     }
 
+    override fun performClick(): Boolean {
+        super.performClick()
+        return true
+    }
+
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_HOVER_MOVE, MotionEvent.ACTION_MOVE -> {
@@ -199,6 +206,14 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
 
     override fun onResolvePointerIcon(event: MotionEvent, pointerIndex: Int): PointerIcon =
         PointerIcon.getSystemIcon(context, PointerIcon.TYPE_NULL)
+
+    override fun onCheckIsTextEditor(): Boolean = true
+
+    override fun onCreateInputConnection(outAttrs: EditorInfo): InputConnection {
+        outAttrs.inputType = android.text.InputType.TYPE_CLASS_TEXT
+        outAttrs.imeOptions = EditorInfo.IME_ACTION_NONE
+        return BaseInputConnection(this, false)
+    }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         val scanCode = event.scanCode.takeIf { it > 0 } ?: linuxScanCode(keyCode)
@@ -337,9 +352,12 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
 internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val activity = context as? Activity
-    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val portrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
+    val shortSide = minOf(launch.width, launch.height)
+    val longSide = maxOf(launch.width, launch.height)
+    val displayWidth = if (portrait) shortSide else longSide
+    val displayHeight = if (portrait) longSide else shortSide
     DisposableEffect(activity) {
-        val previousOrientation = activity?.requestedOrientation
         val window = activity?.window
         val previousCutoutMode = window?.attributes?.layoutInDisplayCutoutMode
         val hideSystemBars = {
@@ -360,7 +378,6 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
             }
         }
         if (activity != null) {
-            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             hideSystemBars()
             window?.decorView?.viewTreeObserver?.addOnWindowFocusChangeListener(focusListener)
         }
@@ -378,30 +395,9 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
                     }
                 }
             }
-            if (activity != null && previousOrientation != null) {
-                activity.requestedOrientation = previousOrientation
-            }
         }
     }
-    if (!landscape) {
-        Box(
-            modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-            Alignment.Center
-        ) {
-            Card(
-                shape = RoundedCornerShape(27.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-            ) {
-                Column(
-                    Modifier.padding(27.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator()
-                    Text("正在切换到横屏", Modifier.padding(top = 18.dp))
-                }
-            }
-        }
-    } else if (AglRuntime.state == AglRunState.Failed) {
+    if (AglRuntime.state == AglRunState.Failed) {
         Box(
             modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(24.dp),
             Alignment.Center
@@ -428,9 +424,15 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
         }
     } else {
         AndroidView(
-            factory = { AglDisplayView(it).apply { configure(launch.width, launch.height) } },
+            factory = {
+                AglDisplayView(it).apply {
+                    configure(displayWidth, displayHeight, launch.hideKeyboard, launch.softKeyboard)
+                }
+            },
             modifier = modifier.fillMaxSize(),
-            update = { it.configure(launch.width, launch.height) }
+            update = {
+                it.configure(displayWidth, displayHeight, launch.hideKeyboard, launch.softKeyboard)
+            }
         )
     }
 }

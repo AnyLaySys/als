@@ -2,13 +2,13 @@ package sui.k.als.qemu.kvm
 
 import sui.k.als.agl.AglLaunch
 import sui.k.als.agl.AglNativeBackend
-import sui.k.als.agl.AglPreparedLaunch
 import sui.k.als.app.qemu.kvm.QemuKvmConfig
 import sui.k.als.app.qemu.kvm.toQemuKvmDisplayDevice
+import sui.k.als.app.qemu.kvm.toQemuKvmJson
 
 const val qemuKvmDir = "/data/local/tmp/als/qemu-kvm"
 
-fun QemuKvmConfig.qemuMemoryArgument(): String = "${memoryMb}M"
+fun QemuKvmConfig.qemuMemoryArgument(): String = memoryMb.toString() + "M"
 
 fun QemuKvmConfig.qemuDisplayDeviceArgument(
     device: String = displayDevice
@@ -41,12 +41,21 @@ fun QemuKvmConfig.toQemuKvmArgs(): Array<String> {
     if (tablet) {
         args += listOf("-device", "usb-tablet,bus=xhci.0")
     }
-    if (diskPath.isNotBlank()) {
+    diskPaths.filter(String::isNotBlank).forEachIndexed { index, path ->
+        val id = "system$index"
         args += listOf(
             "-drive",
-            "file=$diskPath,if=none,id=system,format=raw,cache=writeback,discard=unmap"
+            "file=$path,if=none,id=$id,format=raw,cache=writeback,discard=unmap"
         )
-        args += listOf("-device", "nvme,drive=system,serial=UBUNTU-DISK")
+        args += listOf("-device", "nvme,drive=$id,serial=UBUNTU-DISK$index")
+    }
+    if (cdrom) isoPaths.filter(String::isNotBlank).forEachIndexed { index, path ->
+        val id = "cd$index"
+        args += listOf(
+            "-drive",
+            "file=$path,if=none,id=$id,media=cdrom,readonly=on,format=raw"
+        )
+        args += listOf("-device", "ide-cd,drive=$id")
     }
     if (network) {
         args += listOf("-netdev", "tap,id=net,ifname=tap0,script=no,downscript=no")
@@ -62,7 +71,6 @@ fun QemuKvmConfig.toQemuKvmArgs(): Array<String> {
     if (serial) {
         args += listOf("-serial", "mon:stdio")
     }
-    args += splitQemuArgs(extraQemuArgs)
     return args.toTypedArray()
 }
 
@@ -71,42 +79,7 @@ internal fun QemuKvmConfig.toAglLaunch() = AglLaunch(
     height = height,
     workDir = qemuKvmDir,
     backend = AglNativeBackend.Kvm,
-    prepare = {
-        AglPreparedLaunch(
-            args = toQemuKvmArgs(),
-            preflight = { QemuKvmPreflight.run(this) }
-        )
-    }
+    configuration = toQemuKvmJson(),
+    hideKeyboard = hideKeyboard,
+    softKeyboard = softKeyboard
 )
-
-private fun splitQemuArgs(value: String): List<String> {
-    val result = ArrayList<String>()
-    val current = StringBuilder()
-    var quote = '\u0000'
-    var escaped = false
-    value.forEach { char ->
-        when {
-            escaped -> {
-                current.append(char)
-                escaped = false
-            }
-            char == '\\' && quote != '\'' -> escaped = true
-            quote != '\u0000' && char == quote -> quote = '\u0000'
-            quote == '\u0000' && (char == '\'' || char == '"') -> quote = char
-            quote == '\u0000' && char.isWhitespace() -> {
-                if (current.isNotEmpty()) {
-                    result += current.toString()
-                    current.clear()
-                }
-            }
-            else -> current.append(char)
-        }
-    }
-    if (escaped) {
-        current.append('\\')
-    }
-    if (current.isNotEmpty()) {
-        result += current.toString()
-    }
-    return result
-}

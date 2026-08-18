@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import sui.k.als.R
 import sui.k.als.ui.ALSScaffold
@@ -34,7 +35,7 @@ fun TTYHub(
     onDelete: (TTYInstance) -> Unit,
     onCreate: () -> Unit
 ) {
-    ALSScaffold(title = "终端会话", onBack = onBack) { padding ->
+    ALSScaffold(title = stringResource(R.string.terminal_sessions), onBack = onBack) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
@@ -60,9 +61,9 @@ fun TTYHub(
                             Modifier.padding(horizontal = 9.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("会话 ${index + 1}", color = Color.White, modifier = Modifier.weight(1f))
+                            Text("${stringResource(R.string.terminal_session)} ${index + 1}", color = Color.White, modifier = Modifier.weight(1f))
                             IconButton(onClick = { onDelete(tty) }) {
-                                Icon(painterResource(R.drawable.delete), "删除", Modifier.size(24.dp), tint = Color.White)
+                                Icon(painterResource(R.drawable.delete), stringResource(R.string.terminal_delete), Modifier.size(24.dp), tint = Color.White)
                             }
                         }
                     }
@@ -75,7 +76,7 @@ fun TTYHub(
                 Alignment.Center
             ) {
                 IconButton(onClick = onCreate) {
-                    Icon(painterResource(R.drawable.add), "新建", Modifier.size(24.dp), tint = Color.White)
+                    Icon(painterResource(R.drawable.add), stringResource(R.string.terminal_new), Modifier.size(24.dp), tint = Color.White)
                 }
             }
         }
