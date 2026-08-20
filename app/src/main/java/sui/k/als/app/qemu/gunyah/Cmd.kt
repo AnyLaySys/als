@@ -12,7 +12,6 @@ fun QemuGunyahConfig.qemuDisplayDeviceArgument(
     device: String = displayDevice
 ): String? = when (device.toQemuGunyahDisplayDevice()) {
     "virtio-gpu" -> "virtio-gpu-gl-pci,xres=$width,yres=$height,venus=on,blob=on,hostmem=256M"
-    "ramfb" -> "ramfb"
     else -> null
 }
 
@@ -20,41 +19,47 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
     val queueCount = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
     val args = mutableListOf(
         "./qemu-system-aarch64",
-        "-M", "virt,confidential-guest-support=prot0",
+        "-M", "virt",
         "-accel", "gunyah",
         "-cpu", "host",
         "-smp", cpuCores.toString(),
-        "-m", qemuMemoryArgument(),
-        "-object", "arm-confidential-guest,id=prot0,swiotlb-size=256M"
+        "-m", qemuMemoryArgument()
     )
     uefiPath.takeIf(String::isNotBlank)?.let { args += listOf("-bios", it) }
     efiVirtioRomPath.takeIf(String::isNotBlank)?.let { rom ->
         File(rom).parent?.let { args += listOf("-L", it) }
     }
-    if (iothread) {
-        args += listOf("-object", "iothread,id=io0")
+    if (disk) {
+        if (iothread) {
+            args += listOf("-object", "iothread,id=io0")
+        }
+        diskPaths.filter(String::isNotBlank).forEachIndexed { index, path ->
+            val id = "dr$index"
+            args += listOf(
+                "-drive",
+                "file=$path,format=raw,if=none,id=$id,media=disk,cache=unsafe,aio=io_uring,discard=unmap"
+            )
+            args += listOf(
+                "-device",
+                "virtio-blk-pci,drive=$id,num-queues=$queueCount${if (iothread) ",iothread=io0" else ""},disable-legacy=on,disable-modern=off${if (index == 0) ",bootindex=1" else ""}"
+            )
+        }
     }
-    diskPaths.filter(String::isNotBlank).forEachIndexed { index, path ->
-        val id = "dr$index"
-        args += listOf(
-            "-drive",
-            "file=$path,format=raw,if=none,id=$id,media=disk,cache=unsafe,aio=io_uring,discard=unmap"
-        )
-        args += listOf(
-            "-device",
-            "virtio-blk-pci,drive=$id,num-queues=$queueCount${if (iothread) ",iothread=io0" else ""},disable-legacy=on,disable-modern=off${if (index == 0) ",bootindex=1" else ""}"
-        )
-    }
-    if (cdrom) isoPaths.filter(String::isNotBlank).forEachIndexed { index, path ->
-        val id = "cd$index"
-        args += listOf(
-            "-drive",
-            "file=$path,format=raw,if=none,id=$id,media=cdrom,readonly=on,cache=unsafe,aio=threads"
-        )
-        args += listOf(
-            "-device",
-            "virtio-blk-pci,drive=$id,num-queues=1${if (iothread) ",iothread=io0" else ""},disable-legacy=on,disable-modern=off"
-        )
+    if (cdrom) {
+        if (iothread) {
+            args += listOf("-object", "iothread,id=io1")
+        }
+        isoPaths.filter(String::isNotBlank).forEachIndexed { index, path ->
+            val id = "cd$index"
+            args += listOf(
+                "-drive",
+                "file=$path,format=raw,if=none,id=$id,media=cdrom,readonly=on,cache=unsafe,aio=threads"
+            )
+            args += listOf(
+                "-device",
+                "virtio-blk-pci,drive=$id,num-queues=1${if (iothread) ",iothread=io1" else ""},disable-legacy=on,disable-modern=off"
+            )
+        }
     }
     if (network) {
         args += listOf("-netdev", "tap,id=usernet,ifname=tap0,script=no,downscript=no")

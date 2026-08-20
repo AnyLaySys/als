@@ -35,13 +35,13 @@
     <string name="qemu_save">Save</string>
     <string name="qemu_serial">Serial</string>
     <string name="qemu_soft_keyboard">Soft keyboard</string>
-    <string name="qemu_soft_keyboard_summary">Show the Android soft keyboard button in AGL</string>
+    <string name="qemu_soft_keyboard_summary">Show soft keyboard button in AGL</string>
     <string name="qemu_start">Start</string>
     <string name="qemu_start_failed">QEMU failed to start</string>
     <string name="qemu_storage">Storage</string>
     <string name="qemu_terminal">Terminal</string>
     <string name="qemu_uefi_path">UEFI path</string>
-    <string name="qemu_virtual_disk">Virtual disk</string>
+    <string name="qemu_disk">Disk</string>
     <string name="qemu_width">Width</string>
     <string name="su_command_failed">Unable to execute the current su command. Please enter a command or full path available on the device.</string>
     <string name="su_command_path_hint">e.g. su, /system/xbin/su or vendor-provided entry</string>

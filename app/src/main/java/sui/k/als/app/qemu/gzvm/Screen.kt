@@ -10,10 +10,10 @@ import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
+import sui.k.als.qemu.gzvm.toQemuGzvmArgs
 import sui.k.als.app.qemu.QemuDeviceCommands
 import sui.k.als.app.qemu.QemuEditor
 import sui.k.als.app.qemu.QemuEditorChange
-import sui.k.als.app.qemu.QemuEditorState
 
 @Composable
 fun QemuGzvmScreen(
@@ -28,9 +28,19 @@ fun QemuGzvmScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var config by remember { mutableStateOf(QemuGzvmConfigStore.load(context)) }
+    val deviceCommands = remember {
+        QemuDeviceCommands(
+            iothread = "-object iothread,id=io0",
+            tablet = "-device virtio-tablet-pci",
+            keyboard = "-device virtio-keyboard-pci",
+            network = "-netdev tap,id=net,ifname=tap0,script=no,downscript=no -device virtio-net-pci,netdev=net",
+            audio = "-audiodev aaudio,id=aa -device virtio-snd-pci,audiodev=aa"
+        )
+    }
+    val qemuArgs = remember(config) { config.toQemuGzvmArgs().joinToString(" ") }
     QemuEditor(
         title = "QEMU GZVM",
-        state = config.editorState,
+        state = config,
         started = started,
         onChange = {
             val updated = config.apply(it)
@@ -40,13 +50,8 @@ fun QemuGzvmScreen(
                 scope.launch(Dispatchers.IO) { QemuGzvmConfigStore.save(context, updated) }
             }
         },
-        deviceCommands = QemuDeviceCommands(
-            iothread = "-object iothread,id=io0",
-            tablet = "-device virtio-tablet-pci",
-            keyboard = "-device virtio-keyboard-pci",
-            network = "-netdev tap,id=net,ifname=tap0,script=no,downscript=no -device virtio-net-pci,netdev=net",
-            audio = "-audiodev aaudio,id=aa -device virtio-snd-pci,audiodev=aa"
-        ),
+        deviceCommands = deviceCommands,
+        qemuArguments = qemuArgs,
         onSave = { scope.launch(Dispatchers.IO) { QemuGzvmConfigStore.save(context, config) } },
         onRun = {
             onCreate(config)
@@ -58,13 +63,6 @@ fun QemuGzvmScreen(
         onBack = onBack
     )
 }
-
-private val QemuGzvmConfig.editorState: QemuEditorState
-    get() = QemuEditorState(
-        name, uefiPath, efiVirtioRomPath, isoPaths, diskPaths, cpuCores, memoryMb, width, height, cdrom, iothread,
-        network, tablet, keyboard, hideKeyboard, softKeyboard, displayDevice, audio, serial,
-        toQemuGzvmArgs().joinToString(" ")
-    )
 
 private fun QemuGzvmConfig.apply(change: QemuEditorChange) = when (change) {
     is QemuEditorChange.Name -> copy(name = change.value)
@@ -83,6 +81,11 @@ private fun QemuGzvmConfig.apply(change: QemuEditorChange) = when (change) {
     is QemuEditorChange.Cdrom -> copy(
         cdrom = change.value,
         isoPaths = if (change.value && isoPaths.isEmpty()) listOf("") else isoPaths
+    )
+    is QemuEditorChange.Disk -> copy(
+        disk = change.value,
+        iothread = if (change.value) iothread else false,
+        diskPaths = if (change.value && diskPaths.all(String::isBlank)) listOf("") else diskPaths
     )
     is QemuEditorChange.Iothread -> copy(iothread = change.value)
     is QemuEditorChange.Network -> copy(network = change.value)

@@ -35,13 +35,13 @@
     <string name="qemu_save">保存</string>
     <string name="qemu_serial">串口</string>
     <string name="qemu_soft_keyboard">软键盘</string>
-    <string name="qemu_soft_keyboard_summary">在 AGL 界面显示 Android 软键盘按钮</string>
+    <string name="qemu_soft_keyboard_summary">在AGL界面显示软键盘按钮</string>
     <string name="qemu_start">启动</string>
     <string name="qemu_start_failed">QEMU 启动失败</string>
     <string name="qemu_storage">存储</string>
     <string name="qemu_terminal">终端</string>
     <string name="qemu_uefi_path">UEFI 路径</string>
-    <string name="qemu_virtual_disk">虚拟磁盘</string>
+    <string name="qemu_disk">磁盘</string>
     <string name="qemu_width">宽度</string>
     <string name="su_command_failed">未能执行当前 su 命令。请输入设备上可用的命令或完整路径。</string>
     <string name="su_command_path_hint">例如 su、/system/xbin/su 或厂商提供的入口</string>

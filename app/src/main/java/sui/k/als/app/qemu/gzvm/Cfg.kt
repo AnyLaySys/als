@@ -1,5 +1,6 @@
 package sui.k.als.app.qemu.gzvm
 
+import sui.k.als.app.qemu.QemuEditorState
 import org.json.JSONObject
 import sui.k.als.app.qemu.QemuResolution
 import sui.k.als.app.qemu.readPaths
@@ -7,33 +8,34 @@ import sui.k.als.app.qemu.toJsonArray
 import sui.k.als.qemu.gzvm.qemuGzvmDir
 
 data class QemuGzvmConfig(
-    val name: String = "Ubuntu 26.10 S2 GNOME",
-    val uefiPath: String = "$qemuGzvmDir/fw/edk2-aarch64-gzvm.fd",
-    val efiVirtioRomPath: String = "$qemuGzvmDir/fw/efi-virtio.rom",
-    val isoPaths: List<String> = emptyList(),
-    val diskPaths: List<String> = listOf(""),
-    val cpuCores: Int = Runtime.getRuntime().availableProcessors().coerceAtLeast(1),
-    val memoryMb: Int = 4352,
-    val width: Int = QemuResolution.width,
-    val height: Int = QemuResolution.height,
-    val cdrom: Boolean = false,
-    val iothread: Boolean = true,
-    val network: Boolean = true,
-    val tablet: Boolean = true,
-    val keyboard: Boolean = true,
-    val hideKeyboard: Boolean = false,
-    val softKeyboard: Boolean = false,
-    val displayDevice: String = "virtio-gpu",
-    val audio: Boolean = true,
-    val serial: Boolean = true,
-)
+    override val name: String = "Ubuntu",
+    override val uefiPath: String = "$qemuGzvmDir/fw/edk2-aarch64-gzvm.fd",
+    override val efiVirtioRomPath: String = "$qemuGzvmDir/fw/efi-virtio.rom",
+    override val isoPaths: List<String> = emptyList(),
+    override val diskPaths: List<String> = listOf(""),
+    override val cpuCores: Int = Runtime.getRuntime().availableProcessors(),
+    override val memoryMb: Int = 4352,
+    override val width: Int = QemuResolution.width,
+    override val height: Int = QemuResolution.height,
+    override val cdrom: Boolean = false,
+    override val disk: Boolean = true,
+    override val iothread: Boolean = true,
+    override val network: Boolean = true,
+    override val tablet: Boolean = true,
+    override val keyboard: Boolean = true,
+    override val hideKeyboard: Boolean = false,
+    override val softKeyboard: Boolean = false,
+    override val displayDevice: String = "virtio-gpu",
+    override val audio: Boolean = true,
+    override val serial: Boolean = true,
+) : QemuEditorState
 
 fun QemuGzvmConfig.toQemuGzvmJson(): String =
     JSONObject().put("schemaVersion", 6).put("name", name).put("uefiPath", uefiPath)
         .put("efiVirtioRomPath", efiVirtioRomPath)
         .put("isoPaths", isoPaths.toJsonArray()).put("diskPaths", diskPaths.toJsonArray()).put("cpuCores", cpuCores)
         .put("memoryMb", memoryMb).put("width", width).put("height", height)
-        .put("cdrom", cdrom).put("iothread", iothread).put("network", network).put("tablet", tablet)
+        .put("cdrom", cdrom).put("disk", disk).put("iothread", iothread).put("network", network).put("tablet", tablet)
         .put("keyboard", keyboard).put("hideKeyboard", hideKeyboard).put("softKeyboard", softKeyboard)
         .put("displayDevice", displayDevice).put("audio", audio)
         .put("serial", serial)
@@ -52,11 +54,12 @@ fun parseQemuGzvmConfigJson(text: String): QemuGzvmConfig {
         efiVirtioRomPath = json.optString("efiVirtioRomPath", base.efiVirtioRomPath),
         isoPaths = json.readPaths("isoPaths", "isoPath", base.isoPaths),
         diskPaths = json.readPaths("diskPaths", "diskPath", base.diskPaths),
-        cpuCores = json.optInt("cpuCores", base.cpuCores).coerceAtLeast(1),
-        memoryMb = json.optInt("memoryMb", base.memoryMb).coerceAtLeast(256),
-        width = (if (version < 2) base.width else json.optInt("width", base.width)).coerceAtLeast(320),
-        height = (if (version < 2) base.height else json.optInt("height", base.height)).coerceAtLeast(200),
+        cpuCores = json.optInt("cpuCores", base.cpuCores),
+        memoryMb = json.optInt("memoryMb", base.memoryMb),
+        width = if (version < 2) base.width else json.optInt("width", base.width),
+        height = if (version < 2) base.height else json.optInt("height", base.height),
         cdrom = json.optBoolean("cdrom", base.cdrom),
+        disk = json.optBoolean("disk", base.disk),
         iothread = json.optBoolean("iothread", base.iothread),
         network = json.optBoolean("network", base.network),
         tablet = json.optBoolean("tablet", base.tablet),

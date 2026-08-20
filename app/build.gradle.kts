@@ -52,10 +52,10 @@ android {
     ndkVersion = "30.0.15729638"
     defaultConfig {
         applicationId = "sui.k.als"
-        minSdk = 36
+        minSdk = 35
         targetSdk = 37
-        versionCode = 18
-        versionName = "26.8.19"
+        versionCode = 19
+        versionName = "26.8.21"
         ndk {
             abiFilters.add("arm64-v8a")
         }
