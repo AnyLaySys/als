@@ -44,10 +44,10 @@
     <string name="qemu_disk">Disk</string>
     <string name="qemu_width">Width</string>
     <string name="su_command_failed">Unable to execute the current su command. Please enter a command or full path available on the device.</string>
-    <string name="su_command_path_hint">e.g. su, /system/xbin/su or vendor-provided entry</string>
+    <string name="su_command_path_hint">e.g. su, /system/xbin/su</string>
     <string name="su_command_path_label">su command or path</string>
     <string name="su_command_title">Set superuser command</string>
-    <string name="su_command_verify">Verify and continue</string>
+    <string name="su_verify">Verify</string>
     <string name="terminal_delete">Delete</string>
     <string name="terminal_new">New</string>
     <string name="terminal_session">Session</string>

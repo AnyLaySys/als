@@ -20,7 +20,7 @@ fun QemuGzvmConfig.qemuDisplayDeviceArgument(
 }
 
 fun QemuGzvmConfig.toQemuGzvmArgs(): Array<String> {
-    val queueCount = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+    val queueCount = Runtime.getRuntime().availableProcessors()
     val args = mutableListOf(
         "./qemu-system-aarch64",
         "-M", "virt",

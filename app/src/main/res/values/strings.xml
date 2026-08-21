@@ -44,10 +44,10 @@
     <string name="qemu_disk">磁盘</string>
     <string name="qemu_width">宽度</string>
     <string name="su_command_failed">未能执行当前 su 命令。请输入设备上可用的命令或完整路径。</string>
-    <string name="su_command_path_hint">例如 su、/system/xbin/su 或厂商提供的入口</string>
+    <string name="su_command_path_hint">例如 su、/system/xbin/su</string>
     <string name="su_command_path_label">su 命令或路径</string>
     <string name="su_command_title">设置超级用户命令</string>
-    <string name="su_command_verify">验证并继续</string>
+    <string name="su_verify">验证</string>
     <string name="terminal_delete">删除</string>
     <string name="terminal_new">新建</string>
     <string name="terminal_session">会话</string>

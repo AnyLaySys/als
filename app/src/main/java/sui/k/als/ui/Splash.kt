@@ -114,7 +114,7 @@ fun Splash(onTimeout: () -> Unit) {
                             }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(27.dp)
                         ) {
                             Text(
-                                stringResource(R.string.su_command_verify),
+                                stringResource(R.string.su_verify),
                                 modifier = Modifier.padding(vertical = 6.dp)
                             )
                         }

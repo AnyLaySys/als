@@ -93,9 +93,13 @@ fun ALSTextField(
     trailing: @Composable (() -> Unit)? = null,
     onValueChange: (String) -> Unit
 ) {
+    var text by remember { mutableStateOf(value) }
+    LaunchedEffect(value) {
+        if (text != value) text = value
+    }
     OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
+        value = text,
+        onValueChange = { text = it; onValueChange(it) },
         label = { Text(label) },
         supportingText = supporting?.let { { Text(it) } },
         placeholder = placeholder?.let { { Text(it) } },
