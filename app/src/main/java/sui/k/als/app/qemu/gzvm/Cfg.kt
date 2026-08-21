@@ -9,8 +9,8 @@ import sui.k.als.qemu.gzvm.qemuGzvmDir
 
 data class QemuGzvmConfig(
     override val name: String = "Ubuntu",
-    override val uefiPath: String = "$qemuGzvmDir/fw/edk2-aarch64-gzvm.fd",
-    override val efiVirtioRomPath: String = "$qemuGzvmDir/fw/efi-virtio.rom",
+    override val uefiPath: String = "$qemuGzvmDir/edk2-aarch64-gzvm.fd",
+    override val efiVirtioRomPath: String = "$qemuGzvmDir/efi-virtio.rom",
     override val isoPaths: List<String> = emptyList(),
     override val diskPaths: List<String> = listOf(""),
     override val cpuCores: Int = Runtime.getRuntime().availableProcessors(),
@@ -26,18 +26,19 @@ data class QemuGzvmConfig(
     override val hideKeyboard: Boolean = false,
     override val softKeyboard: Boolean = false,
     override val displayDevice: String = "virtio-gpu-gl-pci",
-    override val audio: Boolean = true,
+    override val audioOutput: Boolean = true,
+    override val audioInput: Boolean = false,
     override val serial: Boolean = true,
 ) : QemuEditorState
 
 fun QemuGzvmConfig.toQemuGzvmJson(): String =
-    JSONObject().put("schemaVersion", 6).put("name", name).put("uefiPath", uefiPath)
+    JSONObject().put("schemaVersion", 7).put("name", name).put("uefiPath", uefiPath)
         .put("efiVirtioRomPath", efiVirtioRomPath)
         .put("isoPaths", isoPaths.toJsonArray()).put("diskPaths", diskPaths.toJsonArray()).put("cpuCores", cpuCores)
         .put("memMiB", memMiB).put("width", width).put("height", height)
         .put("cdrom", cdrom).put("disk", disk).put("iothread", iothread).put("network", network).put("tablet", tablet)
         .put("keyboard", keyboard).put("hideKeyboard", hideKeyboard).put("softKeyboard", softKeyboard)
-        .put("displayDevice", displayDevice).put("audio", audio)
+        .put("displayDevice", displayDevice).put("audioOutput", audioOutput).put("audioInput", audioInput)
         .put("serial", serial)
         .toString(2)
 
@@ -68,7 +69,8 @@ fun parseQemuGzvmConfigJson(text: String): QemuGzvmConfig {
         softKeyboard = json.optBoolean("softKeyboard", base.softKeyboard),
         displayDevice = json.optString("displayDevice", base.displayDevice)
             .toQemuGzvmDisplayDevice(),
-        audio = json.optBoolean("audio", base.audio),
+        audioOutput = json.optBoolean("audioOutput", json.optBoolean("audio", base.audioOutput)),
+        audioInput = json.optBoolean("audioInput", json.optBoolean("audio", base.audioInput)),
         serial = json.optBoolean("serial", base.serial),
     )
 }

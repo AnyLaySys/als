@@ -1,4 +1,4 @@
-package sui.k.als.agl
+package sui.k.als.vm
 
 import android.os.*
 import android.system.*
@@ -9,30 +9,30 @@ import java.io.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.*
 
-enum class AglRunState {
+enum class VMRunState {
     Idle, Starting, Running, Stopping, Stopped, Failed
 }
 
-object AglRuntime {
+object VMRuntime {
     private val lock = Any()
     private val main = Handler(Looper.getMainLooper())
     private val executor = Executors.newSingleThreadExecutor {
         Thread(it, "qemu-agl")
     }
-    private var launch: AglLaunch? = null
-    private var preparedLaunch: AglPreparedLaunch? = null
+    private var launch: VMLaunch? = null
+    private var preparedLaunch: VMPreparedLaunch? = null
     private var launched = false
-    var state by mutableStateOf(AglRunState.Idle)
+    var state by mutableStateOf(VMRunState.Idle)
         private set
     var failureMessage by mutableStateOf<String?>(null)
         private set
 
-    internal val currentLaunch: AglLaunch?
+    internal val currentLaunch: VMLaunch?
         get() = synchronized(lock) { launch }
 
-    internal fun prepare(value: AglLaunch) {
+    internal fun prepare(value: VMLaunch) {
         val accepted = synchronized(lock) {
-            !launched || state == AglRunState.Stopped || state == AglRunState.Failed
+            !launched || state == VMRunState.Stopped || state == VMRunState.Failed
         }
         if (!accepted) {
             return
@@ -40,11 +40,11 @@ object AglRuntime {
         synchronized(lock) {
             launch = value
             failureMessage = null
-            state = AglRunState.Starting
+            state = VMRunState.Starting
         }
         executor.execute {
             val result = runCatching {
-                AglNative.load(value.backend)
+                VMNative.load(value.backend)
                 value.backend.prepare(value.configuration)
             }
             result.onSuccess { prepared ->
@@ -64,7 +64,7 @@ object AglRuntime {
                 if (retained) {
                     main.post {
                         failureMessage = null
-                        state = AglRunState.Idle
+                        state = VMRunState.Idle
                     }
                 }
             }.onFailure { error ->
@@ -79,7 +79,7 @@ object AglRuntime {
                     launch = value
                 }
                 main.post {
-                    state = AglRunState.Failed
+                    state = VMRunState.Failed
                     failureMessage = error.message ?: error.javaClass.simpleName
                 }
             }
@@ -87,59 +87,77 @@ object AglRuntime {
     }
 
     fun attach(surface: Surface, refreshRate: Float) {
-        val startLaunch: AglLaunch?
-        val startPrepared: AglPreparedLaunch?
+        val startLaunch: VMLaunch?
+        val startPrepared: VMPreparedLaunch?
         val updateSurface: Boolean
         synchronized(lock) {
-            startLaunch = if (!launched && state != AglRunState.Failed) launch else null
+            startLaunch = if (!launched && state != VMRunState.Failed) launch else null
             startPrepared = if (startLaunch != null) preparedLaunch else null
             updateSurface =
-                startLaunch == null && launched && state != AglRunState.Stopped && state != AglRunState.Failed
+                startLaunch == null && launched && state != VMRunState.Stopping &&
+                    state != VMRunState.Stopped && state != VMRunState.Failed
             if (startLaunch != null && startPrepared != null) {
                 launched = true
-                state = AglRunState.Starting
+                state = VMRunState.Starting
             }
         }
         if (startLaunch == null || startPrepared == null) {
             if (updateSurface) {
-                AglNative.setSurface(surface, refreshRate)
+                VMNative.setSurface(surface, refreshRate)
             }
             return
         }
         ALSLog.info("AGL", "Starting ${startLaunch.backend.libraryName}")
         executor.execute {
             val result = runCatching {
-                ALSLog.info("AGL", "Preflight started")
-                startPrepared.preflight()
-                ALSLog.info("AGL", "Preflight passed")
-                awaitConsole(startLaunch.consolePid)
-                val redirectError = AglNative.redirectStdio(startLaunch.consolePid)
-                check(redirectError == 0) {
-                    "QEMU console connection failed: ${Os.strerror(redirectError)}"
-                }
-                val binding = AtomicBoolean(true)
-                val binder = Thread({
-                    val deadline = SystemClock.uptimeMillis() + 270
-                    while (binding.get() && SystemClock.uptimeMillis() < deadline) {
-                        AglNative.rebindOutput(startLaunch.consolePid)
-                        try {
-                            Thread.sleep(3)
-                        } catch (_: InterruptedException) {
-                            return@Thread
-                        }
+                val audioInput = if (
+                    startPrepared.args.any {
+                        it.startsWith("virtio-snd-pci,") && it.contains("input=true")
                     }
-                }, "qemu-console")
+                ) {
+                    VMAudioInput.open()
+                } else {
+                    null
+                }
                 try {
-                    binder.start()
-                    main.post { state = AglRunState.Running }
-                    AglNative.run(
-                        startLaunch.workDir, startPrepared.args, surface, refreshRate
-                    )
+                    ALSLog.info("AGL", "Preflight started")
+                    startPrepared.preflight()
+                    ALSLog.info("AGL", "Preflight passed")
+                    awaitConsole(startLaunch.consolePid)
+                    val redirectError = VMNative.redirectStdio(startLaunch.consolePid)
+                    check(redirectError == 0) {
+                        "QEMU console connection failed: ${Os.strerror(redirectError)}"
+                    }
+                    val binding = AtomicBoolean(true)
+                    val binder = Thread({
+                        val deadline = SystemClock.uptimeMillis() + 270
+                        while (binding.get() && SystemClock.uptimeMillis() < deadline) {
+                            VMNative.rebindOutput(startLaunch.consolePid)
+                            try {
+                                Thread.sleep(3)
+                            } catch (_: InterruptedException) {
+                                return@Thread
+                            }
+                        }
+                    }, "qemu-console")
+                    try {
+                        binder.start()
+                        main.post { state = VMRunState.Running }
+                        VMNative.run(
+                            startLaunch.workDir,
+                            startPrepared.args,
+                            surface,
+                            refreshRate,
+                            audioInput?.readFd ?: -1,
+                        )
+                    } finally {
+                        binding.set(false)
+                        binder.interrupt()
+                        binder.join()
+                        VMNative.restoreStdio()
+                    }
                 } finally {
-                    binding.set(false)
-                    binder.interrupt()
-                    binder.join()
-                    AglNative.restoreStdio()
+                    audioInput?.close()
                 }
             }
             synchronized(lock) {
@@ -154,7 +172,7 @@ object AglRuntime {
                     writeConsole(startLaunch, "QEMU exited with status $status")
                 }
                 main.post {
-                    state = if (status == 0) AglRunState.Stopped else AglRunState.Failed
+                    state = if (status == 0) VMRunState.Stopped else VMRunState.Failed
                     failureMessage = if (status == 0) {
                         null
                     } else {
@@ -168,7 +186,7 @@ object AglRuntime {
                     "QEMU launch failed: ${error.message ?: error.javaClass.simpleName}"
                 )
                 main.post {
-                    state = AglRunState.Failed
+                    state = VMRunState.Failed
                     failureMessage = error.message ?: error.javaClass.simpleName
                 }
             }
@@ -177,50 +195,52 @@ object AglRuntime {
 
     fun detach(refreshRate: Float = 0f) {
         val detach = synchronized(lock) {
-            launched && state != AglRunState.Stopped && state != AglRunState.Failed
+            launched && state != VMRunState.Stopping &&
+                state != VMRunState.Stopped && state != VMRunState.Failed
         }
         if (detach) {
-            AglNative.setSurface(null, refreshRate)
+            VMNative.setSurface(null, refreshRate)
         }
     }
 
     fun stop() {
         val stop = synchronized(lock) {
-            if (!launched || state == AglRunState.Stopped || state == AglRunState.Failed) {
+            if (!launched || state == VMRunState.Stopped || state == VMRunState.Failed) {
                 return
             }
-            state = AglRunState.Stopping
+            state = VMRunState.Stopping
             true
         }
         if (stop) {
             ALSLog.info("AGL", "Stop requested")
-            AglNative.stop()
+            VMNative.setSurface(null, 0f)
+            VMNative.stop()
         }
     }
 
     fun pointer(x: Float, y: Float, buttons: Int) {
         if (active()) {
-            AglNative.pointer(x, y, buttons)
+            VMNative.pointer(x, y, buttons)
         }
     }
 
     fun scroll(x: Float, y: Float) {
         if (active()) {
-            AglNative.scroll(x, y)
+            VMNative.scroll(x, y)
         }
     }
 
     fun key(scanCode: Int, down: Boolean) {
         if (active()) {
-            AglNative.key(scanCode, down)
+            VMNative.key(scanCode, down)
         }
     }
 
     private fun active(): Boolean = synchronized(lock) {
-        launched && state != AglRunState.Stopped && state != AglRunState.Failed
+        launched && state != VMRunState.Stopped && state != VMRunState.Failed
     }
 
-    private fun writeConsole(value: AglLaunch, message: String) {
+    private fun writeConsole(value: VMLaunch, message: String) {
         if (value.consolePid <= 0) {
             return
         }

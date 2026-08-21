@@ -2,7 +2,7 @@ package sui.k.als.qemu.gzvm
 
 import android.system.Os
 import android.system.OsConstants
-import sui.k.als.agl.AglNative
+import sui.k.als.vm.VMNative
 import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
 import sui.k.als.log.ALSLog
 import java.io.FileInputStream
@@ -10,7 +10,7 @@ import java.io.RandomAccessFile
 
 object QemuGzvmPreflight {
     internal fun run(config: QemuGzvmConfig) {
-        val error = AglNative.grantRoot()
+        val error = VMNative.grantRoot()
         check(error == 0) {
             "KernelSU direct root failed: ${Os.strerror(error)} ($error)"
         }

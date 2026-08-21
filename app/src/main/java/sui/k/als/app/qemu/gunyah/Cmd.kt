@@ -1,7 +1,7 @@
 package sui.k.als.app.qemu.gunyah
 
-import sui.k.als.agl.AglLaunch
-import sui.k.als.agl.AglNativeBackend
+import sui.k.als.vm.VMLaunch
+import sui.k.als.vm.VMBackend
 import java.io.File
 
 const val qemuGunyahDir = "/data/local/tmp/als/qemu-gunyah"
@@ -74,9 +74,9 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
     }
     val displayDeviceArgument = qemuDisplayDeviceArgument()
     displayDeviceArgument?.let { args += listOf("-device", it) }
-    if (audio) {
+    if (audioOutput || audioInput) {
         args += listOf("-audiodev", "aaudio,id=aa")
-        args += listOf("-device", "virtio-snd-pci,audiodev=aa")
+        args += listOf("-device", "virtio-snd-pci,audiodev=aa,output=$audioOutput,input=$audioInput")
     }
     args += listOf(
         "-display", if (displayDeviceArgument == null) "none" else "agl"
@@ -87,11 +87,11 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
     return args.toTypedArray()
 }
 
-internal fun QemuGunyahConfig.toAglLaunch() = AglLaunch(
+internal fun QemuGunyahConfig.toAglLaunch() = VMLaunch(
     width = width,
     height = height,
     workDir = qemuGunyahDir,
-    backend = AglNativeBackend.Gunyah,
+    backend = VMBackend.Gunyah,
     configuration = toQemuGunyahJson(),
     hideKeyboard = hideKeyboard,
     softKeyboard = softKeyboard

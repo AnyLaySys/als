@@ -9,7 +9,7 @@ import androidx.compose.ui.*
 import androidx.compose.ui.platform.*
 import com.termux.terminal.*
 import kotlinx.coroutines.*
-import sui.k.als.agl.*
+import sui.k.als.vm.*
 import sui.k.als.app.*
 import sui.k.als.qemu.gunyah.*
 import sui.k.als.qemu.gzvm.*
@@ -27,19 +27,19 @@ private enum class Destination {
 fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val aglState = AglRuntime.state
+    val aglState = VMRuntime.state
     var sessions by remember { mutableStateOf(emptyList<TTYInstance>()) }
     var active by remember { mutableStateOf<TTYInstance?>(null) }
     var qemuConsole by remember { mutableStateOf<TTYInstance?>(null) }
     var destination by remember { mutableStateOf(Destination.Backends) }
     var aglLaunch by remember {
         mutableStateOf(
-            AglRuntime.currentLaunch ?: QemuGunyahConfigStore.load(context).toGunyahAglLaunch()
+            VMRuntime.currentLaunch ?: QemuGunyahConfigStore.load(context).toGunyahAglLaunch()
         )
     }
 
     val close = {
-        AglRuntime.stop()
+        VMRuntime.stop()
         sessions.forEach { it.session.finishIfRunning() }
         qemuConsole?.session?.finishIfRunning()
         sessions = emptyList()
@@ -96,13 +96,13 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
 
     DisposableEffect(Unit) {
         onDispose {
-            AglRuntime.stop()
+            VMRuntime.stop()
             currentSessions.forEach { it.session.finishIfRunning() }
             currentConsole?.session?.finishIfRunning()
         }
     }
     LaunchedEffect(aglState) {
-        if (aglState == AglRunState.Failed && destination == Destination.Display && qemuConsole != null) {
+        if (aglState == VMRunState.Failed && destination == Destination.Display && qemuConsole != null) {
             destination = Destination.Console
         }
     }
@@ -116,13 +116,13 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             }
 
             Destination.Display -> destination = when (aglLaunch.backend) {
-                AglNativeBackend.Gunyah -> Destination.Gunyah
-                AglNativeBackend.Gzvm -> Destination.Gzvm
+                VMBackend.Gunyah -> Destination.Gunyah
+                VMBackend.Gzvm -> Destination.Gzvm
             }
 
             Destination.Console -> destination = when (aglLaunch.backend) {
-                AglNativeBackend.Gunyah -> Destination.Gunyah
-                AglNativeBackend.Gzvm -> Destination.Gzvm
+                VMBackend.Gunyah -> Destination.Gunyah
+                VMBackend.Gzvm -> Destination.Gzvm
             }
         }
     }
@@ -137,7 +137,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             onCreate = {
                 val console = createQemuConsole()
                 aglLaunch = it.toGunyahAglLaunch().copy(consolePid = console.session.pid)
-                AglRuntime.prepare(aglLaunch)
+                VMRuntime.prepare(aglLaunch)
                 destination = Destination.Display
             },
             onDisplay = { destination = Destination.Display },
@@ -146,13 +146,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             },
             onStop = {
                 scope.launch(Dispatchers.IO) {
-                    try {
-                        ProcessBuilder(su, "-c", "pkill -9 -f qemu-system-aarch64")
-                            .redirectErrorStream(true)
-                            .start()
-                            .waitFor()
-                    } catch (_: Exception) {}
-                    AglRuntime.stop()
+                    VMRuntime.stop()
                 }
             },
             onBack = { destination = Destination.Backends },
@@ -165,7 +159,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             onCreate = {
                 val console = createQemuConsole()
                 aglLaunch = it.toGzvmAglLaunch().copy(consolePid = console.session.pid)
-                AglRuntime.prepare(aglLaunch)
+                VMRuntime.prepare(aglLaunch)
                 destination = Destination.Display
             },
             onDisplay = { destination = Destination.Display },
@@ -174,13 +168,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             },
             onStop = {
                 scope.launch(Dispatchers.IO) {
-                    try {
-                        ProcessBuilder(su, "-c", "pkill -9 -f qemu-system-aarch64")
-                            .redirectErrorStream(true)
-                            .start()
-                            .waitFor()
-                    } catch (_: Exception) {}
-                    AglRuntime.stop()
+                    VMRuntime.stop()
                 }
             },
             onBack = { destination = Destination.Backends },
@@ -205,5 +193,5 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
     }
 }
 
-private val AglRunState.active: Boolean
-    get() = this == AglRunState.Starting || this == AglRunState.Running || this == AglRunState.Stopping
+private val VMRunState.active: Boolean
+    get() = this == VMRunState.Starting || this == VMRunState.Running || this == VMRunState.Stopping

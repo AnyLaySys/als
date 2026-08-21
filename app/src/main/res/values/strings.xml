@@ -10,6 +10,8 @@
     <string name="qemu_add_disk">添加磁盘</string>
     <string name="qemu_arguments">QEMU 参数</string>
     <string name="qemu_audio">音频</string>
+    <string name="qemu_audio_input">输入</string>
+    <string name="qemu_audio_output">输出</string>
     <string name="qemu_basic_config">基本配置</string>
     <string name="qemu_cdrom">光盘</string>
     <string name="qemu_config_name">配置名称</string>
@@ -21,11 +23,11 @@
     <string name="qemu_efi_virtio_rom_path">EFI VirtIO ROM 路径</string>
     <string name="qemu_height">高度</string>
     <string name="qemu_hide_keyboard">隐藏键盘</string>
-    <string name="qemu_hide_keyboard_summary">隐藏 AGL 界面的内置键盘</string>
+    <string name="qemu_hide_keyboard_summary">隐藏AGL界面内置键盘</string>
     <string name="qemu_iothread">I/O 线程</string>
     <string name="qemu_iso_image">光盘镜像</string>
     <string name="qemu_keyboard">键盘</string>
-    <string name="qemu_keyboard_settings">键盘设置</string>
+    <string name="qemu_keyboard_settings">键鼠</string>
     <string name="qemu_memory_mib">内存 MiB</string>
     <string name="qemu_mouse">鼠标</string>
     <string name="qemu_network">网络</string>
@@ -35,7 +37,7 @@
     <string name="qemu_save">保存</string>
     <string name="qemu_serial">串口</string>
     <string name="qemu_soft_keyboard">软键盘</string>
-    <string name="qemu_soft_keyboard_summary">在AGL界面显示软键盘按钮</string>
+    <string name="qemu_soft_keyboard_summary">显示软键盘按钮</string>
     <string name="qemu_start">启动</string>
     <string name="qemu_start_failed">QEMU 启动失败</string>
     <string name="qemu_storage">存储</string>

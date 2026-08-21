@@ -10,6 +10,8 @@
     <string name="qemu_add_disk">Add disk</string>
     <string name="qemu_arguments">QEMU arguments</string>
     <string name="qemu_audio">Audio</string>
+    <string name="qemu_audio_input">Input</string>
+    <string name="qemu_audio_output">Output</string>
     <string name="qemu_basic_config">Basic configuration</string>
     <string name="qemu_cdrom">Optical disk</string>
     <string name="qemu_config_name">Configuration name</string>
@@ -25,7 +27,7 @@
     <string name="qemu_iothread">I/O thread</string>
     <string name="qemu_iso_image">Optical image</string>
     <string name="qemu_keyboard">Keyboard</string>
-    <string name="qemu_keyboard_settings">Keyboard settings</string>
+    <string name="qemu_keyboard_settings">Keyboard &amp; mouse</string>
     <string name="qemu_memory_mib">Memory MiB</string>
     <string name="qemu_mouse">Mouse</string>
     <string name="qemu_network">Network</string>
@@ -35,7 +37,7 @@
     <string name="qemu_save">Save</string>
     <string name="qemu_serial">Serial</string>
     <string name="qemu_soft_keyboard">Soft keyboard</string>
-    <string name="qemu_soft_keyboard_summary">Show soft keyboard button in AGL</string>
+    <string name="qemu_soft_keyboard_summary">Show soft keyboard button</string>
     <string name="qemu_start">Start</string>
     <string name="qemu_start_failed">QEMU failed to start</string>
     <string name="qemu_storage">Storage</string>

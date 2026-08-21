@@ -1,13 +1,20 @@
 package sui.k.als.app.qemu
 
+import android.Manifest
+import android.content.Context
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.*
 import androidx.compose.ui.unit.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import sui.k.als.R
 import sui.k.als.ui.*
 
@@ -30,7 +37,8 @@ internal interface QemuEditorState {
     val hideKeyboard: Boolean
     val softKeyboard: Boolean
     val displayDevice: String
-    val audio: Boolean
+    val audioOutput: Boolean
+    val audioInput: Boolean
     val serial: Boolean
 }
 
@@ -57,7 +65,8 @@ internal sealed interface QemuEditorChange {
     data class HideKeyboard(val value: Boolean) : QemuEditorChange
     data class SoftKeyboard(val value: Boolean) : QemuEditorChange
     data class DisplayDevice(val value: String) : QemuEditorChange
-    data class Audio(val value: Boolean) : QemuEditorChange
+    data class AudioOutput(val value: Boolean) : QemuEditorChange
+    data class AudioInput(val value: Boolean) : QemuEditorChange
     data class Serial(val value: Boolean) : QemuEditorChange
 }
 
@@ -211,7 +220,7 @@ internal fun QemuEditor(
                 }
             }
             item {
-                ALSSection(stringResource(R.string.qemu_devices)) {
+                ALSSection(stringResource(R.string.qemu_keyboard_settings)) {
                     ALSSwitchRow(
                         stringResource(R.string.qemu_mouse), deviceCommands.tablet, state.tablet
                     ) {
@@ -225,25 +234,6 @@ internal fun QemuEditor(
                         onChange(QemuEditorChange.Keyboard(it))
                     }
                     ALSSwitchRow(
-                        stringResource(R.string.qemu_network), deviceCommands.network, state.network
-                    ) {
-                        onChange(QemuEditorChange.Network(it))
-                    }
-                    ALSSwitchRow(
-                        stringResource(R.string.qemu_audio), deviceCommands.audio, state.audio
-                    ) {
-                        onChange(QemuEditorChange.Audio(it))
-                    }
-                    ALSSwitchRow(
-                        stringResource(R.string.qemu_serial), deviceCommands.serial, state.serial
-                    ) {
-                        onChange(QemuEditorChange.Serial(it))
-                    }
-                }
-            }
-            item {
-                ALSSection(stringResource(R.string.qemu_keyboard_settings)) {
-                    ALSSwitchRow(
                         stringResource(R.string.qemu_soft_keyboard),
                         stringResource(R.string.qemu_soft_keyboard_summary),
                         state.softKeyboard
@@ -256,6 +246,38 @@ internal fun QemuEditor(
                         state.hideKeyboard
                     ) {
                         onChange(QemuEditorChange.HideKeyboard(it))
+                    }
+                }
+            }
+            item {
+                ALSSection(stringResource(R.string.qemu_audio)) {
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_audio_input),
+                        "output=true,input=true",
+                        state.audioInput
+                    ) {
+                        onChange(QemuEditorChange.AudioInput(it))
+                    }
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_audio_output),
+                        deviceCommands.audio,
+                        state.audioOutput
+                    ) {
+                        onChange(QemuEditorChange.AudioOutput(it))
+                    }
+                }
+            }
+            item {
+                ALSSection(stringResource(R.string.qemu_devices)) {
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_network), deviceCommands.network, state.network
+                    ) {
+                        onChange(QemuEditorChange.Network(it))
+                    }
+                    ALSSwitchRow(
+                        stringResource(R.string.qemu_serial), deviceCommands.serial, state.serial
+                    ) {
+                        onChange(QemuEditorChange.Serial(it))
                     }
                 }
             }
@@ -374,4 +396,76 @@ internal data class QemuDeviceCommands(
     val network: String,
     val audio: String,
     val serial: String = "-serial mon:stdio"
-)
+) {
+    companion object {
+        fun default() = QemuDeviceCommands(
+            iothread = "-object iothread,id=io0",
+            tablet = "-device virtio-tablet-pci",
+            keyboard = "-device virtio-keyboard-pci",
+            network = "-netdev tap,id=net,ifname=tap0,script=no,downscript=no -device virtio-net-pci,netdev=net",
+            audio = "-audiodev aaudio,id=aa -device virtio-snd-pci,audiodev=aa"
+        )
+    }
+}
+
+internal interface QemuConfigStore<T> {
+    fun load(context: Context): T
+    fun save(context: Context, config: T)
+}
+
+@Composable
+internal fun <T : QemuEditorState> QemuConfigScreen(
+    title: String,
+    started: Boolean,
+    store: QemuConfigStore<T>,
+    toArgs: (T) -> Array<String>,
+    applyChange: (T, QemuEditorChange) -> T,
+    onCreate: (T) -> Unit,
+    displayDeviceChoices: List<String>,
+    onDisplay: () -> Unit,
+    onConsole: () -> Unit,
+    onStop: () -> Unit,
+    onBack: () -> Unit,
+    onKeyboardSettingsChange: (Boolean, Boolean) -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var config by remember { mutableStateOf(store.load(context)) }
+    val deviceCommands = remember { QemuDeviceCommands.default() }
+    val qemuArgs = remember(config) { toArgs(config).joinToString(" ") }
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {}
+    QemuEditor(
+        title = title,
+        state = config,
+        started = started,
+        onChange = {
+            val updated = applyChange(config, it)
+            config = updated
+            if (it is QemuEditorChange.HideKeyboard || it is QemuEditorChange.SoftKeyboard) {
+                onKeyboardSettingsChange(updated.hideKeyboard, updated.softKeyboard)
+                scope.launch(Dispatchers.IO) {
+                    runCatching { store.save(context, updated) }
+                }
+            }
+            if (it is QemuEditorChange.AudioInput) {
+                if (it.value) {
+                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            }
+        },
+        deviceCommands = deviceCommands,
+        qemuArguments = qemuArgs,
+        onSave = { scope.launch(Dispatchers.IO) { store.save(context, config) } },
+        onRun = {
+            onCreate(config)
+            scope.launch(Dispatchers.IO) { store.save(context, config) }
+        },
+        onDisplay = onDisplay,
+        onConsole = onConsole,
+        onStop = onStop,
+        onBack = onBack,
+        displayDeviceChoices = displayDeviceChoices
+    )
+}

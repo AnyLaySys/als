@@ -1,19 +1,10 @@
 package sui.k.als.qemu.gzvm
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import sui.k.als.app.qemu.QemuConfigScreen
+import sui.k.als.app.qemu.QemuEditorChange
 import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
 import sui.k.als.qemu.gzvm.toQemuGzvmArgs
-import sui.k.als.app.qemu.QemuDeviceCommands
-import sui.k.als.app.qemu.QemuEditor
-import sui.k.als.app.qemu.QemuEditorChange
 
 @Composable
 fun QemuGzvmScreen(
@@ -25,43 +16,19 @@ fun QemuGzvmScreen(
     onBack: () -> Unit,
     onKeyboardSettingsChange: (Boolean, Boolean) -> Unit
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var config by remember { mutableStateOf(QemuGzvmConfigStore.load(context)) }
-    val deviceCommands = remember {
-        QemuDeviceCommands(
-            iothread = "-object iothread,id=io0",
-            tablet = "-device virtio-tablet-pci",
-            keyboard = "-device virtio-keyboard-pci",
-            network = "-netdev tap,id=net,ifname=tap0,script=no,downscript=no -device virtio-net-pci,netdev=net",
-            audio = "-audiodev aaudio,id=aa -device virtio-snd-pci,audiodev=aa"
-        )
-    }
-    val qemuArgs = remember(config) { config.toQemuGzvmArgs().joinToString(" ") }
-    QemuEditor(
+    QemuConfigScreen(
         title = "QEMU GZVM",
-        state = config,
         started = started,
-        onChange = {
-            val updated = config.apply(it)
-            config = updated
-            if (it is QemuEditorChange.HideKeyboard || it is QemuEditorChange.SoftKeyboard) {
-                onKeyboardSettingsChange(updated.hideKeyboard, updated.softKeyboard)
-                scope.launch(Dispatchers.IO) { QemuGzvmConfigStore.save(context, updated) }
-            }
-        },
-        deviceCommands = deviceCommands,
-        qemuArguments = qemuArgs,
-        onSave = { scope.launch(Dispatchers.IO) { QemuGzvmConfigStore.save(context, config) } },
-        onRun = {
-            onCreate(config)
-            scope.launch(Dispatchers.IO) { QemuGzvmConfigStore.save(context, config) }
-        },
+        store = QemuGzvmConfigStore,
+        toArgs = { it.toQemuGzvmArgs() },
+        applyChange = { config, change -> config.apply(change) },
+        onCreate = onCreate,
+        displayDeviceChoices = listOf("virtio-gpu-gl-pci", "ramfb", "off"),
         onDisplay = onDisplay,
         onConsole = onConsole,
         onStop = onStop,
         onBack = onBack,
-        displayDeviceChoices = listOf("virtio-gpu-gl-pci", "ramfb", "off")
+        onKeyboardSettingsChange = onKeyboardSettingsChange
     )
 }
 
@@ -95,6 +62,7 @@ private fun QemuGzvmConfig.apply(change: QemuEditorChange) = when (change) {
     is QemuEditorChange.HideKeyboard -> copy(hideKeyboard = change.value)
     is QemuEditorChange.SoftKeyboard -> copy(softKeyboard = change.value)
     is QemuEditorChange.DisplayDevice -> copy(displayDevice = change.value)
-    is QemuEditorChange.Audio -> copy(audio = change.value)
+    is QemuEditorChange.AudioOutput -> copy(audioOutput = change.value)
+    is QemuEditorChange.AudioInput -> copy(audioInput = change.value)
     is QemuEditorChange.Serial -> copy(serial = change.value)
 }

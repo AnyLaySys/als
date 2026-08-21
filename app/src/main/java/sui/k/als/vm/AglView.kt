@@ -1,4 +1,4 @@
-package sui.k.als.agl
+package sui.k.als.vm
 
 import android.app.*
 import android.content.*
@@ -50,19 +50,19 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
     override fun surfaceCreated(holder: SurfaceHolder) {
         refreshRate = preferredRefreshRate()
         applyFrameRate(holder.surface)
-        AglRuntime.attach(holder.surface, refreshRate)
+        VMRuntime.attach(holder.surface, refreshRate)
         requestFocus()
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         refreshRate = preferredRefreshRate()
         applyFrameRate(holder.surface)
-        AglRuntime.attach(holder.surface, refreshRate)
+        VMRuntime.attach(holder.surface, refreshRate)
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         releaseKeys()
-        AglRuntime.detach(refreshRate)
+        VMRuntime.detach(refreshRate)
     }
 
     private fun preferredRefreshRate(): Float {
@@ -96,7 +96,7 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
         pointerX = x.coerceIn(0f, bufferWidth.toFloat())
         pointerY = y.coerceIn(0f, bufferHeight.toFloat())
         pointerButtons = buttons
-        AglRuntime.pointer(
+        VMRuntime.pointer(
             pointerX, pointerY, buttons
         )
     }
@@ -126,7 +126,7 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
     }
 
     internal fun scrollPointer(x: Float, y: Float) {
-        AglRuntime.scroll(x, y)
+        VMRuntime.scroll(x, y)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -165,7 +165,7 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
             }
 
             MotionEvent.ACTION_SCROLL -> {
-                AglRuntime.scroll(
+                VMRuntime.scroll(
                     event.getAxisValue(MotionEvent.AXIS_HSCROLL),
                     -event.getAxisValue(MotionEvent.AXIS_VSCROLL)
                 )
@@ -226,16 +226,16 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
         }
         if (down) {
             if (pressedKeys.add(scanCode)) {
-                AglRuntime.key(scanCode, true)
+                VMRuntime.key(scanCode, true)
             }
         } else if (pressedKeys.remove(scanCode)) {
-            AglRuntime.key(scanCode, false)
+            VMRuntime.key(scanCode, false)
         }
         return true
     }
 
     internal fun releaseKeys() {
-        pressedKeys.forEach { AglRuntime.key(it, false) }
+        pressedKeys.forEach { VMRuntime.key(it, false) }
         pressedKeys.clear()
     }
 
@@ -319,7 +319,7 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
 }
 
 @Composable
-internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
+internal fun AglScreen(launch: VMLaunch, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val activity = context as? Activity
     val portrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -354,7 +354,7 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
             window?.decorView?.viewTreeObserver?.addOnWindowFocusChangeListener(focusListener)
         }
         onDispose {
-            AglRuntime.detach()
+            VMRuntime.detach()
             window?.decorView?.viewTreeObserver?.takeIf { it.isAlive }
                 ?.removeOnWindowFocusChangeListener(focusListener)
             if (window != null) {
@@ -370,7 +370,7 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
             }
         }
     }
-    if (AglRuntime.state == AglRunState.Failed) {
+    if (VMRuntime.state == VMRunState.Failed) {
         Box(
             modifier
                 .fillMaxSize()
@@ -388,12 +388,12 @@ internal fun AglScreen(launch: AglLaunch, modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.headlineSmall
                     )
                     Text(
-                        AglRuntime.failureMessage.orEmpty(),
+                        VMRuntime.failureMessage.orEmpty(),
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier
                             .padding(top = 12.dp)
                             .clickable {
-                                val message = AglRuntime.failureMessage.orEmpty()
+                                val message = VMRuntime.failureMessage.orEmpty()
                                 context.getSystemService(ClipboardManager::class.java)
                                     ?.setPrimaryClip(ClipData.newPlainText("QEMU", message))
                             })

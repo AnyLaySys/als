@@ -2,7 +2,7 @@ package sui.k.als.qemu.gunyah
 
 import android.system.Os
 import android.system.OsConstants
-import sui.k.als.agl.AglNative
+import sui.k.als.vm.VMNative
 import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
 import sui.k.als.app.qemu.gunyah.qemuGunyahDir
 import sui.k.als.log.ALSLog
@@ -11,7 +11,7 @@ import java.io.RandomAccessFile
 
 object QemuGunyahPreflight {
     internal fun run(config: QemuGunyahConfig) {
-        val error = AglNative.grantRoot()
+        val error = VMNative.grantRoot()
         check(error == 0) {
             "KernelSU direct root failed: ${Os.strerror(error)} ($error)"
         }

@@ -1,7 +1,7 @@
 package sui.k.als.qemu.gzvm
 
-import sui.k.als.agl.AglLaunch
-import sui.k.als.agl.AglNativeBackend
+import sui.k.als.vm.VMLaunch
+import sui.k.als.vm.VMBackend
 import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
 import sui.k.als.app.qemu.gzvm.toQemuGzvmDisplayDevice
 import sui.k.als.app.qemu.gzvm.toQemuGzvmJson
@@ -77,9 +77,9 @@ fun QemuGzvmConfig.toQemuGzvmArgs(): Array<String> {
     }
     val displayDeviceArgument = qemuDisplayDeviceArgument()
     displayDeviceArgument?.let { args += listOf("-device", it) }
-    if (audio) {
-        args += listOf("-audiodev", "aaudio,id=aa")
-        args += listOf("-device", "virtio-snd-pci,audiodev=aa")
+    if (audioOutput || audioInput) {
+        args += listOf("-audiodev", "aaudio,id=aa,in.fixed-settings=on,in.frequency=48000,in.channels=1,in.format=s16")
+        args += listOf("-device", "virtio-snd-pci,audiodev=aa,output=$audioOutput,input=$audioInput")
     }
     args += listOf(
         "-display", if (displayDeviceArgument == null) "none" else "agl"
@@ -90,11 +90,11 @@ fun QemuGzvmConfig.toQemuGzvmArgs(): Array<String> {
     return args.toTypedArray()
 }
 
-internal fun QemuGzvmConfig.toAglLaunch() = AglLaunch(
+internal fun QemuGzvmConfig.toAglLaunch() = VMLaunch(
     width = width,
     height = height,
     workDir = qemuGzvmDir,
-    backend = AglNativeBackend.Gzvm,
+    backend = VMBackend.Gzvm,
     configuration = toQemuGzvmJson(),
     hideKeyboard = hideKeyboard,
     softKeyboard = softKeyboard
