@@ -9,12 +9,12 @@ import java.io.File
 
 const val qemuGzvmDir = "/data/local/tmp/als/qemu-gzvm"
 
-fun QemuGzvmConfig.qemuMemoryArgument(): String = memoryMb.toString() + "M"
+fun QemuGzvmConfig.qemuMemArgument(): String = memMiB.toString() + "M"
 
 fun QemuGzvmConfig.qemuDisplayDeviceArgument(
     device: String = displayDevice
 ): String? = when (device.toQemuGzvmDisplayDevice()) {
-    "virtio-gpu" -> "virtio-gpu-gl-pci,xres=$width,yres=$height,venus=on,blob=on,hostmem=256M"
+    "virtio-gpu-gl-pci" -> "virtio-gpu-gl-pci,xres=$width,yres=$height,venus=on,blob=on,hostmem=256M"
     "ramfb" -> "ramfb"
     else -> null
 }
@@ -27,7 +27,7 @@ fun QemuGzvmConfig.toQemuGzvmArgs(): Array<String> {
         "-accel", "gzvm",
         "-cpu", "host",
         "-smp", cpuCores.toString(),
-        "-m", qemuMemoryArgument()
+        "-m", qemuMemArgument()
     )
     uefiPath.takeIf(String::isNotBlank)?.let { args += listOf("-bios", it) }
     efiVirtioRomPath.takeIf(String::isNotBlank)?.let { rom ->

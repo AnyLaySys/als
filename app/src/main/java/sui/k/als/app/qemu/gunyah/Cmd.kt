@@ -6,12 +6,12 @@ import java.io.File
 
 const val qemuGunyahDir = "/data/local/tmp/als/qemu-gunyah"
 
-fun QemuGunyahConfig.qemuMemoryArgument(): String = memoryMb.toString() + "M"
+fun QemuGunyahConfig.qemuMemArgument(): String = memMiB.toString() + "M"
 
 fun QemuGunyahConfig.qemuDisplayDeviceArgument(
     device: String = displayDevice
 ): String? = when (device.toQemuGunyahDisplayDevice()) {
-    "virtio-gpu" -> "virtio-gpu-gl-pci,xres=$width,yres=$height"
+    "virtio-gpu-gl-pci" -> "virtio-gpu-gl-pci,xres=$width,yres=$height"
     else -> null
 }
 
@@ -23,7 +23,7 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
         "-accel", "gunyah",
         "-cpu", "host",
         "-smp", cpuCores.toString(),
-        "-m", qemuMemoryArgument(),
+        "-m", qemuMemArgument(),
         "-object", "arm-confidential-guest,id=prot0,swiotlb-size=256M"
     )
     uefiPath.takeIf(String::isNotBlank)?.let { args += listOf("-bios", it) }
@@ -63,8 +63,8 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
         }
     }
     if (network) {
-        args += listOf("-netdev", "tap,id=usernet,ifname=tap0,script=no,downscript=no")
-        args += listOf("-device", "virtio-net-pci,netdev=usernet")
+        args += listOf("-netdev", "tap,id=net,ifname=tap0,script=no,downscript=no")
+        args += listOf("-device", "virtio-net-pci,netdev=net")
     }
     if (tablet) {
         args += listOf("-device", "virtio-tablet-pci")

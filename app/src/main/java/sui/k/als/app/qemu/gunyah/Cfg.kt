@@ -13,7 +13,7 @@ data class QemuGunyahConfig(
     override val isoPaths: List<String> = emptyList(),
     override val diskPaths: List<String> = listOf(""),
     override val cpuCores: Int = Runtime.getRuntime().availableProcessors(),
-    override val memoryMb: Int = 4096,
+    override val memMiB: Int = 4096,
     override val width: Int = QemuResolution.width,
     override val height: Int = QemuResolution.height,
     override val cdrom: Boolean = false,
@@ -24,7 +24,7 @@ data class QemuGunyahConfig(
     override val keyboard: Boolean = true,
     override val hideKeyboard: Boolean = false,
     override val softKeyboard: Boolean = false,
-    override val displayDevice: String = "virtio-gpu",
+    override val displayDevice: String = "virtio-gpu-gl-pci",
     override val audio: Boolean = true,
     override val serial: Boolean = true,
 ) : QemuEditorState
@@ -33,7 +33,7 @@ fun QemuGunyahConfig.toQemuGunyahJson(): String =
     JSONObject().put("schemaVersion", 6).put("name", name).put("uefiPath", uefiPath)
         .put("efiVirtioRomPath", efiVirtioRomPath)
         .put("isoPaths", isoPaths.toJsonArray()).put("diskPaths", diskPaths.toJsonArray()).put("cpuCores", cpuCores)
-        .put("memoryMb", memoryMb).put("width", width).put("height", height)
+        .put("memMiB", memMiB).put("width", width).put("height", height)
         .put("cdrom", cdrom).put("disk", disk).put("iothread", iothread).put("network", network).put("tablet", tablet)
         .put("keyboard", keyboard).put("hideKeyboard", hideKeyboard).put("softKeyboard", softKeyboard)
         .put("displayDevice", displayDevice).put("audio", audio)
@@ -54,7 +54,7 @@ fun parseQemuGunyahConfigJson(text: String): QemuGunyahConfig {
         isoPaths = json.readPaths("isoPaths", "isoPath", base.isoPaths),
         diskPaths = json.readPaths("diskPaths", "diskPath", base.diskPaths),
         cpuCores = json.optInt("cpuCores", base.cpuCores),
-        memoryMb = json.optInt("memoryMb", base.memoryMb),
+        memMiB = json.optInt("memMiB", base.memMiB),
         width = if (version < 2) base.width else json.optInt("width", base.width),
         height = if (version < 2) base.height else json.optInt("height", base.height),
         cdrom = json.optBoolean("cdrom", base.cdrom),
@@ -73,6 +73,6 @@ fun parseQemuGunyahConfigJson(text: String): QemuGunyahConfig {
 }
 
 fun String.toQemuGunyahDisplayDevice(): String = when (this) {
-    "virtio-gpu", "off" -> this
-    else -> "virtio-gpu"
+    "virtio-gpu-gl-pci", "off" -> this
+    else -> "virtio-gpu-gl-pci"
 }

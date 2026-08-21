@@ -33,7 +33,7 @@ fun QemuGunyahScreen(
             iothread = "-object iothread,id=io0",
             tablet = "-device virtio-tablet-pci",
             keyboard = "-device virtio-keyboard-pci",
-            network = "-netdev tap,id=usernet,ifname=tap0,script=no,downscript=no -device virtio-net-pci,netdev=usernet",
+            network = "-netdev tap,id=net,ifname=tap0,script=no,downscript=no -device virtio-net-pci,netdev=net",
             audio = "-audiodev aaudio,id=aa -device virtio-snd-pci,audiodev=aa"
         )
     }
@@ -60,7 +60,8 @@ fun QemuGunyahScreen(
         onDisplay = onDisplay,
         onConsole = onConsole,
         onStop = onStop,
-        onBack = onBack
+        onBack = onBack,
+        displayDeviceChoices = listOf("virtio-gpu-gl-pci", "off")
     )
 }
 
@@ -75,7 +76,7 @@ private fun QemuGunyahConfig.apply(change: QemuEditorChange) = when (change) {
     QemuEditorChange.AddDiskPath -> copy(diskPaths = diskPaths + "")
     is QemuEditorChange.RemoveDiskPath -> copy(diskPaths = diskPaths.toMutableList().also { it.removeAt(change.index) })
     is QemuEditorChange.CpuCores -> copy(cpuCores = change.value)
-    is QemuEditorChange.MemoryMb -> copy(memoryMb = change.value)
+    is QemuEditorChange.MemMiB -> copy(memMiB = change.value)
     is QemuEditorChange.Width -> copy(width = change.value)
     is QemuEditorChange.Height -> copy(height = change.value)
     is QemuEditorChange.Cdrom -> copy(

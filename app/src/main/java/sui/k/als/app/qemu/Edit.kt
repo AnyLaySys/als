@@ -18,7 +18,7 @@ internal interface QemuEditorState {
     val isoPaths: List<String>
     val diskPaths: List<String>
     val cpuCores: Int
-    val memoryMb: Int
+    val memMiB: Int
     val width: Int
     val height: Int
     val cdrom: Boolean
@@ -45,7 +45,7 @@ internal sealed interface QemuEditorChange {
     data object AddDiskPath : QemuEditorChange
     data class RemoveDiskPath(val index: Int) : QemuEditorChange
     data class CpuCores(val value: Int) : QemuEditorChange
-    data class MemoryMb(val value: Int) : QemuEditorChange
+    data class MemMiB(val value: Int) : QemuEditorChange
     data class Width(val value: Int) : QemuEditorChange
     data class Height(val value: Int) : QemuEditorChange
     data class Cdrom(val value: Boolean) : QemuEditorChange
@@ -74,7 +74,8 @@ internal fun QemuEditor(
     onConsole: () -> Unit,
     qemuArguments: String,
     onStop: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    displayDeviceChoices: List<String>
 ) {
     ALSScaffold(title = title, onBack = onBack) { padding ->
         LazyColumn(
@@ -112,12 +113,12 @@ internal fun QemuEditor(
                         }
                         ALSTextField(
                             stringResource(R.string.qemu_memory_mib),
-                            state.memoryMb.toString(),
+                            state.memMiB.toString(),
                             Modifier.weight(1f),
                             numeric = true
                         ) { value ->
                             value.toIntOrNull()
-                                ?.let { onChange(QemuEditorChange.MemoryMb(it)) }
+                                ?.let { onChange(QemuEditorChange.MemMiB(it)) }
                         }
                     }
                 }
@@ -185,7 +186,7 @@ internal fun QemuEditor(
                     ALSChoiceField(
                         stringResource(R.string.qemu_display_device),
                         state.displayDevice,
-                        listOf("virtio-gpu", "ramfb", "off")
+                        displayDeviceChoices
                     ) { onChange(QemuEditorChange.DisplayDevice(it)) }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         ALSTextField(
@@ -267,18 +268,6 @@ internal fun QemuEditor(
                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
                         FilledTonalButton(
-                            onClick = onConsole,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(54.dp),
-                            shape = RoundedCornerShape(27.dp),
-                            contentPadding = PaddingValues(horizontal = 6.dp)
-                        ) {
-                            Icon(painterResource(R.drawable.terminal), null, Modifier.size(24.dp))
-                            Spacer(Modifier.size(9.dp))
-                            Text(stringResource(R.string.qemu_terminal), maxLines = 1)
-                        }
-                        FilledTonalButton(
                             onClick = onDisplay,
                             modifier = Modifier
                                 .weight(1f)
@@ -289,6 +278,18 @@ internal fun QemuEditor(
                             Icon(painterResource(R.drawable.preview), null, Modifier.size(24.dp))
                             Spacer(Modifier.size(9.dp))
                             Text(stringResource(R.string.qemu_display), maxLines = 1)
+                        }
+                        FilledTonalButton(
+                            onClick = onConsole,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(54.dp),
+                            shape = RoundedCornerShape(27.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp)
+                        ) {
+                            Icon(painterResource(R.drawable.terminal), null, Modifier.size(24.dp))
+                            Spacer(Modifier.size(9.dp))
+                            Text(stringResource(R.string.qemu_terminal), maxLines = 1)
                         }
                         FilledTonalButton(
                             onClick = onStop,

@@ -60,7 +60,8 @@ fun QemuGzvmScreen(
         onDisplay = onDisplay,
         onConsole = onConsole,
         onStop = onStop,
-        onBack = onBack
+        onBack = onBack,
+        displayDeviceChoices = listOf("virtio-gpu-gl-pci", "ramfb", "off")
     )
 }
 
@@ -75,7 +76,7 @@ private fun QemuGzvmConfig.apply(change: QemuEditorChange) = when (change) {
     QemuEditorChange.AddDiskPath -> copy(diskPaths = diskPaths + "")
     is QemuEditorChange.RemoveDiskPath -> copy(diskPaths = diskPaths.toMutableList().also { it.removeAt(change.index) })
     is QemuEditorChange.CpuCores -> copy(cpuCores = change.value)
-    is QemuEditorChange.MemoryMb -> copy(memoryMb = change.value)
+    is QemuEditorChange.MemMiB -> copy(memMiB = change.value)
     is QemuEditorChange.Width -> copy(width = change.value)
     is QemuEditorChange.Height -> copy(height = change.value)
     is QemuEditorChange.Cdrom -> copy(

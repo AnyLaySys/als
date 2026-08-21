@@ -144,7 +144,17 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             onConsole = {
                 if (qemuConsole == null) createQemuConsole(); destination = Destination.Console
             },
-            onStop = AglRuntime::stop,
+            onStop = {
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        ProcessBuilder(su, "-c", "pkill -9 -f qemu-system-aarch64")
+                            .redirectErrorStream(true)
+                            .start()
+                            .waitFor()
+                    } catch (_: Exception) {}
+                    AglRuntime.stop()
+                }
+            },
             onBack = { destination = Destination.Backends },
             onKeyboardSettingsChange = { hide, soft ->
                 aglLaunch = aglLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
@@ -162,7 +172,17 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             onConsole = {
                 if (qemuConsole == null) createQemuConsole(); destination = Destination.Console
             },
-            onStop = AglRuntime::stop,
+            onStop = {
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        ProcessBuilder(su, "-c", "pkill -9 -f qemu-system-aarch64")
+                            .redirectErrorStream(true)
+                            .start()
+                            .waitFor()
+                    } catch (_: Exception) {}
+                    AglRuntime.stop()
+                }
+            },
             onBack = { destination = Destination.Backends },
             onKeyboardSettingsChange = { hide, soft ->
                 aglLaunch = aglLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
