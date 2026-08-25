@@ -18,4 +18,5 @@
 -keepclassmembers class * extends android.preference.Preference {
     void onSetInitialValue(boolean, java.lang.Object);
 }
--keep class sui.k.als.agl.AglNative { *; }
+-keep class sui.k.als.vm.VMNative { *; }
+-keep class sui.k.als.vm.AGL { *; }

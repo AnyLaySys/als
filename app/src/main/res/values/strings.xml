@@ -3,7 +3,7 @@
     <string name="action_back">返回</string>
     <string name="action_close">关闭</string>
     <string name="action_expand">展开</string>
-    <string name="agl_soft_keyboard">打开软键盘</string>
+    <string name="vm_keyboard">打开软键盘</string>
     <string name="app_name">ALS</string>
     <string name="qemu_absolute_path">请输入绝对路径</string>
     <string name="qemu_add_cdrom">添加光盘</string>
@@ -23,7 +23,7 @@
     <string name="qemu_efi_virtio_rom_path">EFI VirtIO ROM 路径</string>
     <string name="qemu_height">高度</string>
     <string name="qemu_hide_keyboard">隐藏键盘</string>
-    <string name="qemu_hide_keyboard_summary">隐藏AGL界面内置键盘</string>
+    <string name="qemu_hide_keyboard_summary">隐藏内置虚拟机键盘</string>
     <string name="qemu_iothread">I/O 线程</string>
     <string name="qemu_iso_image">光盘镜像</string>
     <string name="qemu_keyboard">键盘</string>

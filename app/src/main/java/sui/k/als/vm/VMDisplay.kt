@@ -6,11 +6,11 @@ import android.view.inputmethod.*
 import android.widget.*
 import sui.k.als.*
 
-class AglDisplayView(context: Context) : FrameLayout(context) {
-    private val display = AglView(context)
-    private val keyboard = AglKeyboardView(context, display)
+class VMDisplay(context: Context) : FrameLayout(context) {
+    private val display = VMView(context)
+    private val keyboard = VMKeyboard(context, display)
     private val softKeyboardButton =
-        LayoutInflater.from(context).inflate(R.layout.agl_soft_keyboard, this, false) as ImageView
+        LayoutInflater.from(context).inflate(R.layout.vm_keyboard, this, false) as ImageView
 
     init {
         addView(

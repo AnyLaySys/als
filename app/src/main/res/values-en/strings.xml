@@ -3,7 +3,7 @@
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
     <string name="action_expand">Expand</string>
-    <string name="agl_soft_keyboard">Open soft keyboard</string>
+    <string name="vm_keyboard">Open soft keyboard</string>
     <string name="app_name">ALS</string>
     <string name="qemu_absolute_path">Enter an absolute path</string>
     <string name="qemu_add_cdrom">Add optical disk</string>
@@ -23,7 +23,7 @@
     <string name="qemu_efi_virtio_rom_path">EFI VirtIO ROM path</string>
     <string name="qemu_height">Height</string>
     <string name="qemu_hide_keyboard">Hide keyboard</string>
-    <string name="qemu_hide_keyboard_summary">Hide the built-in AGL keyboard</string>
+    <string name="qemu_hide_keyboard_summary">Hide the built-in virtual machine keyboard</string>
     <string name="qemu_iothread">I/O thread</string>
     <string name="qemu_iso_image">Optical image</string>
     <string name="qemu_keyboard">Keyboard</string>

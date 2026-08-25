@@ -14,7 +14,7 @@ fun QemuGzvmConfig.qemuMemArgument(): String = memMiB.toString() + "M"
 fun QemuGzvmConfig.qemuDisplayDeviceArgument(
     device: String = displayDevice
 ): String? = when (device.toQemuGzvmDisplayDevice()) {
-    "virtio-gpu-gl-pci" -> "virtio-gpu-gl-pci,xres=$width,yres=$height,venus=on,blob=on,hostmem=256M"
+    "virtio-gpu-gl-pci" -> "virtio-gpu-gl-pci,xres=$width,yres=$height"
     "ramfb" -> "ramfb"
     else -> null
 }
@@ -77,9 +77,9 @@ fun QemuGzvmConfig.toQemuGzvmArgs(): Array<String> {
     }
     val displayDeviceArgument = qemuDisplayDeviceArgument()
     displayDeviceArgument?.let { args += listOf("-device", it) }
-    if (audioOutput || audioInput) {
+    if (audioOutput) {
         args += listOf("-audiodev", "aaudio,id=aa,in.fixed-settings=on,in.frequency=48000,in.channels=1,in.format=s16")
-        args += listOf("-device", "virtio-snd-pci,audiodev=aa,output=$audioOutput,input=$audioInput")
+        args += listOf("-device", "virtio-snd-pci,audiodev=aa")
     }
     args += listOf(
         "-display", if (displayDeviceArgument == null) "none" else "agl"
@@ -90,7 +90,7 @@ fun QemuGzvmConfig.toQemuGzvmArgs(): Array<String> {
     return args.toTypedArray()
 }
 
-internal fun QemuGzvmConfig.toAglLaunch() = VMLaunch(
+internal fun QemuGzvmConfig.toVMLaunch() = VMLaunch(
     width = width,
     height = height,
     workDir = qemuGzvmDir,

@@ -1,6 +1,7 @@
 package sui.k.als.log
 
 import android.content.*
+import android.os.*
 import java.io.*
 
 internal object ALSLog {
@@ -9,13 +10,15 @@ internal object ALSLog {
     private lateinit var pending: File
     private var installed = false
 
-    fun install(context: Context) {
+    fun install(context: Context, clear: Boolean = true) {
         synchronized(lock) {
             if (installed) {
                 return
             }
-            pending = File(context.filesDir, "als.log.pending")
-            runCatching { File(path).delete() }
+            pending = File(context.filesDir, "als.${Process.myPid()}.log.pending")
+            if (clear) {
+                runCatching { File(path).delete() }
+            }
             pending.delete()
             installed = true
             val previous = Thread.getDefaultUncaughtExceptionHandler()

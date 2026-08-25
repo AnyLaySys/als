@@ -102,6 +102,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_25
     }
     buildFeatures {
+        aidl = true
         compose = true
         buildConfig = false
         resValues = false

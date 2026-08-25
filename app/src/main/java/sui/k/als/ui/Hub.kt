@@ -14,8 +14,8 @@ import sui.k.als.app.*
 import sui.k.als.qemu.gunyah.*
 import sui.k.als.qemu.gzvm.*
 import sui.k.als.tty.*
-import sui.k.als.app.qemu.gunyah.toAglLaunch as toGunyahAglLaunch
-import sui.k.als.qemu.gzvm.toAglLaunch as toGzvmAglLaunch
+import sui.k.als.app.qemu.gunyah.toVMLaunch as toGunyahVMLaunch
+import sui.k.als.qemu.gzvm.toVMLaunch as toGzvmVMLaunch
 
 const val alsDir = "/data/local/tmp/als"
 
@@ -27,14 +27,14 @@ private enum class Destination {
 fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val aglState = VMRuntime.state
+    val vmState = VMRuntime.state
     var sessions by remember { mutableStateOf(emptyList<TTYInstance>()) }
     var active by remember { mutableStateOf<TTYInstance?>(null) }
     var qemuConsole by remember { mutableStateOf<TTYInstance?>(null) }
     var destination by remember { mutableStateOf(Destination.Backends) }
-    var aglLaunch by remember {
+    var vmLaunch by remember {
         mutableStateOf(
-            VMRuntime.currentLaunch ?: QemuGunyahConfigStore.load(context).toGunyahAglLaunch()
+            VMRuntime.currentLaunch ?: QemuGunyahConfigStore.load(context).toGunyahVMLaunch()
         )
     }
 
@@ -101,8 +101,8 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             currentConsole?.session?.finishIfRunning()
         }
     }
-    LaunchedEffect(aglState) {
-        if (aglState == VMRunState.Failed && destination == Destination.Display && qemuConsole != null) {
+    LaunchedEffect(vmState) {
+        if (vmState == VMRunState.Failed && destination == Destination.Display && qemuConsole != null) {
             destination = Destination.Console
         }
     }
@@ -115,12 +115,12 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
                 destination = if (sessions.isEmpty()) Destination.Backends else Destination.Sessions
             }
 
-            Destination.Display -> destination = when (aglLaunch.backend) {
+            Destination.Display -> destination = when (vmLaunch.backend) {
                 VMBackend.Gunyah -> Destination.Gunyah
                 VMBackend.Gzvm -> Destination.Gzvm
             }
 
-            Destination.Console -> destination = when (aglLaunch.backend) {
+            Destination.Console -> destination = when (vmLaunch.backend) {
                 VMBackend.Gunyah -> Destination.Gunyah
                 VMBackend.Gzvm -> Destination.Gzvm
             }
@@ -133,11 +133,11 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             onQemuGzvm = { destination = Destination.Gzvm })
 
         Destination.Gunyah -> QemuGunyah(
-            started = aglState.active,
+            started = vmState.active,
             onCreate = {
                 val console = createQemuConsole()
-                aglLaunch = it.toGunyahAglLaunch().copy(consolePid = console.session.pid)
-                VMRuntime.prepare(aglLaunch)
+                vmLaunch = it.toGunyahVMLaunch().copy(consolePid = console.session.pid)
+                VMRuntime.prepare(vmLaunch)
                 destination = Destination.Display
             },
             onDisplay = { destination = Destination.Display },
@@ -151,15 +151,15 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             },
             onBack = { destination = Destination.Backends },
             onKeyboardSettingsChange = { hide, soft ->
-                aglLaunch = aglLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
+                vmLaunch = vmLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
             })
 
         Destination.Gzvm -> QemuGzvm(
-            started = aglState.active,
+            started = vmState.active,
             onCreate = {
                 val console = createQemuConsole()
-                aglLaunch = it.toGzvmAglLaunch().copy(consolePid = console.session.pid)
-                VMRuntime.prepare(aglLaunch)
+                vmLaunch = it.toGzvmVMLaunch().copy(consolePid = console.session.pid)
+                VMRuntime.prepare(vmLaunch)
                 destination = Destination.Display
             },
             onDisplay = { destination = Destination.Display },
@@ -173,7 +173,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             },
             onBack = { destination = Destination.Backends },
             onKeyboardSettingsChange = { hide, soft ->
-                aglLaunch = aglLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
+                vmLaunch = vmLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
             })
 
         Destination.Sessions -> TTYHub(
@@ -188,7 +188,7 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
         )
 
         Destination.Terminal -> active?.let { TTYScreen(it) { TTYIME() } }
-        Destination.Display -> AglScreen(aglLaunch)
+        Destination.Display -> VMScreen(vmLaunch)
         Destination.Console -> qemuConsole?.let { TTYScreen(it) { TTYIME() } }
     }
 }

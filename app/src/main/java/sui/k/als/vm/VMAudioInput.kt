@@ -13,7 +13,7 @@ internal class VMAudioInput private constructor(
     private val chunk: ByteArray,
 ) : AutoCloseable {
     private val active = AtomicBoolean(true)
-    private val captureThread = Thread(::capture, "qemu-audio-input")
+    private val captureThread = Thread(::capture, "audio-in")
 
     val readFd: Int
         get() = readEnd.fd
@@ -24,7 +24,7 @@ internal class VMAudioInput private constructor(
             "AudioRecord did not enter recording state"
         }
         captureThread.start()
-        ALSLog.info("AGL", "Audio input bridge started: 48000 Hz PCM16 mono")
+        ALSLog.info("VM", "Audio input bridge started: 48000 Hz PCM16 mono")
     }
 
     private fun capture() {
@@ -33,7 +33,7 @@ internal class VMAudioInput private constructor(
             val count = recorder.read(chunk, 0, chunk.size, AudioRecord.READ_BLOCKING)
             if (count <= 0) {
                 if (active.get()) {
-                    ALSLog.error("AGL", "AudioRecord read failed: $count")
+                    ALSLog.error("VM", "AudioRecord read failed: $count")
                 }
                 continue
             }
@@ -41,7 +41,7 @@ internal class VMAudioInput private constructor(
                 Os.write(writeEnd.fileDescriptor, chunk, 0, count)
             } catch (error: ErrnoException) {
                 if (error.errno != OsConstants.EAGAIN && active.get()) {
-                    ALSLog.error("AGL", "Audio input bridge write failed", error)
+                    ALSLog.error("VM", "Audio input bridge write failed", error)
                     return
                 }
             }

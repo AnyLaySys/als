@@ -253,7 +253,7 @@ internal fun QemuEditor(
                 ALSSection(stringResource(R.string.qemu_audio)) {
                     ALSSwitchRow(
                         stringResource(R.string.qemu_audio_input),
-                        "output=true,input=true",
+                        "virtio-snd-pci",
                         state.audioInput
                     ) {
                         onChange(QemuEditorChange.AudioInput(it))
@@ -435,7 +435,12 @@ internal fun <T : QemuEditorState> QemuConfigScreen(
     val qemuArgs = remember(config) { toArgs(config).joinToString(" ") }
     val micPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) {}
+    ) { granted ->
+        if (!granted && config.audioInput) {
+            config = applyChange(config, QemuEditorChange.AudioInput(false))
+            scope.launch(Dispatchers.IO) { runCatching { store.save(context, config) } }
+        }
+    }
     QemuEditor(
         title = title,
         state = config,

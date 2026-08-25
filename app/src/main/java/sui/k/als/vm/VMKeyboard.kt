@@ -13,12 +13,12 @@ import sui.k.als.ui.*
 import java.util.*
 import kotlin.math.*
 
-internal class AglKeyboardView @JvmOverloads constructor(
+internal class VMKeyboard @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
-    private lateinit var display: AglView
+    private lateinit var display: VMView
 
-    internal constructor(context: Context, display: AglView) : this(context) {
+    internal constructor(context: Context, display: VMView) : this(context) {
         this.display = display
     }
 

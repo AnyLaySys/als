@@ -20,7 +20,7 @@ import androidx.compose.ui.viewinterop.*
 import androidx.core.view.*
 import sui.k.als.R
 
-class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
+class VMView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
     private var bufferWidth = 1
     private var bufferHeight = 1
     private var refreshRate = 0f
@@ -319,7 +319,7 @@ class AglView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
 }
 
 @Composable
-internal fun AglScreen(launch: VMLaunch, modifier: Modifier = Modifier) {
+internal fun VMScreen(launch: VMLaunch, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val activity = context as? Activity
     val portrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -402,7 +402,7 @@ internal fun AglScreen(launch: VMLaunch, modifier: Modifier = Modifier) {
         }
     } else {
         AndroidView(factory = {
-            AglDisplayView(it).apply {
+            VMDisplay(it).apply {
                 configure(displayWidth, displayHeight, launch.hideKeyboard, launch.softKeyboard)
             }
         }, modifier = modifier.fillMaxSize(), update = {

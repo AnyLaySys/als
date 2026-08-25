@@ -74,9 +74,9 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
     }
     val displayDeviceArgument = qemuDisplayDeviceArgument()
     displayDeviceArgument?.let { args += listOf("-device", it) }
-    if (audioOutput || audioInput) {
+    if (audioOutput) {
         args += listOf("-audiodev", "aaudio,id=aa")
-        args += listOf("-device", "virtio-snd-pci,audiodev=aa,output=$audioOutput,input=$audioInput")
+        args += listOf("-device", "virtio-snd-pci,audiodev=aa")
     }
     args += listOf(
         "-display", if (displayDeviceArgument == null) "none" else "agl"
@@ -87,7 +87,7 @@ fun QemuGunyahConfig.toQemuGunyahArgs(): Array<String> {
     return args.toTypedArray()
 }
 
-internal fun QemuGunyahConfig.toAglLaunch() = VMLaunch(
+internal fun QemuGunyahConfig.toVMLaunch() = VMLaunch(
     width = width,
     height = height,
     workDir = qemuGunyahDir,

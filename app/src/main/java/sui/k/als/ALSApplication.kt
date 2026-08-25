@@ -7,7 +7,7 @@ class ALSApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        ALSLog.install(this)
+        ALSLog.install(this, Application.getProcessName() == packageName)
     }
 
     companion object {

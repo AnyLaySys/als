@@ -170,7 +170,7 @@ static void alslog_file_logger(const struct __android_log_message *log_message)
 }
 
 JNIEXPORT jint JNICALL
-Java_sui_k_als_agl_AglNative_redirectStdio(JNIEnv *env, jobject object, jint pid)
+Java_sui_k_als_vm_VMNative_redirectStdio(JNIEnv *env, jobject object, jint pid)
 {
     int terminal_fd;
     int error = 0;
@@ -224,7 +224,7 @@ done:
 }
 
 JNIEXPORT jint JNICALL
-Java_sui_k_als_agl_AglNative_rebindOutput(JNIEnv *env, jobject object, jint pid)
+Java_sui_k_als_vm_VMNative_rebindOutput(JNIEnv *env, jobject object, jint pid)
 {
     int terminal_fd;
     int error = 0;
@@ -255,7 +255,7 @@ done:
 }
 
 JNIEXPORT void JNICALL
-Java_sui_k_als_agl_AglNative_restoreStdio(JNIEnv *env, jobject object)
+Java_sui_k_als_vm_VMNative_restoreStdio(JNIEnv *env, jobject object)
 {
     pthread_mutex_lock(&stdio_mutex);
     restore_stdio_locked();
