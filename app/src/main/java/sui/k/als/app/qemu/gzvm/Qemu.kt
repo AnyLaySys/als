@@ -1,7 +1,6 @@
-package sui.k.als.qemu.gzvm
+package sui.k.als.app.qemu.gzvm
 
 import androidx.compose.runtime.Composable
-import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
 
 @Composable
 fun QemuGzvm(

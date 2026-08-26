@@ -1,11 +1,10 @@
 package sui.k.als.app.qemu.gzvm
 
-import sui.k.als.app.qemu.QemuEditorState
+import sui.k.als.app.qemu.vm.QemuEditorState
 import org.json.JSONObject
-import sui.k.als.app.qemu.QemuResolution
-import sui.k.als.app.qemu.readPaths
-import sui.k.als.app.qemu.toJsonArray
-import sui.k.als.qemu.gzvm.qemuGzvmDir
+import sui.k.als.app.qemu.vm.QemuResolution
+import sui.k.als.app.qemu.vm.readPaths
+import sui.k.als.app.qemu.vm.toJsonArray
 
 data class QemuGzvmConfig(
     override val name: String = "Ubuntu",

@@ -1,10 +1,8 @@
-package sui.k.als.qemu.gunyah
+package sui.k.als.app.qemu.gunyah
 
 import androidx.compose.runtime.Composable
-import sui.k.als.app.qemu.QemuConfigScreen
-import sui.k.als.app.qemu.QemuEditorChange
-import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
-import sui.k.als.app.qemu.gunyah.toQemuGunyahArgs
+import sui.k.als.app.qemu.vm.QemuConfigScreen
+import sui.k.als.app.qemu.vm.QemuEditorChange
 
 @Composable
 fun QemuGunyahScreen(

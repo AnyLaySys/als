@@ -1,11 +1,11 @@
-package sui.k.als.vm
+package sui.k.als.app.qemu.vm
 
 import android.app.*
 import android.content.*
 import android.os.*
 import android.system.*
 import android.view.*
-import sui.k.als.log.*
+import sui.k.als.ALSLog
 import java.io.*
 
 class QemuService : Service() {

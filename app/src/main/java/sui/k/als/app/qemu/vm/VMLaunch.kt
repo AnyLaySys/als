@@ -1,11 +1,11 @@
-package sui.k.als.vm
+package sui.k.als.app.qemu.vm
 
 import sui.k.als.app.qemu.gunyah.parseQemuGunyahConfigJson
 import sui.k.als.app.qemu.gunyah.toQemuGunyahArgs
 import sui.k.als.app.qemu.gzvm.parseQemuGzvmConfigJson
-import sui.k.als.qemu.gunyah.QemuGunyahPreflight
-import sui.k.als.qemu.gzvm.QemuGzvmPreflight
-import sui.k.als.qemu.gzvm.toQemuGzvmArgs
+import sui.k.als.app.qemu.gunyah.QemuGunyahPreflight
+import sui.k.als.app.qemu.gzvm.QemuGzvmPreflight
+import sui.k.als.app.qemu.gzvm.toQemuGzvmArgs
 
 internal data class VMLaunch(
     val width: Int,

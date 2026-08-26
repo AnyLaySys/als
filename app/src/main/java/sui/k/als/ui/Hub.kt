@@ -9,13 +9,14 @@ import androidx.compose.ui.*
 import androidx.compose.ui.platform.*
 import com.termux.terminal.*
 import kotlinx.coroutines.*
-import sui.k.als.vm.*
+import sui.k.als.app.qemu.vm.*
 import sui.k.als.app.*
-import sui.k.als.qemu.gunyah.*
-import sui.k.als.qemu.gzvm.*
+import sui.k.als.app.qemu.gunyah.QemuGunyah
+import sui.k.als.app.qemu.gunyah.QemuGunyahConfigStore
+import sui.k.als.app.qemu.gzvm.QemuGzvm
 import sui.k.als.tty.*
 import sui.k.als.app.qemu.gunyah.toVMLaunch as toGunyahVMLaunch
-import sui.k.als.qemu.gzvm.toVMLaunch as toGzvmVMLaunch
+import sui.k.als.app.qemu.gzvm.toVMLaunch as toGzvmVMLaunch
 
 const val alsDir = "/data/local/tmp/als"
 

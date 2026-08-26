@@ -1,10 +1,7 @@
-package sui.k.als.qemu.gunyah
+package sui.k.als.app.qemu.gunyah
 
 import android.content.Context
-import sui.k.als.app.qemu.QemuConfigStore
-import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
-import sui.k.als.app.qemu.gunyah.parseQemuGunyahConfigJson
-import sui.k.als.app.qemu.gunyah.toQemuGunyahJson
+import sui.k.als.app.qemu.vm.QemuConfigStore
 import java.io.File
 
 object QemuGunyahConfigStore : QemuConfigStore<QemuGunyahConfig> {

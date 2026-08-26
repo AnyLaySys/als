@@ -1,7 +1,7 @@
 package sui.k.als.app.qemu.gunyah
 
-import sui.k.als.vm.VMLaunch
-import sui.k.als.vm.VMBackend
+import sui.k.als.app.qemu.vm.VMLaunch
+import sui.k.als.app.qemu.vm.VMBackend
 import java.io.File
 
 const val qemuGunyahDir = "/data/local/tmp/als/qemu-gunyah"

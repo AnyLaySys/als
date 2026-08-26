@@ -1,9 +1,9 @@
-package sui.k.als.vm
+package sui.k.als.app.qemu.vm
 
 import android.media.*
 import android.os.*
 import android.system.*
-import sui.k.als.log.*
+import sui.k.als.ALSLog
 import java.util.concurrent.atomic.*
 
 internal class VMAudioInput private constructor(

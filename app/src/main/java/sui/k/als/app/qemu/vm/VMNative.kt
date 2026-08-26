@@ -1,4 +1,4 @@
-package sui.k.als.vm
+package sui.k.als.app.qemu.vm
 
 internal enum class VMBackend(internal val libraryName: String) {
     Gunyah("qemu-gunyah"), Gzvm("qemu-gzvm")

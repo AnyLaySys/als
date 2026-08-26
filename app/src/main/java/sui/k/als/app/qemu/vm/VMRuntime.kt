@@ -1,11 +1,10 @@
-package sui.k.als.vm
+package sui.k.als.app.qemu.vm
 
 import android.content.*
 import android.os.*
 import android.view.*
 import androidx.compose.runtime.*
 import sui.k.als.*
-import sui.k.als.log.*
 
 enum class VMRunState {
     Idle, Starting, Running, Stopping, Stopped, Failed

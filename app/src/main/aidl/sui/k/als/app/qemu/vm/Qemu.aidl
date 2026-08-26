@@ -1,7 +1,7 @@
-package sui.k.als.vm;
+package sui.k.als.app.qemu.vm;
 
 import android.view.Surface;
-import sui.k.als.vm.QemuCallback;
+import sui.k.als.app.qemu.vm.QemuCallback;
 
 interface Qemu {
     void start(long token, String backend, String workDir, String configuration, int consolePid, in Surface surface, float refreshRate, QemuCallback callback);

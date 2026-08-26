@@ -1,7 +1,6 @@
-package sui.k.als.qemu.gunyah
+package sui.k.als.app.qemu.gunyah
 
 import androidx.compose.runtime.Composable
-import sui.k.als.app.qemu.gunyah.QemuGunyahConfig
 
 @Composable
 fun QemuGunyah(

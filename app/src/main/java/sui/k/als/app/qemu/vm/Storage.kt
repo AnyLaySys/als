@@ -1,4 +1,4 @@
-package sui.k.als.app.qemu
+package sui.k.als.app.qemu.vm
 
 import org.json.*
 

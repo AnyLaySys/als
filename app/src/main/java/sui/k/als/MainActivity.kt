@@ -6,7 +6,6 @@ import androidx.activity.compose.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.*
 import androidx.compose.ui.text.font.*
-import sui.k.als.log.*
 import sui.k.als.ui.*
 
 const val UI_FONT_ASSET = "GoogleSansFlex.ttf"

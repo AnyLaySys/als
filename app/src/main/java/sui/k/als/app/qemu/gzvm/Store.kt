@@ -1,10 +1,7 @@
-package sui.k.als.qemu.gzvm
+package sui.k.als.app.qemu.gzvm
 
 import android.content.Context
-import sui.k.als.app.qemu.QemuConfigStore
-import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
-import sui.k.als.app.qemu.gzvm.parseQemuGzvmConfigJson
-import sui.k.als.app.qemu.gzvm.toQemuGzvmJson
+import sui.k.als.app.qemu.vm.QemuConfigStore
 import java.io.File
 
 object QemuGzvmConfigStore : QemuConfigStore<QemuGzvmConfig> {

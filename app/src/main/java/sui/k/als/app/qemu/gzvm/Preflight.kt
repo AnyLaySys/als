@@ -1,10 +1,9 @@
-package sui.k.als.qemu.gzvm
+package sui.k.als.app.qemu.gzvm
 
 import android.system.Os
 import android.system.OsConstants
-import sui.k.als.vm.VMNative
-import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
-import sui.k.als.log.ALSLog
+import sui.k.als.app.qemu.vm.VMNative
+import sui.k.als.ALSLog
 import java.io.FileInputStream
 import java.io.RandomAccessFile
 

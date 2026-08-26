@@ -1,10 +1,7 @@
-package sui.k.als.qemu.gzvm
+package sui.k.als.app.qemu.gzvm
 
-import sui.k.als.vm.VMLaunch
-import sui.k.als.vm.VMBackend
-import sui.k.als.app.qemu.gzvm.QemuGzvmConfig
-import sui.k.als.app.qemu.gzvm.toQemuGzvmDisplayDevice
-import sui.k.als.app.qemu.gzvm.toQemuGzvmJson
+import sui.k.als.app.qemu.vm.VMLaunch
+import sui.k.als.app.qemu.vm.VMBackend
 import java.io.File
 
 const val qemuGzvmDir = "/data/local/tmp/als/qemu-gzvm"
