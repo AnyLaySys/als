@@ -1,4 +1,4 @@
-package sui.k.als.app.qemu.vm
+﻿package sui.k.als.app.qemu.vm
 
 import android.Manifest
 import android.content.Context
@@ -95,24 +95,24 @@ internal fun QemuEditor(
             verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
             item {
-                ALSSection(stringResource(R.string.qemu_basic_config)) {
-                    ALSTextField(stringResource(R.string.qemu_config_name), state.name) {
+                ALSSection(stringResource(R.string.basic_config)) {
+                    ALSTextField(stringResource(R.string.config_name), state.name) {
                         onChange(
                             QemuEditorChange.Name(it)
                         )
                     }
-                    ALSPathField(stringResource(R.string.qemu_uefi_path), state.uefiPath) {
+                    ALSPathField(stringResource(R.string.uefi_path), state.uefiPath) {
                         onChange(QemuEditorChange.UefiPath(it))
                     }
                     ALSPathField(
-                        stringResource(R.string.qemu_efi_virtio_rom_path),
+                        stringResource(R.string.efi_virtio_rom_path),
                         state.efiVirtioRomPath
                     ) {
                         onChange(QemuEditorChange.EfiVirtioRomPath(it))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         ALSTextField(
-                            stringResource(R.string.qemu_cpu_cores),
+                            stringResource(R.string.cpu_cores),
                             state.cpuCores.toString(),
                             Modifier.weight(1f),
                             numeric = true
@@ -121,7 +121,7 @@ internal fun QemuEditor(
                                 ?.let { onChange(QemuEditorChange.CpuCores(it)) }
                         }
                         ALSTextField(
-                            stringResource(R.string.qemu_memory_mib),
+                            stringResource(R.string.memory_mib),
                             state.memMiB.toString(),
                             Modifier.weight(1f),
                             numeric = true
@@ -133,73 +133,73 @@ internal fun QemuEditor(
                 }
             }
             item {
-                ALSSection(stringResource(R.string.qemu_storage)) {
-                    ALSSwitchRow(stringResource(R.string.qemu_cdrom), checked = state.cdrom) {
+                ALSSection(stringResource(R.string.storage)) {
+                    ALSSwitchRow(stringResource(R.string.cdrom), checked = state.cdrom) {
                         onChange(QemuEditorChange.Cdrom(it))
                     }
                     if (state.cdrom) {
                         state.isoPaths.forEachIndexed { index, path ->
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 ALSPathField(
-                                    "${stringResource(R.string.qemu_iso_image)} ${index + 1}",
+                                    "${stringResource(R.string.iso_image)} ${index + 1}",
                                     path,
                                     Modifier.weight(1f)
                                 ) { onChange(QemuEditorChange.IsoPath(index, it)) }
                                 if (state.isoPaths.size > 1) {
                                     ALSIconAction(
                                         R.drawable.delete,
-                                        stringResource(R.string.qemu_remove_cdrom)
+                                        stringResource(R.string.remove_cdrom)
                                     ) {
                                         onChange(QemuEditorChange.RemoveIsoPath(index))
                                     }
                                 }
                             }
                         }
-                        ALSIconAction(R.drawable.add, stringResource(R.string.qemu_add_cdrom)) {
+                        ALSIconAction(R.drawable.add, stringResource(R.string.add_cdrom)) {
                             onChange(QemuEditorChange.AddIsoPath)
                         }
                     }
-                    ALSSwitchRow(stringResource(R.string.qemu_disk), checked = state.disk) {
+                    ALSSwitchRow(stringResource(R.string.disk), checked = state.disk) {
                         onChange(QemuEditorChange.Disk(it))
                     }
                     if (state.disk) {
                         state.diskPaths.forEachIndexed { index, path ->
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 ALSPathField(
-                                    "${stringResource(R.string.qemu_disk)} ${index + 1}",
+                                    "${stringResource(R.string.disk)} ${index + 1}",
                                     path,
                                     Modifier.weight(1f)
                                 ) { onChange(QemuEditorChange.DiskPath(index, it)) }
                                 if (state.diskPaths.size > 1) {
                                     ALSIconAction(
-                                        R.drawable.delete, stringResource(R.string.qemu_remove_disk)
+                                        R.drawable.delete, stringResource(R.string.remove_disk)
                                     ) {
                                         onChange(QemuEditorChange.RemoveDiskPath(index))
                                     }
                                 }
                             }
                         }
-                        ALSIconAction(R.drawable.add, stringResource(R.string.qemu_add_disk)) {
+                        ALSIconAction(R.drawable.add, stringResource(R.string.add_disk)) {
                             onChange(QemuEditorChange.AddDiskPath)
                         }
                     }
                     ALSSwitchRow(
-                        stringResource(R.string.qemu_iothread), deviceCommands.iothread, state.iothread
+                        stringResource(R.string.iothread), deviceCommands.iothread, state.iothread
                     ) {
                         onChange(QemuEditorChange.Iothread(it))
                     }
                 }
             }
             item {
-                ALSSection(stringResource(R.string.qemu_display_section)) {
+                ALSSection(stringResource(R.string.display_section)) {
                     ALSChoiceField(
-                        stringResource(R.string.qemu_display_device),
+                        stringResource(R.string.display_device),
                         state.displayDevice,
                         displayDeviceChoices
                     ) { onChange(QemuEditorChange.DisplayDevice(it)) }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         ALSTextField(
-                            stringResource(R.string.qemu_width),
+                            stringResource(R.string.width),
                             state.width.toString(),
                             Modifier.weight(1f),
                             numeric = true
@@ -208,7 +208,7 @@ internal fun QemuEditor(
                                 ?.let { onChange(QemuEditorChange.Width(it)) }
                         }
                         ALSTextField(
-                            stringResource(R.string.qemu_height),
+                            stringResource(R.string.height),
                             state.height.toString(),
                             Modifier.weight(1f),
                             numeric = true
@@ -220,29 +220,29 @@ internal fun QemuEditor(
                 }
             }
             item {
-                ALSSection(stringResource(R.string.qemu_keyboard_settings)) {
+                ALSSection(stringResource(R.string.keyboard_settings)) {
                     ALSSwitchRow(
-                        stringResource(R.string.qemu_mouse), deviceCommands.tablet, state.tablet
+                        stringResource(R.string.mouse), deviceCommands.tablet, state.tablet
                     ) {
                         onChange(QemuEditorChange.Tablet(it))
                     }
                     ALSSwitchRow(
-                        stringResource(R.string.qemu_keyboard),
+                        stringResource(R.string.keyboard),
                         deviceCommands.keyboard,
                         state.keyboard
                     ) {
                         onChange(QemuEditorChange.Keyboard(it))
                     }
                     ALSSwitchRow(
-                        stringResource(R.string.qemu_soft_keyboard),
-                        stringResource(R.string.qemu_soft_keyboard_summary),
+                        stringResource(R.string.soft_keyboard),
+                        stringResource(R.string.soft_keyboard_summary),
                         state.softKeyboard
                     ) {
                         onChange(QemuEditorChange.SoftKeyboard(it))
                     }
                     ALSSwitchRow(
-                        stringResource(R.string.qemu_hide_keyboard),
-                        stringResource(R.string.qemu_hide_keyboard_summary),
+                        stringResource(R.string.hide_keyboard),
+                        stringResource(R.string.hide_builtin_keyboard),
                         state.hideKeyboard
                     ) {
                         onChange(QemuEditorChange.HideKeyboard(it))
@@ -250,16 +250,16 @@ internal fun QemuEditor(
                 }
             }
             item {
-                ALSSection(stringResource(R.string.qemu_audio)) {
+                ALSSection(stringResource(R.string.audio)) {
                     ALSSwitchRow(
-                        stringResource(R.string.qemu_audio_input),
+                        stringResource(R.string.audio_input),
                         "virtio-snd-pci",
                         state.audioInput
                     ) {
                         onChange(QemuEditorChange.AudioInput(it))
                     }
                     ALSSwitchRow(
-                        stringResource(R.string.qemu_audio_output),
+                        stringResource(R.string.audio_output),
                         deviceCommands.audio,
                         state.audioOutput
                     ) {
@@ -268,14 +268,14 @@ internal fun QemuEditor(
                 }
             }
             item {
-                ALSSection(stringResource(R.string.qemu_devices)) {
+                ALSSection(stringResource(R.string.devices)) {
                     ALSSwitchRow(
-                        stringResource(R.string.qemu_network), deviceCommands.network, state.network
+                        stringResource(R.string.network), deviceCommands.network, state.network
                     ) {
                         onChange(QemuEditorChange.Network(it))
                     }
                     ALSSwitchRow(
-                        stringResource(R.string.qemu_serial), deviceCommands.serial, state.serial
+                        stringResource(R.string.serial), deviceCommands.serial, state.serial
                     ) {
                         onChange(QemuEditorChange.Serial(it))
                     }
@@ -299,7 +299,7 @@ internal fun QemuEditor(
                         ) {
                             Icon(painterResource(R.drawable.preview), null, Modifier.size(24.dp))
                             Spacer(Modifier.size(9.dp))
-                            Text(stringResource(R.string.qemu_display), maxLines = 1)
+                            Text(stringResource(R.string.display), maxLines = 1)
                         }
                         FilledTonalButton(
                             onClick = onConsole,
@@ -311,7 +311,7 @@ internal fun QemuEditor(
                         ) {
                             Icon(painterResource(R.drawable.terminal), null, Modifier.size(24.dp))
                             Spacer(Modifier.size(9.dp))
-                            Text(stringResource(R.string.qemu_terminal), maxLines = 1)
+                            Text(stringResource(R.string.terminal), maxLines = 1)
                         }
                         FilledTonalButton(
                             onClick = onStop,
@@ -327,7 +327,7 @@ internal fun QemuEditor(
                         ) {
                             Icon(painterResource(R.drawable.power), null, Modifier.size(24.dp))
                             Spacer(Modifier.size(9.dp))
-                            Text(stringResource(R.string.qemu_power), maxLines = 1)
+                            Text(stringResource(R.string.power), maxLines = 1)
                         }
                     }
                 } else {
@@ -347,7 +347,7 @@ internal fun QemuEditor(
                         ) {
                             Icon(painterResource(R.drawable.save), null, Modifier.size(24.dp))
                             Spacer(Modifier.size(9.dp))
-                            Text(stringResource(R.string.qemu_save), maxLines = 1)
+                            Text(stringResource(R.string.save), maxLines = 1)
                         }
                         FilledTonalButton(
                             onClick = onRun,
@@ -363,7 +363,7 @@ internal fun QemuEditor(
                                 Modifier.size(24.dp)
                             )
                             Spacer(Modifier.size(9.dp))
-                            Text(stringResource(R.string.qemu_start), maxLines = 1)
+                            Text(stringResource(R.string.start), maxLines = 1)
                         }
                         FilledTonalButton(
                             onClick = onConsole,
@@ -375,7 +375,7 @@ internal fun QemuEditor(
                         ) {
                             Icon(painterResource(R.drawable.terminal), null, Modifier.size(24.dp))
                             Spacer(Modifier.size(9.dp))
-                            Text(stringResource(R.string.qemu_terminal), maxLines = 1)
+                            Text(stringResource(R.string.terminal), maxLines = 1)
                         }
                     }
                 }
@@ -474,3 +474,4 @@ internal fun <T : QemuEditorState> QemuConfigScreen(
         displayDeviceChoices = displayDeviceChoices
     )
 }
+

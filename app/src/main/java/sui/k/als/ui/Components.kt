@@ -1,4 +1,4 @@
-package sui.k.als.ui
+﻿package sui.k.als.ui
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -197,7 +197,7 @@ fun ALSPathField(
         label = label,
         value = value,
         modifier = modifier,
-        placeholder = stringResource(R.string.qemu_absolute_path),
+        placeholder = stringResource(R.string.absolute_path),
         onValueChange = onValueChange
     )
 }
