@@ -1,4 +1,4 @@
-package sui.k.als.qemu.vm
+﻿package sui.k.als.qemu.vm
 
 import android.app.*
 import android.content.*
@@ -410,4 +410,3 @@ internal fun VMScreen(launch: VMLaunch, modifier: Modifier = Modifier) {
         })
     }
 }
-

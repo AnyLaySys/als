@@ -18,8 +18,7 @@ static int saved_stdio[3] = {-2, -2, -2};
 static int stdio_redirected;
 static int log_fd = -1;
 
-static int duplicate_fd(int fd)
-{
+static int duplicate_fd(int fd) {
     int result;
 
     do {
@@ -34,8 +33,7 @@ static int duplicate_fd(int fd)
     return result;
 }
 
-static int open_terminal(jint pid)
-{
+static int open_terminal(jint pid) {
     char path[64];
     int terminal_fd;
 
@@ -59,8 +57,7 @@ static int open_terminal(jint pid)
     return terminal_fd;
 }
 
-static void restore_stdio_locked(void)
-{
+static void restore_stdio_locked(void) {
     int index;
 
     if (!stdio_redirected) {
@@ -79,8 +76,7 @@ static void restore_stdio_locked(void)
     stdio_redirected = 0;
 }
 
-static int log_open_locked(void)
-{
+static int log_open_locked(void) {
     if (log_fd >= 0) {
         return 0;
     }
@@ -91,8 +87,7 @@ static int log_open_locked(void)
     return log_fd < 0 ? -1 : 0;
 }
 
-static int log_writev_all(int fd, struct iovec *buffers, int count)
-{
+static int log_writev_all(int fd, struct iovec *buffers, int count) {
     while (count > 0) {
         ssize_t written;
 
@@ -115,28 +110,26 @@ static int log_writev_all(int fd, struct iovec *buffers, int count)
     return 0;
 }
 
-static char log_priority(int priority)
-{
+static char log_priority(int priority) {
     switch (priority) {
-    case ANDROID_LOG_VERBOSE:
-        return 'V';
-    case ANDROID_LOG_DEBUG:
-        return 'D';
-    case ANDROID_LOG_INFO:
-        return 'I';
-    case ANDROID_LOG_WARN:
-        return 'W';
-    case ANDROID_LOG_ERROR:
-        return 'E';
-    case ANDROID_LOG_FATAL:
-        return 'F';
-    default:
-        return '?';
+        case ANDROID_LOG_VERBOSE:
+            return 'V';
+        case ANDROID_LOG_DEBUG:
+            return 'D';
+        case ANDROID_LOG_INFO:
+            return 'I';
+        case ANDROID_LOG_WARN:
+            return 'W';
+        case ANDROID_LOG_ERROR:
+            return 'E';
+        case ANDROID_LOG_FATAL:
+            return 'F';
+        default:
+            return '?';
     }
 }
 
-static void log_file_logger(const struct __android_log_message *log_message)
-{
+static void log_file_logger(const struct __android_log_message *log_message) {
     const char *tag = log_message->tag ? log_message->tag : "ALS";
     const char *message = log_message->message ? log_message->message : "";
     struct timespec now;
@@ -146,12 +139,11 @@ static void log_file_logger(const struct __android_log_message *log_message)
     size_t prefix_length;
 
     clock_gettime(CLOCK_REALTIME, &now);
-    length = snprintf(prefix, sizeof(prefix), "%lld.%03ld %c/%s: ",
-                      (long long) now.tv_sec, now.tv_nsec / 1000000,
-                      log_priority(log_message->priority), tag);
-    prefix_length = length > 0
-        ? ((size_t) length < sizeof(prefix) ? (size_t) length : sizeof(prefix) - 1)
-        : 0;
+    length = snprintf(prefix, sizeof(prefix), "%lld.%03ld %c/%s: ", (long long) now.tv_sec,
+                      now.tv_nsec / 1000000, log_priority(log_message->priority), tag);
+    prefix_length =
+            length > 0 ? ((size_t) length < sizeof(prefix) ? (size_t) length : sizeof(prefix) - 1)
+                       : 0;
     buffers[0].iov_base = prefix;
     buffers[0].iov_len = prefix_length;
     buffers[1].iov_base = (void *) message;
@@ -170,8 +162,7 @@ static void log_file_logger(const struct __android_log_message *log_message)
 }
 
 JNIEXPORT jint JNICALL
-Java_sui_k_als_qemu_vm_VMNative_redirectStdio(JNIEnv *env, jobject object, jint pid)
-{
+Java_sui_k_als_qemu_vm_VMNative_redirectStdio(JNIEnv *env, jobject object, jint pid) {
     int terminal_fd;
     int error = 0;
     int index;
@@ -218,14 +209,13 @@ Java_sui_k_als_qemu_vm_VMNative_redirectStdio(JNIEnv *env, jobject object, jint 
     }
     close(terminal_fd);
 
-done:
+    done:
     pthread_mutex_unlock(&stdio_mutex);
     return error;
 }
 
 JNIEXPORT jint JNICALL
-Java_sui_k_als_qemu_vm_VMNative_rebindOutput(JNIEnv *env, jobject object, jint pid)
-{
+Java_sui_k_als_qemu_vm_VMNative_rebindOutput(JNIEnv *env, jobject object, jint pid) {
     int terminal_fd;
     int error = 0;
     int target;
@@ -249,21 +239,19 @@ Java_sui_k_als_qemu_vm_VMNative_rebindOutput(JNIEnv *env, jobject object, jint p
     }
     close(terminal_fd);
 
-done:
+    done:
     pthread_mutex_unlock(&stdio_mutex);
     return error;
 }
 
 JNIEXPORT void JNICALL
-Java_sui_k_als_qemu_vm_VMNative_restoreStdio(JNIEnv *env, jobject object)
-{
+Java_sui_k_als_qemu_vm_VMNative_restoreStdio(JNIEnv *env, jobject object) {
     pthread_mutex_lock(&stdio_mutex);
     restore_stdio_locked();
     pthread_mutex_unlock(&stdio_mutex);
 }
 
-JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
-{
+JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
     __android_log_set_minimum_priority(ANDROID_LOG_VERBOSE);
     __android_log_set_logger(log_file_logger);
     return JNI_VERSION_1_6;

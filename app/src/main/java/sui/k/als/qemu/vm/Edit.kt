@@ -1,20 +1,19 @@
-package sui.k.als.qemu.vm
+﻿package sui.k.als.qemu.vm
 
-import android.Manifest
-import android.content.Context
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.*
+import android.content.*
+import androidx.activity.compose.*
+import androidx.activity.result.contract.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.*
 import androidx.compose.ui.unit.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import sui.k.als.R
 import sui.k.als.ui.*
 
@@ -105,8 +104,7 @@ internal fun QemuEditor(
                         onChange(QemuEditorChange.UefiPath(it))
                     }
                     ALSPathField(
-                        stringResource(R.string.efi_virtio_rom_path),
-                        state.efiVirtioRomPath
+                        stringResource(R.string.efi_virtio_rom_path), state.efiVirtioRomPath
                     ) {
                         onChange(QemuEditorChange.EfiVirtioRomPath(it))
                     }
@@ -117,8 +115,7 @@ internal fun QemuEditor(
                             Modifier.weight(1f),
                             numeric = true
                         ) { value ->
-                            value.toIntOrNull()
-                                ?.let { onChange(QemuEditorChange.CpuCores(it)) }
+                            value.toIntOrNull()?.let { onChange(QemuEditorChange.CpuCores(it)) }
                         }
                         ALSTextField(
                             stringResource(R.string.memory_mib),
@@ -126,8 +123,7 @@ internal fun QemuEditor(
                             Modifier.weight(1f),
                             numeric = true
                         ) { value ->
-                            value.toIntOrNull()
-                                ?.let { onChange(QemuEditorChange.MemMiB(it)) }
+                            value.toIntOrNull()?.let { onChange(QemuEditorChange.MemMiB(it)) }
                         }
                     }
                 }
@@ -147,8 +143,7 @@ internal fun QemuEditor(
                                 ) { onChange(QemuEditorChange.IsoPath(index, it)) }
                                 if (state.isoPaths.size > 1) {
                                     ALSIconAction(
-                                        R.drawable.delete,
-                                        stringResource(R.string.remove_cdrom)
+                                        R.drawable.delete, stringResource(R.string.remove_cdrom)
                                     ) {
                                         onChange(QemuEditorChange.RemoveIsoPath(index))
                                     }
@@ -204,8 +199,7 @@ internal fun QemuEditor(
                             Modifier.weight(1f),
                             numeric = true
                         ) { value ->
-                            value.toIntOrNull()
-                                ?.let { onChange(QemuEditorChange.Width(it)) }
+                            value.toIntOrNull()?.let { onChange(QemuEditorChange.Width(it)) }
                         }
                         ALSTextField(
                             stringResource(R.string.height),
@@ -213,8 +207,7 @@ internal fun QemuEditor(
                             Modifier.weight(1f),
                             numeric = true
                         ) { value ->
-                            value.toIntOrNull()
-                                ?.let { onChange(QemuEditorChange.Height(it)) }
+                            value.toIntOrNull()?.let { onChange(QemuEditorChange.Height(it)) }
                         }
                     }
                 }
@@ -227,9 +220,7 @@ internal fun QemuEditor(
                         onChange(QemuEditorChange.Tablet(it))
                     }
                     ALSSwitchRow(
-                        stringResource(R.string.keyboard),
-                        deviceCommands.keyboard,
-                        state.keyboard
+                        stringResource(R.string.keyboard), deviceCommands.keyboard, state.keyboard
                     ) {
                         onChange(QemuEditorChange.Keyboard(it))
                     }
@@ -252,9 +243,7 @@ internal fun QemuEditor(
             item {
                 ALSSection(stringResource(R.string.audio)) {
                     ALSSwitchRow(
-                        stringResource(R.string.audio_input),
-                        "virtio-snd-pci",
-                        state.audioInput
+                        stringResource(R.string.audio_input), "virtio-snd-pci", state.audioInput
                     ) {
                         onChange(QemuEditorChange.AudioInput(it))
                     }
@@ -474,4 +463,3 @@ internal fun <T : QemuEditorState> QemuConfigScreen(
         displayDeviceChoices = displayDeviceChoices
     )
 }
-

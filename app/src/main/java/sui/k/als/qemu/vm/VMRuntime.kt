@@ -78,9 +78,7 @@ object VMRuntime {
     }
 
     fun stop() = onMain {
-        if (state != VMRunState.Starting && state != VMRunState.Running &&
-            state != VMRunState.Stopping
-        ) {
+        if (state != VMRunState.Starting && state != VMRunState.Running && state != VMRunState.Stopping) {
             return@onMain
         }
         state = VMRunState.Stopping

@@ -5,7 +5,7 @@ import android.content.*
 import android.os.*
 import android.system.*
 import android.view.*
-import sui.k.als.Log
+import sui.k.als.*
 import java.io.*
 
 class QemuService : Service() {
@@ -52,7 +52,9 @@ class QemuService : Service() {
                 }
             }
             if (!accepted) {
-                replyFailure(callback, token, IllegalStateException("QEMU process is already in use"))
+                replyFailure(
+                    callback, token, IllegalStateException("QEMU process is already in use")
+                )
                 return
             }
             startWhenReady()
@@ -155,9 +157,7 @@ class QemuService : Service() {
                 }
                 binder = Thread({
                     val deadline = SystemClock.uptimeMillis() + 270
-                    while (!Thread.currentThread().isInterrupted &&
-                        SystemClock.uptimeMillis() < deadline
-                    ) {
+                    while (!Thread.currentThread().isInterrupted && SystemClock.uptimeMillis() < deadline) {
                         VMNative.rebindOutput(value.consolePid)
                         try {
                             Thread.sleep(3)
