@@ -108,12 +108,10 @@ android {
         resValues = false
     }
     bundle {
-        @Suppress("UnstableApiUsage") language { enableSplit = true }
-        @Suppress("UnstableApiUsage") density { enableSplit = true }
-        @Suppress("UnstableApiUsage") abi { enableSplit = true }
+        language { enableSplit = true }
+        density { enableSplit = true }
+        abi { enableSplit = true }
     }
-    experimentalProperties["android.experimental.art-profile-r8-rewriting"] = true
-    experimentalProperties["android.experimental.r8.fullMode"] = true
 }
 dependencies {
     implementation(libs.androidx.compose.foundation)

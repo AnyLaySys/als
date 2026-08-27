@@ -24,7 +24,7 @@
         </activity>
 
         <service
-            android:name=".app.qemu.vm.QemuService"
+            android:name=".qemu.vm.QemuService"
             android:exported="false"
             android:process=":qemu" />
 

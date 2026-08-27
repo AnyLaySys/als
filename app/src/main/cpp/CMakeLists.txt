@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(alslog C)
+project(alg C)
 
-add_library(alslog SHARED alslog.c)
+add_library(alg SHARED log.c)
 add_library(termux SHARED termux.c)
 
 target_compile_options(termux PRIVATE
@@ -26,6 +26,6 @@ target_link_options(termux PRIVATE
     -Wl,-z,common-page-size=16384
 )
 
-find_library(log_library log)
+find_library(android_log_library log)
 
-target_link_libraries(alslog ${log_library})
+target_link_libraries(alg ${android_log_library})

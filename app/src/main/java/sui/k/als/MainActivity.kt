@@ -16,7 +16,7 @@ val localFont = staticCompositionLocalOf<FontFamily> { FontFamily.Default }
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ALSLog.info("ALS", "MainActivity created")
+        Log.info("ALS", "MainActivity created")
         setContent {
             val font = remember {
                 runCatching {
@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        ALSLog.info("ALS", "MainActivity destroyed")
+        Log.info("ALS", "MainActivity destroyed")
         super.onDestroy()
     }
 }

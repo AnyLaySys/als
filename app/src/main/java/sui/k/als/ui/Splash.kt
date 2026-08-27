@@ -18,8 +18,8 @@ import androidx.core.content.*
 import androidx.core.graphics.drawable.*
 import kotlinx.coroutines.*
 import sui.k.als.R
-import sui.k.als.app.qemu.gunyah.QemuGunyahConfigStore
-import sui.k.als.app.qemu.gzvm.QemuGzvmConfigStore
+import sui.k.als.qemu.gunyah.QemuGunyahConfigStore
+import sui.k.als.qemu.gzvm.QemuGzvmConfigStore
 
 var suDir by mutableStateOf("su")
 val su get() = suDir

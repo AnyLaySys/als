@@ -4,7 +4,7 @@ import android.content.*
 import android.os.*
 import java.io.*
 
-internal object ALSLog {
+internal object Log {
     private const val path = "/data/local/tmp/als/als.log"
     private val lock = Any()
     private lateinit var pending: File
@@ -28,7 +28,7 @@ internal object ALSLog {
             }
             writeLocked(record("I", "ALS", "process started"))
         }
-        runCatching { System.loadLibrary("alslog") }.onFailure {
+        runCatching { System.loadLibrary("alg") }.onFailure {
             error("ALS", "native log capture could not load", it)
         }
     }
