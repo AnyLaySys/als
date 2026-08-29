@@ -3,9 +3,7 @@ package sui.k.als.ui
 import android.app.*
 import android.view.*
 import android.view.inputmethod.*
-import androidx.activity.compose.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.*
 import androidx.compose.ui.platform.*
 import com.termux.terminal.*
 import kotlinx.coroutines.*
@@ -20,49 +18,46 @@ import sui.k.als.qemu.gzvm.toVMLaunch as toGzvmVMLaunch
 
 const val alsDir = "/data/local/tmp/als"
 
-private enum class Destination {
+enum class Destination {
     Backends, Gunyah, Gzvm, Sessions, Terminal, Display, Console
 }
 
-@Composable
-fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val vmState = VMRuntime.state
-    var sessions by remember { mutableStateOf(emptyList<TTYInstance>()) }
-    var active by remember { mutableStateOf<TTYInstance?>(null) }
-    var qemuConsole by remember { mutableStateOf<TTYInstance?>(null) }
-    var destination by remember { mutableStateOf(Destination.Backends) }
-    var vmLaunch by remember {
-        mutableStateOf(
-            VMRuntime.currentLaunch ?: QemuGunyahConfigStore.load(context).toGunyahVMLaunch()
-        )
-    }
+internal object HubState {
+    var sessions by mutableStateOf(emptyList<TTYInstance>())
+    var active by mutableStateOf<TTYInstance?>(null)
+    var qemuConsole by mutableStateOf<TTYInstance?>(null)
+    var vmLaunch by mutableStateOf<VMLaunch?>(null)
 
-    val close = {
+    fun close() {
         VMRuntime.stop()
         sessions.forEach { it.session.finishIfRunning() }
         qemuConsole?.session?.finishIfRunning()
         sessions = emptyList()
         active = null
         qemuConsole = null
+        vmLaunch = null
     }
-    val exit = {
-        close()
-        onFin()
-        (context as? Activity)?.finishAffinity()
+}
+
+@Composable
+fun Hub(destination: Destination, onNavigate: (Destination) -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val vmState = VMRuntime.state
+    val activity = context as? Activity
+    val defaultLaunch = remember {
+        VMRuntime.currentLaunch ?: QemuGunyahConfigStore.load(context).toGunyahVMLaunch()
     }
     val create: () -> Unit = {
         val instance = createTTYInstance(context, object : TTYSessionStub() {
             override fun onSessionFinished(session: TerminalSession) {
                 super.onSessionFinished(session)
-                sessions = sessions.filter { it.session != session }
-                if (active?.session == session) active = sessions.lastOrNull()
-                destination = if (active == null) Destination.Backends else Destination.Sessions
+                HubState.sessions = HubState.sessions.filter { it.session != session }
+                if (HubState.active?.session == session) HubState.active = HubState.sessions.lastOrNull()
             }
         }, object : TTYViewStub() {
             override fun onSingleTapUp(event: MotionEvent) {
-                active?.view?.run {
+                HubState.active?.view?.run {
                     requestFocus()
                     context.getSystemService(InputMethodManager::class.java)?.showSoftInput(this, 0)
                 }
@@ -74,123 +69,99 @@ fun Hub(modifier: Modifier = Modifier, onFin: () -> Unit) {
             delay(90)
             cmd(instance.session, "printf \"\\033[2J\\033[3J\\033[H\"")
         }
-        sessions = sessions + instance
-        active = instance
-        destination = Destination.Terminal
+        HubState.sessions = HubState.sessions + instance
+        HubState.active = instance
+        onNavigate(Destination.Terminal)
     }
     val createQemuConsole: () -> TTYInstance = {
-        qemuConsole?.session?.finishIfRunning()
+        HubState.qemuConsole?.session?.finishIfRunning()
         val instance = createQemuTTYInstance(context, TTYSessionStub(), object : TTYViewStub() {
             override fun onSingleTapUp(event: MotionEvent) {
-                qemuConsole?.view?.run {
+                HubState.qemuConsole?.view?.run {
                     requestFocus()
                     context.getSystemService(InputMethodManager::class.java)?.showSoftInput(this, 0)
                 }
             }
         })
-        qemuConsole = instance
+        HubState.qemuConsole = instance
         instance
     }
 
-    val currentSessions by rememberUpdatedState(sessions)
-    val currentConsole by rememberUpdatedState(qemuConsole)
-
-    DisposableEffect(Unit) {
-        onDispose {
-            VMRuntime.stop()
-            currentSessions.forEach { it.session.finishIfRunning() }
-            currentConsole?.session?.finishIfRunning()
+    LaunchedEffect(vmState, destination) {
+        if (vmState == VMRunState.Failed && destination == Destination.Display && HubState.qemuConsole != null) {
+            onNavigate(Destination.Console)
+            activity?.finish()
         }
     }
-    LaunchedEffect(vmState) {
-        if (vmState == VMRunState.Failed && destination == Destination.Display && qemuConsole != null) {
-            destination = Destination.Console
-        }
-    }
-    BackHandler {
-        when (destination) {
-            Destination.Backends -> exit()
-            Destination.Sessions -> destination = Destination.Backends
-            Destination.Gunyah, Destination.Gzvm -> destination = Destination.Backends
-            Destination.Terminal -> {
-                destination = if (sessions.isEmpty()) Destination.Backends else Destination.Sessions
-            }
-
-            Destination.Display -> destination = when (vmLaunch.backend) {
-                VMBackend.Gunyah -> Destination.Gunyah
-                VMBackend.Gzvm -> Destination.Gzvm
-            }
-
-            Destination.Console -> destination = when (vmLaunch.backend) {
-                VMBackend.Gunyah -> Destination.Gunyah
-                VMBackend.Gzvm -> Destination.Gzvm
-            }
-        }
-    }
-
     when (destination) {
         Destination.Backends -> App(
-            onQemuGunyah = { destination = Destination.Gunyah },
-            onQemuGzvm = { destination = Destination.Gzvm })
+            onQemuGunyah = { onNavigate(Destination.Gunyah) },
+            onQemuGzvm = { onNavigate(Destination.Gzvm) })
 
         Destination.Gunyah -> QemuGunyah(
             started = vmState.active,
             onCreate = {
                 val console = createQemuConsole()
-                vmLaunch = it.toGunyahVMLaunch().copy(consolePid = console.session.pid)
-                VMRuntime.prepare(vmLaunch)
-                destination = Destination.Display
+                HubState.vmLaunch = it.toGunyahVMLaunch().copy(consolePid = console.session.pid)
+                VMRuntime.prepare(HubState.vmLaunch!!)
+                onNavigate(Destination.Display)
             },
-            onDisplay = { destination = Destination.Display },
+            onDisplay = { onNavigate(Destination.Display) },
             onConsole = {
-                if (qemuConsole == null) createQemuConsole(); destination = Destination.Console
+                if (HubState.qemuConsole == null) createQemuConsole()
+                onNavigate(Destination.Console)
             },
             onStop = {
                 scope.launch(Dispatchers.IO) {
                     VMRuntime.stop()
                 }
             },
-            onBack = { destination = Destination.Backends },
+            onBack = { activity?.finish() },
             onKeyboardSettingsChange = { hide, soft ->
-                vmLaunch = vmLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
+                HubState.vmLaunch = (HubState.vmLaunch ?: defaultLaunch).copy(
+                    hideKeyboard = hide, softKeyboard = soft
+                )
             })
 
         Destination.Gzvm -> QemuGzvm(
             started = vmState.active,
             onCreate = {
                 val console = createQemuConsole()
-                vmLaunch = it.toGzvmVMLaunch().copy(consolePid = console.session.pid)
-                VMRuntime.prepare(vmLaunch)
-                destination = Destination.Display
+                HubState.vmLaunch = it.toGzvmVMLaunch().copy(consolePid = console.session.pid)
+                VMRuntime.prepare(HubState.vmLaunch!!)
+                onNavigate(Destination.Display)
             },
-            onDisplay = { destination = Destination.Display },
+            onDisplay = { onNavigate(Destination.Display) },
             onConsole = {
-                if (qemuConsole == null) createQemuConsole(); destination = Destination.Console
+                if (HubState.qemuConsole == null) createQemuConsole()
+                onNavigate(Destination.Console)
             },
             onStop = {
                 scope.launch(Dispatchers.IO) {
                     VMRuntime.stop()
                 }
             },
-            onBack = { destination = Destination.Backends },
+            onBack = { activity?.finish() },
             onKeyboardSettingsChange = { hide, soft ->
-                vmLaunch = vmLaunch.copy(hideKeyboard = hide, softKeyboard = soft)
+                HubState.vmLaunch = (HubState.vmLaunch ?: defaultLaunch).copy(
+                    hideKeyboard = hide, softKeyboard = soft
+                )
             })
 
         Destination.Sessions -> TTYHub(
-            sessions = sessions,
-            onBack = { destination = Destination.Backends },
+            sessions = HubState.sessions,
+            onBack = { activity?.finish() },
             onSelect = {
-                active = it
-                destination = Destination.Terminal
+                HubState.active = it
+                onNavigate(Destination.Terminal)
             },
             onDelete = { it.session.finishIfRunning() },
             onCreate = create
         )
 
-        Destination.Terminal -> active?.let { TTYScreen(it) { TTYIME() } }
-        Destination.Display -> VMScreen(vmLaunch)
-        Destination.Console -> qemuConsole?.let { TTYScreen(it) { TTYIME() } }
+        Destination.Terminal -> HubState.active?.let { TTYScreen(it) { TTYIME() } }
+        Destination.Display -> (HubState.vmLaunch ?: VMRuntime.currentLaunch)?.let { VMScreen(it) }
+        Destination.Console -> HubState.qemuConsole?.let { TTYScreen(it) { TTYIME() } }
     }
 }
 

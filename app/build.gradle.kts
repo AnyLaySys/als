@@ -54,8 +54,8 @@ android {
         applicationId = "sui.k.als"
         minSdk = 35
         targetSdk = 37
-        versionCode = 22
-        versionName = "26.8.28"
+        versionCode = 23
+        versionName = "26.8.30"
         ndk {
             abiFilters.add("arm64-v8a")
         }

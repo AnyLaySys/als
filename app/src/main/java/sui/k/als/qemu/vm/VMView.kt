@@ -48,9 +48,6 @@ class VMView(context: Context) : SurfaceView(context), SurfaceHolder.Callback {
     }
 
     override fun surfaceCreated(holder: SurfaceHolder) {
-        refreshRate = preferredRefreshRate()
-        applyFrameRate(holder.surface)
-        VMRuntime.attach(holder.surface, refreshRate)
         requestFocus()
     }
 

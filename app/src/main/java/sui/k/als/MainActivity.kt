@@ -1,5 +1,6 @@
 package sui.k.als
 
+import android.content.*
 import android.os.*
 import androidx.activity.*
 import androidx.activity.compose.*
@@ -14,22 +15,30 @@ const val CODE_FONT_ASSET = "GoogleSansCode.ttf"
 val localFont = staticCompositionLocalOf<FontFamily> { FontFamily.Default }
 
 class MainActivity : ComponentActivity() {
+    private val destination
+        get() = intent.getStringExtra("destination")?.let {
+            runCatching { Destination.valueOf(it) }.getOrNull()
+        } ?: Destination.Backends
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.info("ALS", "MainActivity created")
+        val destination = destination
         setContent {
             val font = remember {
                 runCatching {
                     FontFamily(Font(UI_FONT_ASSET, assets))
                 }.getOrDefault(FontFamily.Default)
             }
-            var showSplash by rememberSaveable { mutableStateOf(true) }
+            var showSplash by rememberSaveable { mutableStateOf(destination == Destination.Backends) }
             CompositionLocalProvider(localFont provides font) {
                 ALSTheme {
                     if (showSplash) {
                         Splash { showSplash = false }
                     } else {
-                        Hub { finish() }
+                        Hub(destination) {
+                            startActivity(Intent(this, MainActivity::class.java).putExtra("destination", it.name))
+                        }
                     }
                 }
             }
@@ -37,6 +46,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        if (destination == Destination.Backends && isFinishing) HubState.close()
         Log.info("ALS", "MainActivity destroyed")
         super.onDestroy()
     }
