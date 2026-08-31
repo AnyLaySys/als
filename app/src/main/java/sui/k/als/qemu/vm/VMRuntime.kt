@@ -18,6 +18,7 @@ object VMRuntime {
     private var connection: ServiceConnection? = null
     private var qemu: Qemu? = null
     private var bound = false
+    private var restarting = false
     private var token = 0L
     var state by mutableStateOf(VMRunState.Idle)
         private set
@@ -31,11 +32,18 @@ object VMRuntime {
         if (state != VMRunState.Idle && state != VMRunState.Stopped && state != VMRunState.Failed) {
             return@onMain
         }
+        begin(value, false)
+    }
+
+    private fun begin(value: VMLaunch, preserveSurface: Boolean) {
         token++
         launch = value
-        surface = null
-        refreshRate = 0f
+        if (!preserveSurface) {
+            surface = null
+            refreshRate = 0f
+        }
         failureMessage = null
+        restarting = false
         state = VMRunState.Starting
         val current = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, binder: IBinder) {
@@ -81,6 +89,7 @@ object VMRuntime {
         if (state != VMRunState.Starting && state != VMRunState.Running && state != VMRunState.Stopping) {
             return@onMain
         }
+        restarting = false
         state = VMRunState.Stopping
         surface = null
         refreshRate = 0f
@@ -149,6 +158,13 @@ object VMRuntime {
         if (value != token) {
             return@onMain
         }
+        if (status == qemuGunyahRestartStatus && launch?.backend == VMBackend.Gunyah &&
+            state != VMRunState.Stopping) {
+            restarting = true
+            state = VMRunState.Starting
+            call { it.restart(token) }
+            return@onMain
+        }
         val stopped = state == VMRunState.Stopping || status == 0
         release(connection)
         state = if (stopped) VMRunState.Stopped else VMRunState.Failed
@@ -169,8 +185,15 @@ object VMRuntime {
         if (connection !== current) {
             return@onMain
         }
+        val restart = restarting && state != VMRunState.Stopping
+        val value = launch
+        restarting = false
         val stopped = state == VMRunState.Stopping
         release(current)
+        if (restart && value != null) {
+            begin(value, true)
+            return@onMain
+        }
         state = if (stopped) VMRunState.Stopped else VMRunState.Failed
         failureMessage = if (stopped) null else "QEMU process exited unexpectedly"
         if (!stopped) {

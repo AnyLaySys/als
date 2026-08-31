@@ -4,6 +4,8 @@ internal enum class VMBackend(internal val libraryName: String) {
     Gunyah("qemu-gunyah"), Gzvm("qemu-gzvm")
 }
 
+internal const val qemuGunyahRestartStatus = 82
+
 internal object VMNative {
     private var loadedLibrary: String? = null
 

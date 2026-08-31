@@ -21,6 +21,7 @@ class QemuService : Service() {
     private var nativeRunning = false
     private var stopping = false
     private var finished = false
+    private var restartPending = false
 
     private val binder = object : Qemu.Stub() {
         override fun start(
@@ -101,12 +102,24 @@ class QemuService : Service() {
                 stop()
             }
         }
+
+        override fun restart(token: Long) {
+            if (synchronized(lock) {
+                    token == this@QemuService.token && restartPending
+                }) {
+                end()
+            }
+        }
     }
 
     override fun onBind(intent: Intent): IBinder = binder
 
     override fun onUnbind(intent: Intent): Boolean {
-        stop()
+        if (synchronized(lock) { finished }) {
+            end()
+        } else {
+            stop()
+        }
         return false
     }
 
@@ -237,14 +250,22 @@ class QemuService : Service() {
 
     private fun finishExited(status: Int) {
         val value = takeFinish() ?: return
+        val restart = status == qemuGunyahRestartStatus && value.request?.backend == VMBackend.Gunyah
         if (status == 0) {
             Log.info("VM", "QEMU returned 0")
+        } else if (restart) {
+            Log.info("VM", "QEMU restarting")
         } else {
             Log.info("VM", "QEMU returned $status")
             value.request?.let { writeConsole(it, "QEMU exited with status $status") }
         }
+        if (restart) {
+            synchronized(lock) { restartPending = true }
+        }
         runCatching { value.callback?.exited(value.token, status) }
-        end()
+        if (!restart) {
+            end()
+        }
     }
 
     private fun finishFailure(error: Throwable) {

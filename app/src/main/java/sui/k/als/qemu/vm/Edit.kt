@@ -4,8 +4,8 @@ import android.*
 import android.content.*
 import androidx.activity.compose.*
 import androidx.activity.result.contract.*
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -86,14 +86,14 @@ internal fun QemuEditor(
     displayDeviceChoices: List<String>
 ) {
     ALSScaffold(title = title, onBack = onBack) { padding ->
-        LazyColumn(
+        Column(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
-            item {
                 ALSSection(stringResource(R.string.basic_config)) {
                     ALSTextField(stringResource(R.string.config_name), state.name) {
                         onChange(
@@ -127,8 +127,6 @@ internal fun QemuEditor(
                         }
                     }
                 }
-            }
-            item {
                 ALSSection(stringResource(R.string.storage)) {
                     ALSSwitchRow(stringResource(R.string.cdrom), checked = state.cdrom) {
                         onChange(QemuEditorChange.Cdrom(it))
@@ -184,8 +182,6 @@ internal fun QemuEditor(
                         onChange(QemuEditorChange.Iothread(it))
                     }
                 }
-            }
-            item {
                 ALSSection(stringResource(R.string.display_section)) {
                     ALSChoiceField(
                         stringResource(R.string.display_device),
@@ -211,8 +207,6 @@ internal fun QemuEditor(
                         }
                     }
                 }
-            }
-            item {
                 ALSSection(stringResource(R.string.keyboard_settings)) {
                     ALSSwitchRow(
                         stringResource(R.string.mouse), deviceCommands.tablet, state.tablet
@@ -239,8 +233,6 @@ internal fun QemuEditor(
                         onChange(QemuEditorChange.HideKeyboard(it))
                     }
                 }
-            }
-            item {
                 ALSSection(stringResource(R.string.audio)) {
                     ALSSwitchRow(
                         stringResource(R.string.audio_input), "virtio-snd-pci", state.audioInput
@@ -255,8 +247,6 @@ internal fun QemuEditor(
                         onChange(QemuEditorChange.AudioOutput(it))
                     }
                 }
-            }
-            item {
                 ALSSection(stringResource(R.string.devices)) {
                     ALSSwitchRow(
                         stringResource(R.string.network), deviceCommands.network, state.network
@@ -269,8 +259,6 @@ internal fun QemuEditor(
                         onChange(QemuEditorChange.Serial(it))
                     }
                 }
-            }
-            item {
                 if (started) {
                     Row(
                         Modifier
@@ -368,12 +356,9 @@ internal fun QemuEditor(
                         }
                     }
                 }
-            }
-            item {
-                ALSSection(stringResource(R.string.qemu_arguments)) {
+            ALSSection(stringResource(R.string.qemu_arguments)) {
                     Text(qemuArguments, style = MaterialTheme.typography.bodySmall)
                 }
-            }
         }
     }
 }

@@ -10,4 +10,5 @@ interface Qemu {
     void scroll(long token, float x, float y);
     void key(long token, int scanCode, boolean down);
     void stop(long token);
+    void restart(long token);
 }
