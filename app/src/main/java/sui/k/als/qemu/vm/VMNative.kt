@@ -4,7 +4,7 @@ internal enum class VMBackend(internal val libraryName: String) {
     Gunyah("qemu-gunyah"), Gzvm("qemu-gzvm")
 }
 
-internal const val qemuGunyahRestartStatus = 82
+internal const val qemuRestartStatus = 82
 
 internal object VMNative {
     private var loadedLibrary: String? = null
@@ -27,6 +27,7 @@ internal object VMNative {
     external fun scroll(x: Float, y: Float)
     external fun key(scanCode: Int, down: Boolean)
     external fun stop()
+    external fun setNetworkHandle(handle: Long)
     external fun redirectStdio(consolePid: Int): Int
     external fun rebindOutput(consolePid: Int): Int
     external fun restoreStdio()

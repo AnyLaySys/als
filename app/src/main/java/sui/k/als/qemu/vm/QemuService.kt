@@ -131,7 +131,7 @@ class QemuService : Service() {
     private fun startWhenReady() {
         val value = synchronized(lock) {
             request?.takeIf {
-                !started && !stopping && !finished && surface?.isValid == true
+                !started && !stopping && !finished
             }?.also { started = true }
         } ?: return
         runCatching { Thread({ run(value) }, "qemu").start() }.onFailure(::finishFailure)
@@ -250,7 +250,7 @@ class QemuService : Service() {
 
     private fun finishExited(status: Int) {
         val value = takeFinish() ?: return
-        val restart = status == qemuGunyahRestartStatus && value.request?.backend == VMBackend.Gunyah
+        val restart = status == qemuRestartStatus
         if (status == 0) {
             Log.info("VM", "QEMU returned 0")
         } else if (restart) {

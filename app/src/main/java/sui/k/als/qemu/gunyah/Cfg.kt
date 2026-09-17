@@ -75,6 +75,6 @@ fun parseQemuGunyahConfigJson(text: String): QemuGunyahConfig {
 }
 
 fun String.toQemuGunyahDisplayDevice(): String = when (this) {
-    "virtio-gpu-gl-pci", "off" -> this
+    "virtio-gpu-gl-pci", "ramfb", "off" -> this
     else -> "virtio-gpu-gl-pci"
 }

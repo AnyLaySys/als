@@ -12,6 +12,7 @@ fun QemuGunyahConfig.qemuDisplayDeviceArgument(
     device: String = displayDevice
 ): String? = when (device.toQemuGunyahDisplayDevice()) {
     "virtio-gpu-gl-pci" -> "virtio-gpu-gl-pci,xres=$width,yres=$height"
+    "ramfb" -> "ramfb"
     else -> null
 }
 

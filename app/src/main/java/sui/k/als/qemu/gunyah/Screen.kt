@@ -21,7 +21,7 @@ fun QemuGunyahScreen(
         toArgs = { it.toQemuGunyahArgs() },
         applyChange = { config, change -> config.apply(change) },
         onCreate = onCreate,
-        displayDeviceChoices = listOf("virtio-gpu-gl-pci", "off"),
+        displayDeviceChoices = listOf("virtio-gpu-gl-pci", "ramfb", "off"),
         onDisplay = onDisplay,
         onConsole = onConsole,
         onStop = onStop,

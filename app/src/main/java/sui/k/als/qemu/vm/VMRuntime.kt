@@ -158,8 +158,7 @@ object VMRuntime {
         if (value != token) {
             return@onMain
         }
-        if (status == qemuGunyahRestartStatus && launch?.backend == VMBackend.Gunyah &&
-            state != VMRunState.Stopping) {
+        if (status == qemuRestartStatus && state != VMRunState.Stopping) {
             restarting = true
             state = VMRunState.Starting
             call { it.restart(token) }
@@ -187,13 +186,13 @@ object VMRuntime {
         }
         val restart = restarting && state != VMRunState.Stopping
         val value = launch
-        restarting = false
         val stopped = state == VMRunState.Stopping
         release(current)
         if (restart && value != null) {
             begin(value, true)
             return@onMain
         }
+        restarting = false
         state = if (stopped) VMRunState.Stopped else VMRunState.Failed
         failureMessage = if (stopped) null else "QEMU process exited unexpectedly"
         if (!stopped) {
